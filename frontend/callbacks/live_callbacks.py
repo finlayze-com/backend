@@ -2,6 +2,7 @@ from dash import Input, Output
 import pandas as pd
 import plotly.graph_objects as go
 from frontend.services.api_fetcher import get_sector_net_real_flow
+from frontend.services.api_fetcher import fetch_treemap_data
 from dash.exceptions import PreventUpdate
 import dash
 
@@ -109,3 +110,35 @@ def register_live_callbacks(app):
         df = get_sector_net_real_flow()
         return draw_sector_sankey(df)
 
+
+
+    @app.callback(
+        Output("treemap-chart", "figure"),
+        Input("apply-changes-btn", "n_clicks"),
+        State("timeframe-toggle", "value"),
+        State("treemap-size-toggle", "value"),
+        State("etf-filter-toggle", "value"),
+        State("sector-dropdown", "value"),
+        prevent_initial_call=True
+    )
+    def update_treemap(n_clicks, timeframe, size_mode, include_etf, selected_sector):
+        print("📊 Treemap callback fired")
+        df = fetch_treemap_data(
+            timeframe=timeframe,
+            size_mode=size_mode,
+            sector=selected_sector,
+            include_etf=include_etf
+        )
+
+        if df.empty or "size" not in df:
+            raise PreventUpdate
+
+        fig = px.treemap(
+            df,
+            path=["sector", "stock_ticker"],
+            values="size",
+            hover_data=["stock_ticker", "sector", "size"],
+            title="نقشه بازار (Treemap)"
+        )
+        fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
+        return fig
