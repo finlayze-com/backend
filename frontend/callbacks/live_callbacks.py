@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from frontend.services.api_fetcher import get_sector_net_real_flow
 from frontend.services.api_fetcher import fetch_treemap_data
+from frontend.services.api_fetcher import fetch_orderbook_timeseries
+
 from dash.exceptions import PreventUpdate
 import dash
 
@@ -141,4 +143,41 @@ def register_live_callbacks(app):
             title="نقشه بازار (Treemap)"
         )
         fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
+        return fig
+
+
+
+    @app.callback(
+        Output("orderbook-line-chart", "figure"),
+        Input("apply-changes-btn", "n_clicks"),
+        State("orderbook-line-mode", "value"),
+        State("sector-dropdown", "value"),
+        prevent_initial_call=True
+    )
+    def update_orderbook_chart(n_clicks, line_mode, selected_sector):
+        print("📊 Orderbook callback fired", line_mode, selected_sector)
+
+        if line_mode == "sector":
+            df = fetch_orderbook_timeseries(mode="sector")
+            if df.empty:
+                raise PreventUpdate
+
+            fig = px.line(df, x="minute", y="net_value", color="Sector",
+                          title="جریان سفارش حقیقی بین صنایع")
+
+        elif line_mode == "intra-sector":
+            if not selected_sector:
+                raise PreventUpdate
+
+            df = fetch_orderbook_timeseries(mode="intra-sector", sector=selected_sector)
+            if df.empty:
+                raise PreventUpdate
+
+            fig = px.line(df, x="minute", y="net_value", color="Ticker",
+                          title=f"جریان سفارش حقیقی در صنعت {selected_sector}")
+
+        else:
+            raise PreventUpdate
+
+        fig.update_layout(margin=dict(t=40, l=0, r=0, b=0))
         return fig
