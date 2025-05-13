@@ -45,3 +45,23 @@ def fetch_orderbook_timeseries(mode="sector", sector=None):
     except Exception as e:
         print("❌ خطا در دریافت داده Orderbook از API:", e)
         return pd.DataFrame()
+
+
+BASE_URL = "http://127.0.0.1:8000/api"
+
+def fetch_real_money_flow(timeframe="daily", level="sector", sector=None, currency="rial"):
+    try:
+        params = {
+            "timeframe": timeframe,
+            "level": level,
+            "currency": currency
+        }
+        if level == "stock_ticker" and sector:
+            params["sector"] = sector
+
+        res = requests.get(f"{BASE_URL}/real-money-flow/timeseries", params=params)
+        res.raise_for_status()
+        return pd.DataFrame(res.json())
+    except Exception as e:
+        print("❌ خطا در دریافت داده روند حقیقی‌ها از API:", e)
+        return pd.DataFrame()

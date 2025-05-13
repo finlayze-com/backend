@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from frontend.services.api_fetcher import get_sector_net_real_flow
 from frontend.services.api_fetcher import fetch_treemap_data
 from frontend.services.api_fetcher import fetch_orderbook_timeseries
-
+from frontend.services.api_fetcher import fetch_real_money_flow
 from dash.exceptions import PreventUpdate
 import dash
 
@@ -181,3 +181,38 @@ def register_live_callbacks(app):
 
         fig.update_layout(margin=dict(t=40, l=0, r=0, b=0))
         return fig
+
+
+        @app.callback(
+            Output("real-money-bar-chart", "figure"),
+            Input("apply-changes-btn", "n_clicks"),
+            State("timeframe-toggle", "value"),
+            State("currency-toggle", "value"),
+            State("sector-dropdown", "value"),
+            State("real-money-mode", "value"),
+            prevent_initial_call=True
+        )
+        def update_real_money_chart(n_clicks, timeframe, currency, sector, mode):
+            print("📊 Real money callback fired", mode, sector)
+
+            if mode == "sector":
+                df = fetch_real_money_flow(timeframe=timeframe, level="sector", currency=currency)
+                if df.empty:
+                    raise PreventUpdate
+                fig = px.line(df, x="date", y="real_money_flow", color="sector",
+                              title="روند ورود/خروج حقیقی در صنایع")
+
+            elif mode == "intra-sector":
+                if not sector:
+                    raise PreventUpdate
+                df = fetch_real_money_flow(timeframe=timeframe, level="stock_ticker", sector=sector, currency=currency)
+                if df.empty:
+                    raise PreventUpdate
+                fig = px.line(df, x="date", y="real_money_flow", color="stock_ticker",
+                              title=f"روند ورود/خروج حقیقی نمادهای صنعت {sector}")
+
+            else:
+                raise PreventUpdate
+
+            fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
+            return fig
