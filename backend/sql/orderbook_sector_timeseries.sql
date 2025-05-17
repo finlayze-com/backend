@@ -16,6 +16,6 @@ SELECT
     COALESCE("SellPrice5", 0) * COALESCE("SellVolume5", 0)
   ) AS total_sell
 FROM orderbook_snapshot
-WHERE "Timestamp"::date = CURRENT_DATE - INTERVAL '1 day'
+WHERE "Timestamp"::date = CURRENT_DATE
 GROUP BY sector, minute
 ORDER BY minute;

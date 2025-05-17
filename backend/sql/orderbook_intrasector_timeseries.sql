@@ -17,7 +17,7 @@ SELECT
         COALESCE("SellPrice5", 0) * COALESCE("SellVolume5", 0)
     ), 0) AS total_sell
 FROM orderbook_snapshot
-WHERE "Timestamp"::date >= CURRENT_DATE - INTERVAL '1 day'
+WHERE "Timestamp"::date >= CURRENT_DATE - INTERVAL
   AND "Sector" = :sector
   AND "Symbol" IS NOT NULL
 GROUP BY "Sector", "Symbol", minute
