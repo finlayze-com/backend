@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
 from enum import Enum as PyEnum
 from backend.db.connection import Base
+from sqlalchemy import Enum as SqlEnum  # اضافه کن بالا
+
 
 class UserType(PyEnum):
     HAGHIGHI = "haghighi"
@@ -17,7 +19,11 @@ class User(Base):
     first_name = Column(String(100))
     last_name = Column(String(100))
     display_name = Column(String(150))
-    user_type = Column(Enum(UserType), default=UserType.HAGHIGHI)
+    user_type = Column(
+        SqlEnum(UserType, name="user_type_enum"),
+        nullable=False,
+        default=UserType.HAGHIGHI
+    )
     national_code = Column(String(20))
     company_national_id = Column(String(20))
     economic_code = Column(String(20))
@@ -80,6 +86,10 @@ class Subscription(Base):
     price = Column(Integer, nullable=False)
     features = Column(JSON, default={})
     is_active = Column(Boolean, default=True)
+    name_fa = Column(String(100))
+    name_en = Column(String(100))
+    role_id = Column(Integer, ForeignKey('roles.id'))
+    role = relationship("Role")  # optional for easy access
 
 
 class UserSubscription(Base):
@@ -92,6 +102,9 @@ class UserSubscription(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     payment_ref = Column(String(100))
+    transaction_id = Column(String(100))
+    method = Column(String(50), default="manual")
+    status = Column(String(20), default="active")
 
     user = relationship("User", back_populates="subscriptions")
     subscription = relationship("Subscription")

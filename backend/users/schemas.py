@@ -52,10 +52,13 @@ class PermissionOut(BaseModel):
 class SubscriptionOut(BaseModel):
     id: int
     name: str
+    name_fa: Optional[str]
+    name_en: Optional[str]
     duration_days: int
     price: int
     features: Dict[str, bool]
     is_active: bool
+    role_id: Optional[int]
     class Config:
         orm_mode = True
 
@@ -69,3 +72,41 @@ class UserOut(BaseModel):
     roles: List[RoleOut] = []
     class Config:
         orm_mode = True
+
+class UserSubscribeIn(BaseModel):
+    subscription_id: int
+    method: str = "manual"
+
+class MeResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    first_name: Optional[str]
+    last_name: Optional[str]
+    roles: List[str]
+    features: Dict[str, bool]
+
+    class Config:
+        from_attributes = True
+
+
+class SimpleSubscription(BaseModel):
+    name: str
+    name_en: Optional[str]
+    features: Dict[str, bool]
+
+    class Config:
+        from_attributes = True
+
+class UserSubscriptionOut(BaseModel):
+    id: int
+    subscription_id: int
+    start_date: datetime
+    end_date: datetime
+    is_active: bool
+    method: str
+    status: str
+    subscription: Optional[SimpleSubscription]
+
+    class Config:
+        from_attributes = True
