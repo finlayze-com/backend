@@ -1,8 +1,9 @@
 from fastapi import Depends, HTTPException, status
-from backend.users.auth import get_current_user
+from backend.users.routes.auth import get_current_user
 from backend.users import models
 from typing import List
-
+from backend.users.routes.auth import get_current_user
+from backend.users.models import User
 
 def require_roles(*required_roles: str):
     def checker(user: models.User = Depends(get_current_user)):
@@ -40,3 +41,25 @@ def require_roles(allowed_roles: List[str]):
         return user
     return role_checker
 
+def require_permission(permission_name: str):
+    def checker(user: models.User = Depends(get_current_user)):
+        if not hasattr(user, "permissions") or permission_name not in user.permissions:
+            raise HTTPException(
+                status_code=403,
+                detail=f"⚠️ نیاز به دسترسی '{permission_name}' دارید"
+            )
+        return user
+    return checker
+
+
+
+# ✅ بررسی اینکه کاربر پرمیشن خاصی داره یا نه
+def require_permission(permission_name: str):
+    def dependency(current_user: User = Depends(get_current_user)):
+        if permission_name not in current_user.permissions:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"⛔ دسترسی '{permission_name}' مجاز نیست"
+            )
+        return current_user
+    return dependency

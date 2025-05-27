@@ -42,6 +42,7 @@ class User(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
     # ارتباط‌ها
     roles = relationship("Role", secondary="user_roles", back_populates="users")
@@ -55,14 +56,18 @@ class Role(Base):
     description = Column(Text)
     users = relationship("User", secondary="user_roles", back_populates="roles")
     permissions = relationship("Permission", secondary="role_permissions", back_populates="roles")
-
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
 class UserRole(Base):
     __tablename__ = 'user_roles'
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
     assigned_at = Column(DateTime, default=datetime.utcnow)
-
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
 class Permission(Base):
     __tablename__ = 'permissions'
@@ -70,13 +75,17 @@ class Permission(Base):
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text)
     roles = relationship("Role", secondary="role_permissions", back_populates="permissions")
-
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
 class RolePermission(Base):
     __tablename__ = 'role_permissions'
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
     permission_id = Column(Integer, ForeignKey('permissions.id'), primary_key=True)
-
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
 class Subscription(Base):
     __tablename__ = 'subscriptions'
@@ -90,7 +99,9 @@ class Subscription(Base):
     name_en = Column(String(100))
     role_id = Column(Integer, ForeignKey('roles.id'))
     role = relationship("Role")  # optional for easy access
-
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
 class UserSubscription(Base):
     __tablename__ = 'user_subscriptions'
@@ -105,6 +116,9 @@ class UserSubscription(Base):
     transaction_id = Column(String(100))
     method = Column(String(50), default="manual")
     status = Column(String(20), default="active")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="subscriptions")
     subscription = relationship("Subscription")

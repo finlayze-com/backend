@@ -5,13 +5,12 @@ from backend.users import models
 
 DEFAULT_ROLE_NAME = "user"
 
-
 def deactivate_expired_subscriptions():
     db: Session = SessionLocal()
     try:
         now = datetime.utcnow()
 
-        # 1️⃣ غیرفعال کردن اشتراک‌هایی که زمان‌شان تمام شده و هنوز فعال هستند
+        # 1️⃣ غیرفعال‌سازی اشتراک‌های منقضی‌شده
         expired = db.query(models.UserSubscription).filter(
             models.UserSubscription.end_date < now,
             models.UserSubscription.is_active == True
@@ -20,14 +19,31 @@ def deactivate_expired_subscriptions():
         for sub in expired:
             sub.is_active = False
 
-            # 2️⃣ نقش کاربر را به نقش پیش‌فرض تغییر بده
-            user = db.query(models.User).filter(models.User.id == sub.user_id).first()
-            default_role = db.query(models.Role).filter(models.Role.name == DEFAULT_ROLE_NAME).first()
-            if default_role:
-                user.roles = [default_role]
+        # 2️⃣ بررسی برای فعال‌سازی اشتراک بعدی (اگر موجود بود)
+        users = db.query(models.User).all()
+        for user in users:
+            next_sub = db.query(models.UserSubscription).filter(
+                models.UserSubscription.user_id == user.id,
+                models.UserSubscription.start_date <= now,
+                models.UserSubscription.is_active == False
+            ).order_by(models.UserSubscription.start_date).first()
+
+            if next_sub:
+                next_sub.is_active = True
+
+                # اعمال نقش پلن جدید
+                if next_sub.subscription and next_sub.subscription.role_id:
+                    role = db.query(models.Role).filter(models.Role.id == next_sub.subscription.role_id).first()
+                    if role:
+                        user.roles = [role]
+                else:
+                    # نقش پیش‌فرض اگر پلن نقشی نداشت
+                    default_role = db.query(models.Role).filter(models.Role.name == DEFAULT_ROLE_NAME).first()
+                    if default_role:
+                        user.roles = [default_role]
 
         db.commit()
-        print(f"✅ بررسی اشتراک‌ها انجام شد. {len(expired)} اشتراک منقضی شد.")
+        print(f"✅ بررسی و تغییر وضعیت اشتراک‌ها انجام شد.")
 
     except Exception as e:
         print("❌ خطا در بررسی اشتراک‌ها:", str(e))
