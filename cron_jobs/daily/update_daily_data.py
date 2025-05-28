@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 import jdatetime
@@ -13,7 +15,11 @@ def convert_jalali_to_gregorian(jalali_date):
         return None
 
 def update_daily_data():
-    conn = psycopg2.connect("host=localhost dbname=postgres1 user=postgres password=Afiroozi12")
+    # بارگذاری فایل .env
+    load_dotenv()
+
+    # اتصال امن به دیتابیس
+    conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
 
     cur.execute("""

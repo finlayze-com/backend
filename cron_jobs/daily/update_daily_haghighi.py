@@ -4,16 +4,18 @@ from datetime import datetime
 import psycopg2
 import time
 import sys
+import os
+from dotenv import load_dotenv
+
+# خروجی ترمینال UTF-8
 sys.stdout.reconfigure(encoding='utf-8')
 
+# بارگذاری env
+load_dotenv()
+
 def update_haghighi_data():
-    conn = psycopg2.connect(
-        dbname="postgres1",
-        user="postgres",
-        password="Afiroozi12",
-        host="localhost",
-        port="5432"
-    )
+    # اتصال امن به دیتابیس
+    conn = psycopg2.connect(os.getenv("DB_URL"))
     cursor = conn.cursor()
     conn.rollback()
 
@@ -62,7 +64,7 @@ def update_haghighi_data():
             try:
                 response = requests.get(url, timeout=20)
                 json_data = response.json()
-                break  # موفق شد، برو بیرون از حلقه
+                break
             except Exception as e:
                 print(f"⏳ تلاش {attempt+1} برای {stock_ticker} شکست خورد: {e}")
                 time.sleep(2)
@@ -125,7 +127,6 @@ def update_haghighi_data():
     cursor.close()
     conn.close()
 
-# اجرا
-# ✅ فقط این قسمت جدید اضافه شده:
+# اجرای تابع اصلی
 if __name__ == "__main__":
     update_haghighi_data()

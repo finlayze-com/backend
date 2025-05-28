@@ -6,6 +6,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import date
+import os
+from dotenv import load_dotenv
+
+# بارگذاری متغیرهای .env
+load_dotenv()
 
 def update_today_dollar():
     # تنظیمات headless مرورگر
@@ -17,15 +22,14 @@ def update_today_dollar():
     # اجرای مرورگر
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-    # 📌 بارگذاری صفحه اصلی نرخ دلار
+    # بارگذاری صفحه نرخ دلار
     url = 'https://www.tgju.org/profile/price_dollar_rl'
     driver.get(url)
-    time.sleep(3)  # صبر برای لود کامل
+    time.sleep(3)
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     driver.quit()
 
-    # 📌 تابع استخراج قیمت‌ها از HTML
     def get_price(label):
         try:
             rows = soup.select('tbody.table-padding-lg tr')
@@ -37,7 +41,6 @@ def update_today_dollar():
             print(f"❌ خطا در دریافت {label}: {e}")
         return None
 
-    # گرفتن نرخ‌ها
     current_price = get_price("نرخ فعلی")
     open_price = get_price("نرخ بازگشایی بازار")
     high_price = get_price("بالاترین قیمت روز")
@@ -45,22 +48,28 @@ def update_today_dollar():
     today = date.today()
 
     if not all([current_price, open_price, high_price, low_price]):
-        print("❌ دریافت نرخ‌ها ناموفق بود.")
+        print("❌ دریافت نرخ‌ها ناموفق بود (داده None).")
         return
 
-    # 📌 اتصال به دیتابیس
-    conn = psycopg2.connect(
-        host='localhost',
-        dbname='postgres1',
-        user='postgres',
-        password='Afiroozi12'
-    )
+    if "-" in [current_price, open_price, high_price, low_price]:
+        print("⚠️ دریافت مقدار نامعتبر از سایت (علامت -)، ذخیره انجام نشد.")
+        return
+
+    try:
+        current_price = float(current_price)
+        open_price = float(open_price)
+        high_price = float(high_price)
+        low_price = float(low_price)
+    except ValueError:
+        print("❌ خطا در تبدیل نرخ‌ها به عدد (float)، ذخیره انجام نشد.")
+        return
+
+    # اتصال امن به دیتابیس از .env
+    conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
 
-    # حذف داده قبلی برای تاریخ امروز
     cur.execute("DELETE FROM dollar_data WHERE date_miladi = %s;", (today,))
 
-    # افزودن داده جدید
     cur.execute("""
         INSERT INTO dollar_data (date_miladi, open, high, low, close)
         VALUES (%s, %s, %s, %s, %s);
@@ -78,6 +87,5 @@ def update_today_dollar():
     cur.close()
     conn.close()
 
-# اجرای تابع
 if __name__ == "__main__":
     update_today_dollar()
