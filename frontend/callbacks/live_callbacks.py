@@ -2,6 +2,9 @@ from dash import Input, Output
 import pandas as pd
 import plotly.graph_objects as go
 from frontend.services.api_fetcher import get_sector_net_real_flow
+from frontend.services.api_fetcher import fetch_treemap_data
+from frontend.services.api_fetcher import fetch_orderbook_timeseries
+from frontend.services.api_fetcher import fetch_real_money_flow
 from dash.exceptions import PreventUpdate
 import dash
 
@@ -109,3 +112,107 @@ def register_live_callbacks(app):
         df = get_sector_net_real_flow()
         return draw_sector_sankey(df)
 
+
+
+    @app.callback(
+        Output("treemap-chart", "figure"),
+        Input("apply-changes-btn", "n_clicks"),
+        State("timeframe-toggle", "value"),
+        State("treemap-size-toggle", "value"),
+        State("etf-filter-toggle", "value"),
+        State("sector-dropdown", "value"),
+        prevent_initial_call=True
+    )
+    def update_treemap(n_clicks, timeframe, size_mode, include_etf, selected_sector):
+        print("📊 Treemap callback fired")
+        df = fetch_treemap_data(
+            timeframe=timeframe,
+            size_mode=size_mode,
+            sector=selected_sector,
+            include_etf=include_etf
+        )
+
+        if df.empty or "size" not in df:
+            raise PreventUpdate
+
+        fig = px.treemap(
+            df,
+            path=["sector", "stock_ticker"],
+            values="size",
+            hover_data=["stock_ticker", "sector", "size"],
+            title="نقشه بازار (Treemap)"
+        )
+        fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
+        return fig
+
+
+
+    @app.callback(
+        Output("orderbook-line-chart", "figure"),
+        Input("apply-changes-btn", "n_clicks"),
+        State("orderbook-line-mode", "value"),
+        State("sector-dropdown", "value"),
+        prevent_initial_call=True
+    )
+    def update_orderbook_chart(n_clicks, line_mode, selected_sector):
+        print("📊 Orderbook callback fired", line_mode, selected_sector)
+
+        if line_mode == "sector":
+            df = fetch_orderbook_timeseries(mode="sector")
+            if df.empty:
+                raise PreventUpdate
+
+            fig = px.line(df, x="minute", y="net_value", color="Sector",
+                          title="جریان سفارش حقیقی بین صنایع")
+
+        elif line_mode == "intra-sector":
+            if not selected_sector:
+                raise PreventUpdate
+
+            df = fetch_orderbook_timeseries(mode="intra-sector", sector=selected_sector)
+            if df.empty:
+                raise PreventUpdate
+
+            fig = px.line(df, x="minute", y="net_value", color="Ticker",
+                          title=f"جریان سفارش حقیقی در صنعت {selected_sector}")
+
+        else:
+            raise PreventUpdate
+
+        fig.update_layout(margin=dict(t=40, l=0, r=0, b=0))
+        return fig
+
+
+        @app.callback(
+            Output("real-money-bar-chart", "figure"),
+            Input("apply-changes-btn", "n_clicks"),
+            State("timeframe-toggle", "value"),
+            State("currency-toggle", "value"),
+            State("sector-dropdown", "value"),
+            State("real-money-mode", "value"),
+            prevent_initial_call=True
+        )
+        def update_real_money_chart(n_clicks, timeframe, currency, sector, mode):
+            print("📊 Real money callback fired", mode, sector)
+
+            if mode == "sector":
+                df = fetch_real_money_flow(timeframe=timeframe, level="sector", currency=currency)
+                if df.empty:
+                    raise PreventUpdate
+                fig = px.line(df, x="date", y="real_money_flow", color="sector",
+                              title="روند ورود/خروج حقیقی در صنایع")
+
+            elif mode == "intra-sector":
+                if not sector:
+                    raise PreventUpdate
+                df = fetch_real_money_flow(timeframe=timeframe, level="stock_ticker", sector=sector, currency=currency)
+                if df.empty:
+                    raise PreventUpdate
+                fig = px.line(df, x="date", y="real_money_flow", color="stock_ticker",
+                              title=f"روند ورود/خروج حقیقی نمادهای صنعت {sector}")
+
+            else:
+                raise PreventUpdate
+
+            fig.update_layout(margin=dict(t=50, l=0, r=0, b=0))
+            return fig
