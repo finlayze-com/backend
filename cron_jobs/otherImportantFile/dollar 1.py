@@ -1,23 +1,25 @@
-#استفاده این فایل برای وقتی که کل دیتا بیس تاریخی رو میخوایم دانلود کنیم تو دیتا بیس ذخیره کنیم
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
+from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 import psycopg2
 import time
+import tempfile
 
 # تنظیمات مرورگر (headless)
 options = Options()
 options.binary_location = "/snap/bin/chromium"
-options.add_argument("--headless=new")  # headless mode جدیدتر
+options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-options.add_argument("--remote-debugging-port=9222")
 
-# راه‌اندازی مرورگر
+# جلوگیری از conflict در user-data-dir
+options.add_argument(f'--user-data-dir={tempfile.mkdtemp()}')
+
+# راه‌اندازی مرورگر با chromedriver سیستم
 driver = webdriver.Chrome(
     service=Service("/usr/bin/chromedriver"),
     options=options
@@ -28,7 +30,7 @@ url = 'https://www.tgju.org/profile/price_dollar_rl/history'
 driver.get(url)
 time.sleep(5)
 
-# پارس HTML بعد از اجرای جاوااسکریپت
+# پارس HTML
 soup = BeautifulSoup(driver.page_source, 'html.parser')
 driver.quit()
 
@@ -57,14 +59,14 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
-# گرفتن تاریخ‌هایی که از قبل در دیتابیس هستند
+# گرفتن تاریخ‌هایی که قبلاً ذخیره شده‌اند
 cur.execute("SELECT date_miladi FROM dollar_data;")
 existing_dates = set(row[0] for row in cur.fetchall())
 
-# فیلتر کردن داده‌هایی که تاریخشان جدید است
+# فقط داده‌های جدید
 df_new = df[~df['date_miladi'].isin(existing_dates)]
 
-# درج در دیتابیس فقط داده‌های جدید
+# درج
 insert_query = """
     INSERT INTO dollar_data (date_miladi, open, high, low, close)
     VALUES (%s, %s, %s, %s, %s);
