@@ -22,7 +22,7 @@ options.add_argument(f'--user-data-dir={tempfile.mkdtemp()}')
 
 # راه‌اندازی مرورگر با chromedriver سیستم
 driver = webdriver.Chrome(
-    service=Service("/usr/bin/chromedriver"),
+    service=Service("/usr/local/bin/chromedriver"),
     options=options
 )
 
