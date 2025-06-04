@@ -4,9 +4,10 @@ from sqlalchemy import BigInteger, Boolean, CHAR, Column, Date, DateTime, Double
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import datetime
 import decimal
+# backend/stocks/models.py
+from backend.db.connection import Base
 
-class Base(DeclarativeBase):
-    pass
+
 
 
 class DailyIndicators(Base):
