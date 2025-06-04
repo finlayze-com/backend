@@ -10,6 +10,7 @@ import time
 
 # تنظیمات مرورگر (headless)
 options = Options()
+options.binary_location = "/snap/bin/chromium"
 options.add_argument("--headless=new")  # headless mode جدیدتر
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
@@ -17,7 +18,10 @@ options.add_argument("--disable-gpu")
 options.add_argument("--remote-debugging-port=9222")
 
 # راه‌اندازی مرورگر
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+driver = webdriver.Chrome(
+    service=Service("/usr/bin/chromedriver"),
+    options=options
+)
 
 # آدرس سایت
 url = 'https://www.tgju.org/profile/price_dollar_rl/history'
