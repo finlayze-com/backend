@@ -65,8 +65,8 @@ def update_daily_data():
             df['j_date'] = df.index.astype(str)
             df['gregorian_date'] = pd.to_datetime(df['gregorian_date'])
 
-            if last_date:
-                df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
+            #if last_date:
+                #df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
 
             if df.empty:
                 print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
