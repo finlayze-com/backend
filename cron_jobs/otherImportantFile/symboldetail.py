@@ -7,9 +7,9 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 # مسیرها
-id_file_path = '/root/backend/Document/id.txt'
-output_excel_path = '/root/backend/Document/finallist.xlsx'
-failed_ids_path = '/root/backend/Document/failed_inscodes.txt'
+id_file_path = 'backend/Document/id.txt'
+output_excel_path = 'backend/Document/finallist.xlsx'
+failed_ids_path = 'backend/Document/failed_inscodes.txt'
 
 # بارگذاری env
 load_dotenv()
