@@ -12,12 +12,16 @@ output_excel_path = 'backend/Document/finallist.xlsx'
 failed_ids_path = 'backend/Document/failed_inscodes.txt'
 
 # بارگذاری env
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+load_dotenv(dotenv_path)
+
 print("✅ Loaded DB_USER:", os.getenv("DB_USER"))
 db_user = os.getenv('DB_USER')
 db_pass = os.getenv('DB_PASSWORD')
 db_host = os.getenv('DB_HOST', 'localhost')
 db_name = os.getenv('DB_NAME')
+
+print("✅ Loaded DB_USER:", db_user)
 
 # اتصال به پایگاه‌داده
 engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}/{db_name}')
