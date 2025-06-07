@@ -45,6 +45,7 @@ def update_daily_data():
     dollar_df['date_miladi'] = pd.to_datetime(dollar_df['date_miladi'])
 
     for stock in stock_list:
+        print(f"🔍 در حال بررسی نماد: {stock}")
         try:
             # گرفتن آخرین تاریخ برای نماد
             cur.execute("SELECT MAX(date_miladi) FROM daily_stock_data WHERE stock_ticker = %s", (stock,))
@@ -71,9 +72,9 @@ def update_daily_data():
             #if last_date:
                 #df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
 
-            if df.empty:
-                print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
-                continue
+            # if df.empty:
+            #     print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
+            #     continue
 
             df = df.merge(dollar_df, how='left', left_on='gregorian_date', right_on='date_miladi')
             df['dollar_rate'] = df['dollar_rate'].fillna(method='ffill')
@@ -91,7 +92,7 @@ def update_daily_data():
                 df['dollar_rate'], df['adjust_open_usd'], df['adjust_high_usd'], df['adjust_low_usd'],
                 df['adjust_close_usd'], df['value_usd']
             ))
-
+            print(f"📊 تعداد ردیف‌های دریافتی برای {stock}: {len(df)}")
             insert_query = """
                 INSERT INTO daily_stock_data (
                     stock_ticker, j_date, date_miladi, weekday, open, high, low, close, final_price, volume, value, trade_count,
