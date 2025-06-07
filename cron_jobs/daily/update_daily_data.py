@@ -16,9 +16,12 @@ def convert_jalali_to_gregorian(jalali_date):
 
 def update_daily_data():
     # بارگذاری فایل .env
-    load_dotenv()
+    dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
+    load_dotenv(dotenv_path)
 
     # اتصال امن به دیتابیس
+    print("✅ Loaded DB_URL:", os.getenv("DB_URL"))
+
     conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
 
