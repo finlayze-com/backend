@@ -50,6 +50,7 @@ for inscode in id_list:
             "instrumentID": info.get("instrumentID"),
         }
         final_data.append(row)
+        print(f"🔁 Processing inscode: {inscode}")
         time.sleep(0.4)
 
     except Exception as e:
