@@ -12,7 +12,7 @@ output_excel_path = 'backend/Document/finallist.xlsx'
 failed_ids_path = 'backend/Document/failed_inscodes.txt'
 
 # بارگذاری env
-load_dotenv()
+load_dotenv('/root/backend/.env')
 db_user = os.getenv('DB_USER')
 db_pass = os.getenv('DB_PASSWORD')
 db_host = os.getenv('DB_HOST', 'localhost')
