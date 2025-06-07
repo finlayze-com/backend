@@ -24,6 +24,8 @@ def update_daily_data():
 
     conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
+    # تعریف total_rows
+    total_rows = 0
 
     cur.execute("""
         SELECT stock_ticker 
@@ -106,6 +108,7 @@ def update_daily_data():
 
             cur.executemany(insert_query, records)
             conn.commit()
+            total_rows += len(df)
             print(f"✅ {stock} | {len(df)} ردیف جدید ذخیره شد.")
 
         except Exception as e:
