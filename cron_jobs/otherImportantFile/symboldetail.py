@@ -30,7 +30,8 @@ for inscode in id_list:
         url = f"https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{inscode}"
         res = requests.get(url)
         res.raise_for_status()
-        info = res.json()
+        info_raw = res.json()
+        info = info_raw.get("instrumentInfo", {})
 
         row = {
             "insCode": info.get("insCode"),
