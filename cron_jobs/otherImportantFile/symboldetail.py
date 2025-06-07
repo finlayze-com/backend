@@ -14,18 +14,10 @@ failed_ids_path = 'backend/Document/failed_inscodes.txt'
 # بارگذاری env
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
 load_dotenv(dotenv_path)
-
-print("✅ Loaded DB_USER:", os.getenv("DB_USER"))
-db_user = os.getenv('DB_USER')
-db_pass = os.getenv('DB_PASSWORD')
-db_host = os.getenv('DB_HOST', 'localhost')
-db_name = os.getenv('DB_NAME')
-
-print("✅ Loaded DB_USER:", db_user)
-
+db_url = os.getenv("DB_URL")
+print("✅ Loaded DB_URL:", db_url)
 # اتصال به پایگاه‌داده
-engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}/{db_name}')
-
+engine = create_engine(db_url)
 # خواندن کدها
 with open(id_file_path, 'r') as f:
     id_list = [line.strip() for line in f if line.strip()]
