@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 import jdatetime
-import traceback
 import finpy_tse as fps
 
 def convert_jalali_to_gregorian(jalali_date):
@@ -20,13 +19,14 @@ def update_daily_data():
     dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
     load_dotenv(dotenv_path)
 
-    DB_URL = os.getenv("DB_URL")
-    print("✅ Loaded DB_URL:", DB_URL)
+    # اتصال امن به دیتابیس
+    print("✅ Loaded DB_URL:", os.getenv("DB_URL"))
 
-    conn = psycopg2.connect(DB_URL)
+    conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
+    # تعریف total_rows
+    total_rows = 0
 
-    # گرفتن لیست نمادها
     cur.execute("""
         SELECT stock_ticker 
         FROM symbolDetail 
@@ -35,27 +35,25 @@ def update_daily_data():
             'بازار ابزارهاي نوين مالي فرابورس',
             'بازار اوراق بدهی',
             'بازار سایر اوراق بهادار قابل معامله'
+            
         )
-        AND panel IS NOT NULL;
+        AND panel IS NOT NULL
+        ;
     """)
     stock_list = [row[0] for row in cur.fetchall()]
-    print(f"📋 تعداد نمادها: {len(stock_list)}")
 
-    # نرخ دلار
     dollar_df = pd.read_sql("SELECT date_miladi, close FROM dollar_data", conn)
     dollar_df.rename(columns={'close': 'dollar_rate'}, inplace=True)
     dollar_df['date_miladi'] = pd.to_datetime(dollar_df['date_miladi'])
 
-    total_inserted = 0
-
     for stock in stock_list:
-        print(f"🔍 بررسی نماد: {stock}")
+        print(f"🔍 در حال بررسی نماد: {stock}")
         try:
-            # آخرین تاریخ ذخیره‌شده
+            # گرفتن آخرین تاریخ برای نماد
             cur.execute("SELECT MAX(date_miladi) FROM daily_stock_data WHERE stock_ticker = %s", (stock,))
             last_date = cur.fetchone()[0]
-            print(f"📆 آخرین تاریخ موجود: {last_date}")
 
+            # حذف سطر آخر اگر is_temp=True باشد
             if last_date:
                 cur.execute("""
                     DELETE FROM daily_stock_data
@@ -63,21 +61,25 @@ def update_daily_data():
                 """, (stock, last_date))
                 conn.commit()
 
+            # دریافت داده‌ها از API
             df = fps.Get_Price_History(stock=stock, ignore_date=True, adjust_price=True, show_weekday=True)
             if df is None or df.empty:
-                print(f"⚠️ داده‌ای دریافت نشد برای {stock}")
+                print(f"⚠️ داده‌ای برای نماد {stock} موجود نیست.")
                 continue
-
-            print(f"📄 نمونه داده‌ها برای {stock}:\n{df.head()}")
 
             df['gregorian_date'] = df.index.astype(str).map(convert_jalali_to_gregorian)
             df['j_date'] = df.index.astype(str)
             df['gregorian_date'] = pd.to_datetime(df['gregorian_date'])
 
+            #if last_date:
+                #df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
+
+            # if df.empty:
+            #     print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
+            #     continue
+
             df = df.merge(dollar_df, how='left', left_on='gregorian_date', right_on='date_miladi')
             df['dollar_rate'] = df['dollar_rate'].fillna(method='ffill')
-
-            print(df[['gregorian_date', 'dollar_rate']].tail(5))
 
             df['adjust_open_usd'] = df['Adj Open'] / df['dollar_rate']
             df['adjust_high_usd'] = df['Adj High'] / df['dollar_rate']
@@ -92,8 +94,7 @@ def update_daily_data():
                 df['dollar_rate'], df['adjust_open_usd'], df['adjust_high_usd'], df['adjust_low_usd'],
                 df['adjust_close_usd'], df['value_usd']
             ))
-            print(f"📊 {stock} | ردیف‌های قابل ذخیره: {len(records)}")
-
+            print(f"📊 تعداد ردیف‌های دریافتی برای {stock}: {len(df)}")
             insert_query = """
                 INSERT INTO daily_stock_data (
                     stock_ticker, j_date, date_miladi, weekday, open, high, low, close, final_price, volume, value, trade_count,
@@ -107,20 +108,24 @@ def update_daily_data():
 
             cur.executemany(insert_query, records)
             conn.commit()
-            total_inserted += len(records)
-            print(f"✅ ذخیره شد: {stock} | {len(records)} ردیف")
+            total_rows += len(df)
+            print(f"✅ {stock} | {len(df)} ردیف جدید ذخیره شد.")
 
         except Exception as e:
-            print(f"❌ خطا در {stock}: {e}")
+            import traceback
             traceback.print_exc()
+            print(f"❌ خطا در پردازش {stock}: {e}")
 
     cur.close()
     conn.close()
 
-    if total_inserted > 0:
-        print(f"📦 ذخیره‌سازی داده‌های روزانه کامل شد: {total_inserted} ردیف ذخیره شد.")
+    if total_rows > 0:
+        print("📦 ذخیره‌سازی داده‌های روزانه کامل شد.")
     else:
         print("⚠️ هیچ داده‌ای ذخیره نشد.")
 
+
+# اجرای تابع اصلی
+# ✅ فقط این قسمت جدید اضافه شده:
 if __name__ == "__main__":
     update_daily_data()

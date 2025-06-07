@@ -56,6 +56,8 @@ for inscode in id_list:
 
 # ذخیره فایل و پایگاه‌داده
 df = pd.DataFrame(final_data)
+print(df.head())
+print(df.columns)
 df.to_excel(output_excel_path, index=False)
 df.to_sql('symboldetail', engine, if_exists='replace', index=False)
 
