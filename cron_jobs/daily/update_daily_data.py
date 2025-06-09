@@ -71,12 +71,12 @@ def update_daily_data():
             df['j_date'] = df.index.astype(str)
             df['gregorian_date'] = pd.to_datetime(df['gregorian_date'])
 
-            #if last_date:
-                #df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
+            if last_date:
+                df = df[df['gregorian_date'] >= pd.to_datetime(last_date)]
 
-            # if df.empty:
-            #     print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
-            #     continue
+            if df.empty:
+                 print(f"📭 داده جدیدی برای {stock} وجود ندارد.")
+                 continue
 
             df = df.merge(dollar_df, how='left', left_on='gregorian_date', right_on='date_miladi')
             df['dollar_rate'] = df['dollar_rate'].fillna(method='ffill')
