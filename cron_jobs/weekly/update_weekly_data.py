@@ -36,8 +36,10 @@ def update_weekly_data():
 
     symbols = df['stock_ticker'].unique()
     all_weekly = []
+    print(f"🔢 تعداد نمادها برای پردازش: {len(symbols)}")
 
     for symbol in symbols:
+        print(f"🔁 شروع پردازش نماد: {symbol}")
         data = df[df['stock_ticker'] == symbol].copy()
         data.set_index('date_miladi', inplace=True)
 
