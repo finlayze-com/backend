@@ -11,9 +11,10 @@ def update_weekly_data():
     # بارگذاری متغیرهای محیطی
     dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
     load_dotenv(dotenv_path)
+    db_url = os.getenv("DB_URL")
     print("✅ Loaded DB_URL:", os.getenv("DB_URL"))
 
-
+    engine = create_engine(db_url)
     conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
 
