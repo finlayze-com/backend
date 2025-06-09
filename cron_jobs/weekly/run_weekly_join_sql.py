@@ -12,7 +12,7 @@ def run_weekly_join():
     engine = create_engine(db_url)
 
     # مسیر فایل SQL
-    sql_file_path = os.path.join(os.path.dirname(__file__), 'weekly_joined.sql')
+    sql_file_path = os.path.join(os.path.dirname(__file__), 'join_weekly.sql')
 
     print("🚀 اجرای فایل SQL برای ساخت جدول weekly_joined_data...")
 
