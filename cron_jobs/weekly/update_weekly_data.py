@@ -1,4 +1,6 @@
 import pandas as pd
+import os
+from dotenv import load_dotenv
 import psycopg2
 from sqlalchemy import create_engine
 import datetime
@@ -6,17 +8,13 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
 def update_weekly_data():
-    db_config = {
-        'user': 'myuser',
-        'password': 'Afiroozi12',
-        'host': 'localhost',
-        'port': '5432',
-        'database': 'postgres1'
-    }
+    # بارگذاری متغیرهای محیطی
+    dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
+    load_dotenv(dotenv_path)
+    print("✅ Loaded DB_URL:", os.getenv("DB_URL"))
 
-    engine = create_engine(f"postgresql://{db_config['user']}:{db_config['password']}@"
-                           f"{db_config['host']}:{db_config['port']}/{db_config['database']}")
-    conn = psycopg2.connect(**db_config)
+
+    conn = psycopg2.connect(os.getenv("DB_URL"))
     cur = conn.cursor()
 
     # آخرین هفته ذخیره شده
