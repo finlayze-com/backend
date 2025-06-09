@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 def update_weekly_data():
     db_config = {
-        'user': 'postgres',
+        'user': 'myuser',
         'password': 'Afiroozi12',
         'host': 'localhost',
         'port': '5432',
