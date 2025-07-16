@@ -245,7 +245,11 @@ def subscribe_to_plan(
     ).first()
 
     if not subscription:
-        raise HTTPException(status_code=404, detail="پلن یافت نشد یا غیرفعال است.")
+        return create_response(
+            status="failed",
+            message="پلن یافت نشد یا غیرفعال است.",
+            data={"errors": {"subscription": ["پلن یافت نشد یا غیرفعال است."]}}
+        )
 
     active_exists = db.query(UserSubscription).filter(
         UserSubscription.user_id == current_user.id,
@@ -254,7 +258,11 @@ def subscribe_to_plan(
     ).first()
 
     if active_exists:
-        raise HTTPException(status_code=400, detail="این اشتراک قبلاً فعال شده است.")
+        return create_response(
+            status="failed",
+            message="این اشتراک قبلاً فعال شده است.",
+            data={"errors": {"subscription": ["این اشتراک قبلاً فعال شده است."]}}
+        )
 
     now = datetime.utcnow()
     end_date = now + timedelta(days=subscription.duration_days)
@@ -270,7 +278,6 @@ def subscribe_to_plan(
     )
     db.add(new_sub)
 
-    # افزودن نقش پلن به کاربر
     if subscription.role_id:
         role = db.query(Role).filter_by(id=subscription.role_id).first()
         if role and role not in current_user.roles:
@@ -278,4 +285,9 @@ def subscribe_to_plan(
 
     db.commit()
     db.refresh(new_sub)
-    return {"message": "✅ اشتراک با موفقیت ثبت شد", "subscription_id": new_sub.id}
+
+    return create_response(
+        status="success",
+        message="✅ اشتراک با موفقیت ثبت شد",
+        data={"subscription_id": new_sub.id}
+    )
