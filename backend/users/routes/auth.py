@@ -134,13 +134,17 @@ def get_current_user(
     return user
 
 # ✅ ثبت‌نام کاربر
-@router.post("/register", response_model=UserOut)
+@router.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(
         (User.username == user.username) | (User.email == user.email)
     ).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="نام کاربری یا ایمیل قبلاً ثبت شده است.")
+        return create_response(
+            status="failed",
+            message="خطای اعتبارسنجی اطلاعات ارسال شده",
+            data={"errors": {"auth": ["نام کاربری یا ایمیل قبلاً ثبت شده است."]}}
+        )
 
     hashed_password = get_password_hash(user.password)
     db_user = User(
@@ -160,7 +164,23 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+
+    # خروجی اصلی (می‌تونی فیلدهای اضافی رو حذف یا محدود کنی)
+    user_data = {
+        "id": db_user.id,
+        "username": db_user.username,
+        "email": db_user.email,
+        "first_name": db_user.first_name,
+        "last_name": db_user.last_name,
+        "phone_number": db_user.phone_number,
+        "user_type": db_user.user_type,
+    }
+
+    return create_response(
+        status="success",
+        message="ثبت‌نام با موفقیت انجام شد",
+        data={"user": user_data}
+    )
 
 
 # ✅ ورود کاربر و دریافت توکن
