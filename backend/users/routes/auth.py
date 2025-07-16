@@ -202,7 +202,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     )
 
 # ✅ دریافت اطلاعات حساب جاری
-@router.get("/me", response_model=MeResponse)
+@router.get("/me")
 def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     now = datetime.utcnow()
 
@@ -215,7 +215,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
 
     active_plan = active_sub.subscription.name if active_sub and active_sub.subscription else None
 
-    return {
+    user_data = {
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
@@ -223,8 +223,14 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "last_name": current_user.last_name,
         "roles": current_user.token_roles,
         "features": current_user.features or {},
-        "active_plan": active_plan  # ← اضافه شده
+        "active_plan": active_plan
     }
+
+    return create_response(
+        status="success",
+        message="اطلاعات کاربر با موفقیت دریافت شد",
+        data={"user": user_data}
+    )
 
 # ✅ ثبت اشتراک کاربر
 @router.post("/subscribe")
