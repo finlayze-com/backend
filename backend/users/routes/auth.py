@@ -174,8 +174,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             data={"errors": {"auth": ["نام کاربری یا کلمه عبور اشتباه است."]}}
         )
 
-        access_token = create_access_token(db_user)
-        return create_response(
+    access_token = create_access_token(db_user)
+    return create_response(
             status="success",
             message="ورود موفقیت‌آمیز",
             data={"access_token": access_token, "token_type": "bearer"}
