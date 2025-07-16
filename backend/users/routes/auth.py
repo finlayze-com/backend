@@ -25,7 +25,7 @@ from backend.users.models import (
     UserSubscription,
     Role
 )
-
+from utils.response import create_response
 
 router = APIRouter()
 
@@ -168,11 +168,18 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if not db_user or not verify_password(user.password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="نام کاربری یا کلمه عبور اشتباه است.")
+        return create_response(
+            status="failed",
+            message="خطای اعتبارسنجی اطلاعات ارسال شده",
+            data={"errors": {"auth": ["نام کاربری یا کلمه عبور اشتباه است."]}}
+        )
 
-    access_token = create_access_token(db_user)
-    return {"access_token": access_token, "token_type": "bearer"}
-
+        access_token = create_access_token(db_user)
+        return create_response(
+            status="success",
+            message="ورود موفقیت‌آمیز",
+            data={"access_token": access_token, "token_type": "bearer"}
+        )
 
 # ✅ دریافت اطلاعات حساب جاری
 @router.get("/me", response_model=MeResponse)
