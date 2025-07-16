@@ -25,7 +25,7 @@ from backend.users.models import (
     UserSubscription,
     Role
 )
-from utils.response import create_response
+from backend.utils.response import create_response
 
 router = APIRouter()
 
