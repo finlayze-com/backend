@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
-
+from backend.utils.response import create_response  # ✅ تابع استانداردسازی خروجی
 from backend.users.models import User, UserSubscription, Subscription
 from backend.users.schemas import (
     UserSubscriptionOut,
@@ -12,7 +12,6 @@ from backend.users.schemas import (
 from backend.db.connection import SessionLocal
 from backend.users.dependencies import require_roles
 from backend.users import models
-
 
 router = APIRouter()
 
@@ -26,29 +25,44 @@ def get_db():
         db.close()
 
 
-# ✅ لیست کل اشتراک‌ها برای مدیریت
-@router.get("/admin/user-subscriptions", response_model=List[UserSubscriptionOut])
+# ✅ لیست تمام اشتراک‌های کاربران (برای مدیریت)
+@router.get("/admin/user-subscriptions")
 def list_user_subscriptions_admin(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(["admin", "superadmin"]))
 ):
-    return db.query(UserSubscription).order_by(UserSubscription.start_date.desc()).all()
+    subscriptions = db.query(UserSubscription).order_by(UserSubscription.start_date.desc()).all()
+    return create_response(
+        status="success",
+        message="لیست اشتراک‌های کاربران با موفقیت دریافت شد",
+        data={"subscriptions": subscriptions}
+    )
 
 
-# ✅ افزودن اشتراک برای کاربر خاص
-@router.post("/admin/user-subscriptions", response_model=UserSubscriptionOut)
+# ✅ افزودن اشتراک جدید برای کاربر خاص توسط ادمین
+@router.post("/admin/user-subscriptions")
 def create_user_subscription_admin(
     data: UserSubscriptionCreateAdmin,
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(["admin", "superadmin"]))
 ):
+    # بررسی وجود پلن
     subscription = db.query(Subscription).filter_by(id=data.subscription_id).first()
     if not subscription:
-        raise HTTPException(status_code=404, detail="پلن پیدا نشد")
+        return create_response(
+            status="failed",
+            message="پلن پیدا نشد",
+            data={"errors": {"subscription_id": ["پلن با این شناسه وجود ندارد."]}}
+        )
 
+    # بررسی وجود کاربر
     user = db.query(User).filter_by(id=data.user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
+        return create_response(
+            status="failed",
+            message="کاربر پیدا نشد",
+            data={"errors": {"user_id": ["کاربر با این شناسه وجود ندارد."]}}
+        )
 
     new_sub = UserSubscription(
         user_id=data.user_id,
@@ -62,11 +76,16 @@ def create_user_subscription_admin(
     db.add(new_sub)
     db.commit()
     db.refresh(new_sub)
-    return new_sub
+
+    return create_response(
+        status="success",
+        message="اشتراک برای کاربر با موفقیت ایجاد شد",
+        data={"subscription": new_sub}
+    )
 
 
-# ✅ ویرایش اشتراک خاص
-@router.put("/admin/user-subscriptions/{sub_id}", response_model=UserSubscriptionOut)
+# ✅ ویرایش اشتراک کاربر
+@router.put("/admin/user-subscriptions/{sub_id}")
 def update_user_subscription_admin(
     sub_id: int,
     data: UserSubscriptionUpdateAdmin,
@@ -75,42 +94,65 @@ def update_user_subscription_admin(
 ):
     sub = db.query(UserSubscription).filter_by(id=sub_id).first()
     if not sub:
-        raise HTTPException(status_code=404, detail="اشتراک پیدا نشد")
+        return create_response(
+            status="failed",
+            message="اشتراک پیدا نشد",
+            data={"errors": {"sub_id": ["هیچ اشتراکی با این شناسه وجود ندارد."]}}
+        )
 
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
     db.commit()
     db.refresh(sub)
-    return sub
+
+    return create_response(
+        status="success",
+        message="اشتراک با موفقیت بروزرسانی شد",
+        data={"subscription": sub}
+    )
 
 
-# ✅ حذف (soft delete) اشتراک کاربر توسط ادمین
+# ✅ غیرفعال‌سازی (soft delete) اشتراک کاربر توسط ادمین
 @router.delete("/admin/user-subscriptions/{sub_id}")
 def delete_user_subscription_admin(
     sub_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_roles(["admin", "superadmin"]))
 ):
-    # پیدا کردن اشتراک
     sub = db.query(models.UserSubscription).filter_by(id=sub_id).first()
     if not sub:
-        raise HTTPException(status_code=404, detail="❌ اشتراک پیدا نشد")
+        return create_response(
+            status="failed",
+            message="❌ اشتراک پیدا نشد",
+            data={"errors": {"sub_id": ["اشتراک با این شناسه وجود ندارد."]}}
+        )
 
-    # گرفتن کاربر صاحب اشتراک
     user = db.query(models.User).filter_by(id=sub.user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="❌ کاربر مربوطه پیدا نشد")
+        return create_response(
+            status="failed",
+            message="❌ کاربر مربوطه پیدا نشد",
+            data={"errors": {"user_id": ["کاربر مربوط به این اشتراک پیدا نشد."]}}
+        )
 
-    # ⛔ جلوگیری از حذف اشتراک ادمین یا سوپر ادمین
+    # جلوگیری از حذف اشتراک ادمین یا سوپر ادمین
     role_names = [role.name for role in user.roles]
     if "admin" in role_names or "superadmin" in role_names:
-        raise HTTPException(status_code=403, detail="⛔ نمی‌توان اشتراک ادمین یا سوپر ادمین را حذف کرد")
+        return create_response(
+            status="failed",
+            message="⛔ نمی‌توان اشتراک ادمین یا سوپر ادمین را حذف کرد",
+            data={"errors": {"roles": ["شما مجاز به حذف این نوع اشتراک نیستید."]}}
+        )
 
-    # انجام soft delete
+    # soft delete
     sub.is_active = False
     sub.status = "expired"
     sub.deleted_at = datetime.utcnow()
-
     db.commit()
-    return {"message": "✅ اشتراک با موفقیت غیرفعال شد (soft delete)"}
+
+    return create_response(
+        status="success",
+        message="✅ اشتراک با موفقیت غیرفعال شد (soft delete)",
+        data={"subscription_id": sub_id}
+    )
