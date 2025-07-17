@@ -187,21 +187,22 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
+
     if not db_user or not verify_password(user.password, db_user.password_hash):
         return create_response(
             status="failed",
-            status_code=422,
-            message="خطای اعتبارسنجی اطلاعات ارسال شده",
-            data={"errors": {"auth": ["نام کاربری یا کلمه عبور اشتباه است."]}}
+            status_code=401,
+            message="نام کاربری یا کلمه عبور اشتباه است",
+            data={"errors": {"auth": ["اطلاعات نادرست"]}}
         )
 
-    access_token = create_access_token(db_user)
+    token = create_access_token(db_user)
     return create_response(
         status="success",
-        status_code=200,
         message="ورود موفقیت‌آمیز",
-        data={"access_token": access_token, "token_type": "bearer"}
+        data={"access_token": token, "token_type": "bearer"}
     )
+
 
 # ✅ دریافت اطلاعات حساب جاری
 @router.get("/me")
