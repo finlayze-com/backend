@@ -6,6 +6,7 @@ from backend.db.connection import SessionLocal
 from backend.users import models, schemas
 from backend.users.dependencies import require_roles
 from backend.users.routes.auth import get_current_user
+from backend.utils.response import create_response
 
 router = APIRouter()
 
@@ -40,16 +41,34 @@ def seed_superadmin(db: Session = Depends(get_db)):
     return {"message": "✅ نقش superadmin به کاربر 1 اختصاص یافت"}
 
 # ✅ ساخت نقش جدید
+# ✅ ساخت نقش جدید با خروجی ساختاریافته
 @router.post("/admin/roles", dependencies=[Depends(require_roles(["superadmin"]))])
 def create_role(data: schemas.RoleCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Role).filter(models.Role.name == data.name).first()
     if existing:
-        raise HTTPException(status_code=400, detail="نقش تکراری است")
+        return create_response(
+            status="failed",
+            message="نقش تکراری است",
+            data={"errors": {"name": ["نقش با این نام قبلاً ساخته شده است."]}}
+        )
+
     new_role = models.Role(name=data.name, description=data.description)
     db.add(new_role)
     db.commit()
     db.refresh(new_role)
-    return {"message": "✅ نقش ساخته شد", "role_id": new_role.id}
+
+    role_data = {
+        "id": new_role.id,
+        "name": new_role.name,
+        "description": new_role.description
+    }
+
+    return create_response(
+        status="success",
+        message="✅ نقش با موفقیت ساخته شد",
+        data={"role": role_data}
+    )
+
 
 # ✅ لیست نقش‌ها
 @router.get("/admin/roles", response_model=List[schemas.RoleOut], dependencies=[Depends(require_roles(["superadmin"]))])
