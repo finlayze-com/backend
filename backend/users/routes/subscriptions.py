@@ -104,8 +104,8 @@ def get_my_subscriptions(
 #def list_active_subscriptions(db: Session = Depends(get_db)):
 #    return db.query(models.Subscription).filter(models.Subscription.is_active == True).all()
 
-# ✅ دریافت اطلاعات یک پلن خاص برای ویرایش
-@router.get("/admin/subscriptions/{subscription_id}", response_model=schemas.SubscriptionOut)
+# ✅ دریافت اطلاعات یک پلن خاص با خروجی ساختاریافته
+@router.get("/admin/subscriptions/{subscription_id}")
 def get_subscription_by_id(
     subscription_id: int,
     db: Session = Depends(get_db),
@@ -113,8 +113,18 @@ def get_subscription_by_id(
 ):
     sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
     if not sub:
-        raise HTTPException(status_code=404, detail="پلن پیدا نشد")
-    return sub
+        return create_response(
+            status="failed",
+            message="پلن یافت نشد",
+            data={"errors": {"subscription_id": ["هیچ پلنی با این شناسه وجود ندارد."]}}
+        )
+
+    return create_response(
+        status="success",
+        message="اطلاعات پلن با موفقیت دریافت شد",
+        data={"subscription": sub}
+    )
+
 
 # ✅ لیست کامل پلن‌ها برای سوپرادمین با خروجی ساختاریافته
 @router.get("/subscriptions")
@@ -194,7 +204,7 @@ def create_subscription(
     )
 
 # ✅ ویرایش پلن
-@router.put("/admin/subscriptions/{subscription_id}", response_model=schemas.SubscriptionOut)
+@router.put("/admin/subscriptions/{subscription_id}")
 def update_subscription(
     subscription_id: int,
     data: schemas.SubscriptionUpdate,
@@ -203,14 +213,28 @@ def update_subscription(
 ):
     sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
     if not sub:
-        raise HTTPException(status_code=404, detail="پلن پیدا نشد")
+        return create_response(
+            status="failed",
+            message="پلن پیدا نشد.",
+            data={"errors": {"subscription_id": ["شناسه معتبر نیست."]}}
+        )
 
+    # فقط فیلدهای داده‌شده را به‌روزرسانی کن
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
     db.commit()
     db.refresh(sub)
-    return sub
+
+    # اگر می‌خوای خروجی تمیز باشه (مثلاً بدون role_id و is_active)، اینجا کنترل کن
+    sub_data = schemas.SubscriptionOut.from_orm(sub)
+
+    return create_response(
+        status="success",
+        message="پلن با موفقیت ویرایش شد.",
+        data={"subscription": sub_data}
+    )
+
 
 # ✅ حذف یا غیرفعال‌سازی پلن با خروجی ساختاریافته
 @router.delete("/admin/subscriptions/{subscription_id}")
