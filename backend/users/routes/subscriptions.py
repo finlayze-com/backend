@@ -116,13 +116,35 @@ def get_subscription_by_id(
         raise HTTPException(status_code=404, detail="پلن پیدا نشد")
     return sub
 
-# ✅ لیست کامل پلن‌ها برای سوپرادمین
-@router.get("/subscriptions", response_model=List[schemas.SubscriptionOut])
+# ✅ لیست کامل پلن‌ها برای سوپرادمین با خروجی ساختاریافته
+@router.get("/subscriptions")
 def get_all_subscriptions(
     db: Session = Depends(get_db),
     _: models.User = Depends(require_roles(["superadmin"]))
 ):
-    return db.query(models.Subscription).order_by(models.Subscription.id).all()
+    plans = db.query(models.Subscription).order_by(models.Subscription.id).all()
+
+    # تبدیل مدل به dict
+    plan_list = [
+        {
+            "id": plan.id,
+            "name": plan.name,
+            "name_fa": plan.name_fa,
+            "name_en": plan.name_en,
+            "duration_days": plan.duration_days,
+            "price": plan.price,
+            "features": plan.features,
+            "role_id": plan.role_id,
+            "is_active": plan.is_active,
+        }
+        for plan in plans
+    ]
+
+    return create_response(
+        status="success",
+        message="✅ لیست پلن‌ها با موفقیت دریافت شد",
+        data={"subscriptions": plan_list}
+    )
 
 # ✅ ساخت پلن جدید (با خروجی یکنواخت)
 @router.post("/admin/subscriptions")
