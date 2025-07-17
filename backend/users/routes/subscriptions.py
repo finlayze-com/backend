@@ -37,23 +37,17 @@ def subscribe_to_plan(
 
     now = datetime.utcnow()
 
-    # ۲. پیدا کردن آخرین تاریخ پایان برای کاربر (حتی اگر پلن‌های مختلف باشن)
+    # ۲. پیدا کردن آخرین تاریخ پایان برای کاربر
     latest_end = db.query(models.UserSubscription).filter(
         models.UserSubscription.user_id == user.id
     ).order_by(models.UserSubscription.end_date.desc()).first()
 
-    # ۳. محاسبه تاریخ شروع اشتراک جدید
-    if latest_end and latest_end.end_date > now:
-        start_date = latest_end.end_date
-    else:
-        start_date = now
-
+    # ۳. محاسبه تاریخ شروع
+    start_date = latest_end.end_date if latest_end and latest_end.end_date > now else now
     end_date = start_date + timedelta(days=subscription.duration_days)
-
-    # ۴. فعال‌سازی فقط اگر زمان شروع رسیده باشد
     is_active = start_date <= now < end_date
 
-    # ۵. ساخت اشتراک
+    # ۴. ساخت اشتراک
     new_sub = models.UserSubscription(
         user_id=user.id,
         subscription_id=subscription.id,
@@ -65,13 +59,13 @@ def subscribe_to_plan(
     )
     db.add(new_sub)
 
-    # ۶. اگر نقش مرتبط دارد و هنوز به کاربر ندادیم
+    # ۵. افزودن نقش در صورت نیاز
     if subscription.role_id:
         role = db.query(models.Role).filter(models.Role.id == subscription.role_id).first()
         if role and role not in user.roles:
             user.roles.append(role)
 
-    # ۷. غیرفعال‌سازی همه اشتراک‌هایی که now در بازه‌شون نیست
+    # ۶. بروزرسانی is_active همه اشتراک‌ها
     all_subs = db.query(models.UserSubscription).filter(
         models.UserSubscription.user_id == user.id
     ).all()
@@ -82,12 +76,22 @@ def subscribe_to_plan(
     db.refresh(new_sub)
 
     return {
+        "status": "success",
         "message": "✅ اشتراک با موفقیت ثبت شد",
-        "subscription_id": new_sub.id,
-        "start_date": start_date,
-        "end_date": end_date,
-        "will_become_active": is_active
+        "data": {
+            "subscription": {
+                "id": new_sub.id,
+                "subscription_id": new_sub.subscription_id,
+                "start_date": new_sub.start_date,
+                "end_date": new_sub.end_date,
+                "is_active": new_sub.is_active,
+                "method": new_sub.method,
+                "status": new_sub.status
+            }
+        }
     }
+
+
 # ✅ اشتراک‌های من
 @router.get("/my-subscriptions", response_model=List[schemas.UserSubscriptionOut])
 def get_my_subscriptions(
