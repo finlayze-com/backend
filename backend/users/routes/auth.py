@@ -187,7 +187,6 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
-
     if not db_user or not verify_password(user.password, db_user.password_hash):
         return create_response(
             status="failed",
@@ -195,40 +194,11 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             data={"errors": {"auth": ["نام کاربری یا کلمه عبور اشتباه است."]}}
         )
 
-    # ✅ تولید توکن دسترسی
     access_token = create_access_token(db_user)
-
-    # ✅ استخراج اطلاعات اشتراک فعال
-    active_plan = (
-        db.query(UserSubscription)
-        .filter(UserSubscription.user_id == db_user.id)
-        .filter(UserSubscription.end_date >= datetime.utcnow())
-        .order_by(UserSubscription.end_date.desc())
-        .first()
-    )
-
-    # ✅ استخراج نقش‌ها و ویژگی‌ها
-    roles = [role.name for role in db_user.roles] if db_user.roles else []
-    features = db_user.features if db_user.features else {}
-
     return create_response(
         status="success",
         message="ورود موفقیت‌آمیز",
-        data={
-            "id": db_user.id,
-            "username": db_user.username,
-            "email": db_user.email,
-            "first_name": db_user.first_name,
-            "last_name": db_user.last_name,
-            "roles": roles,
-            "features": features,
-            "active_plan": {
-                "id": active_plan.id,
-                 "subscription_id": active_plan.subscription_id,
-                "start_date": active_plan.start_date,
-                 "end_date": active_plan.end_date,
-            } if active_plan is not None else {}
-        }
+        data={"access_token": access_token, "token_type": "bearer"}
     )
 
 # ✅ دریافت اطلاعات حساب جاری
