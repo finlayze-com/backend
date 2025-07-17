@@ -93,15 +93,24 @@ def subscribe_to_plan(
 
 
 # ✅ اشتراک‌های من
-@router.get("/my-subscriptions", response_model=List[schemas.UserSubscriptionOut])
+@router.get("/my-subscriptions")
 def get_my_subscriptions(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user)
 ):
-    return db.query(models.UserSubscription)\
+    subscriptions = db.query(models.UserSubscription)\
         .filter(models.UserSubscription.user_id == user.id)\
         .order_by(models.UserSubscription.start_date.desc())\
         .all()
+
+    return {
+        "status": "success",
+        "message": "لیست اشتراک‌های شما با موفقیت دریافت شد",
+        "data": {
+            "subscriptions": subscriptions
+        }
+    }
+
 
 # ✅ لیست اشتراک‌های فعال
 #@router.get("/subscriptions", response_model=List[schemas.SubscriptionOut])
