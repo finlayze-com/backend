@@ -191,7 +191,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     if not db_user or not verify_password(user.password, db_user.password_hash):
         return create_response(
             status="failed",
-            status_code=401,
+            status_code=422,
             message="نام کاربری یا کلمه عبور اشتباه است",
             data={"errors": {"auth": ["اطلاعات نادرست"]}}
         )
