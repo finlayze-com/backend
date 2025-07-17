@@ -212,7 +212,7 @@ def update_subscription(
     db.refresh(sub)
     return sub
 
-# ✅ حذف یا غیرفعال‌سازی پلن
+# ✅ حذف یا غیرفعال‌سازی پلن با خروجی ساختاریافته
 @router.delete("/admin/subscriptions/{subscription_id}")
 def delete_subscription(
     subscription_id: int,
@@ -221,17 +221,27 @@ def delete_subscription(
 ):
     sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
     if not sub:
-        raise HTTPException(status_code=404, detail="پلن پیدا نشد")
+        return create_response(
+            status="failed",
+            message="پلن مورد نظر پیدا نشد",
+            data={"errors": {"subscription_id": ["پلن با این شناسه یافت نشد."]}}
+        )
 
     # ⛔ چک می‌کنیم که آیا کاربران این پلن را دارند یا نه
     related_users = db.query(models.UserSubscription).filter_by(subscription_id=subscription_id).count()
     if related_users > 0:
-        raise HTTPException(
-                status_code=400,
-                detail="❌ این پلن به کاربران اختصاص داده شده است و نمی‌توان آن را حذف کرد."
+        return create_response(
+            status="failed",
+            message="حذف امکان‌پذیر نیست",
+            data={"errors": {"subscription": ["❌ این پلن به کاربران اختصاص داده شده است."]}}
         )
 
     sub.is_active = False
-    sub.deleted_at = datetime.utcnow()  # ← در صورت وجود این ستون
+    sub.deleted_at = datetime.utcnow()  # ← اگر ستون موجود است
     db.commit()
-    return {"message": "✅ پلن با موفقیت غیرفعال شد (soft deleted)"}
+
+    return create_response(
+        status="success",
+        message="✅ پلن با موفقیت غیرفعال شد (soft deleted)",
+        data={"subscription_id": subscription_id}
+    )
