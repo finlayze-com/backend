@@ -197,6 +197,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     access_token = create_access_token(db_user)
     return create_response(
         status="success",
+        status_code=200,
         message="ورود موفقیت‌آمیز",
         data={"access_token": access_token, "token_type": "bearer"}
     )
