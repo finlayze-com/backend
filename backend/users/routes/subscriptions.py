@@ -123,8 +123,8 @@ def get_all_subscriptions(
 ):
     return db.query(models.Subscription).order_by(models.Subscription.id).all()
 
-# ✅ ساخت پلن جدید
-@router.post("/admin/subscriptions", response_model=schemas.SubscriptionOut)
+# ✅ ساخت پلن جدید (با خروجی یکنواخت)
+@router.post("/admin/subscriptions")
 def create_subscription(
     data: schemas.SubscriptionCreate,
     db: Session = Depends(get_db),
@@ -132,7 +132,12 @@ def create_subscription(
 ):
     existing = db.query(models.Subscription).filter_by(name=data.name).first()
     if existing:
-        raise HTTPException(status_code=400, detail="نام پلن تکراری است.")
+        return create_response(
+            status="failed",
+            message="نام پلن تکراری است.",
+            data={"errors": {"name": ["پلنی با این نام قبلاً ثبت شده است."]}}
+        )
+
     new_sub = models.Subscription(
         name=data.name,
         name_fa=data.name_fa,
@@ -146,7 +151,24 @@ def create_subscription(
     db.add(new_sub)
     db.commit()
     db.refresh(new_sub)
-    return new_sub
+
+    sub_data = {
+        "id": new_sub.id,
+        "name": new_sub.name,
+        "name_fa": new_sub.name_fa,
+        "name_en": new_sub.name_en,
+        "duration_days": new_sub.duration_days,
+        "price": new_sub.price,
+        "features": new_sub.features,
+        "role_id": new_sub.role_id,
+        "is_active": new_sub.is_active,
+    }
+
+    return create_response(
+        status="success",
+        message="پلن جدید با موفقیت ساخته شد.",
+        data={"subscription": sub_data}
+    )
 
 # ✅ ویرایش پلن
 @router.put("/admin/subscriptions/{subscription_id}", response_model=schemas.SubscriptionOut)
