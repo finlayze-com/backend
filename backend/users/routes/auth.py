@@ -224,10 +224,10 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             "features": features,
             "active_plan": {
                 "id": active_plan.id,
-                "subscription_id": active_plan.subscription_id,
+                 "subscription_id": active_plan.subscription_id,
                 "start_date": active_plan.start_date,
-                "end_date": active_plan.end_date
-            } if active_plan else None
+                 "end_date": active_plan.end_date,
+            } if active_plan is not None else {}
         }
     )
 
