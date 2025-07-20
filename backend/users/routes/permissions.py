@@ -1,18 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from backend.db.connection import SessionLocal
 from backend.users import models, schemas
 from backend.users.dependencies import require_roles
+from backend.db.connection import async_session
+
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with async_session() as session:
+        yield session
+
 
 # ✅ ایجاد پرمیشن
 @router.post("/admin/permissions")

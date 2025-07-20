@@ -7,10 +7,13 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import HTTPBearer
 from backend.users.models import Role
 from sqlalchemy.orm import Session
-from backend.db.connection import SessionLocal
+from backend.db.connection import async_session  # جایگزین SessionLocal
 from backend.users import models
 from fastapi.security.http import HTTPAuthorizationCredentials
 from fastapi import APIRouter
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from backend.users.schemas import (
     UserCreate,
     UserLogin,
@@ -42,12 +45,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = HTTPBearer(auto_error=True)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
+async def get_db():
+    async with async_session() as session:
+        yield session
 
 
 def verify_password(plain_password, hashed_password):
@@ -58,32 +59,41 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def create_access_token(user: models.User, expires_delta: Optional[timedelta] = None):
+async def create_access_token(user_id: int, db: AsyncSession, expires_delta: Optional[timedelta] = None):
+    # بارگذاری کامل کاربر با نقش‌ها و اشتراک‌ها
+    result = await db.execute(
+        select(User)
+        .options(
+            joinedload(User.roles).joinedload(Role.permissions),
+            joinedload(User.subscriptions).joinedload(UserSubscription.subscription)
+        )
+        .where(User.id == user_id)
+    )
+    user = result.unique().scalar_one_or_none()
+
+    if not user:
+        raise Exception("User not found")
+
     # ⛑ گرفتن نقش‌ها
-    try:
-        roles = [role.name for role in user.roles]
-    except Exception as e:
-        print("❗ Warning: user.roles is invalid →", e)
-        roles = []
+    roles = [role.name for role in user.roles]
 
     # ⛑ گرفتن پرمیشن‌ها
-    try:
-        permissions = list({perm.name for role in user.roles for perm in role.permissions})
-    except Exception:
-        permissions = []
+    permissions = list({perm.name for role in user.roles for perm in role.permissions})
 
-    # ⛑ گرفتن featureهای اشتراک فعال (اگر وجود داشت)
+    # ⛑ گرفتن featureهای اشتراک فعال
     features = {}
     try:
+        now = datetime.utcnow()
         active_sub = next(
-            (s for s in user.subscriptions if s.is_active and s.end_date >= datetime.utcnow()), None
+            (s for s in user.subscriptions if s.is_active and s.end_date >= now),
+            None
         )
         if active_sub:
             features = active_sub.subscription.features or {}
     except Exception as e:
-        print("❗ Warning: user.subscriptions is invalid →", e)
+        print("❗ Warning while loading subscription features:", e)
 
-    # ساخت payload
+    # ساخت payload توکن
     to_encode = {
         "sub": str(user.id),
         "roles": roles,
@@ -96,13 +106,11 @@ def create_access_token(user: models.User, expires_delta: Optional[timedelta] = 
 
 
 
-def get_current_user(
+async def get_current_user(
     token: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    token = token.credentials  # فقط JWT را جدا کن
-    print("💬 RAW JWT:", token)  # ← نمایش توکن خام
-
+    token = token.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -111,34 +119,41 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print("🔓 JWT PAYLOAD:", payload)  # ← نمایش محتوای دیکد شده
-        user_id = payload.get("sub")
-        print("👤 Extracted user_id:", user_id)
-        if user_id is None:
+        user_id = int(payload.get("sub"))
+        if not user_id:
             raise credentials_exception
-    except JWTError as e:
-        print("❌ JWT Decode Error:", e)
+    except JWTError:
         raise credentials_exception
 
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    result = await db.execute(
+        select(models.User)
+        .options(
+            joinedload(models.User.roles),
+            joinedload(models.User.subscriptions).joinedload(models.UserSubscription.subscription)
+        )
+        .where(models.User.id == user_id)
+    )
+    user = result.unique().scalar_one_or_none()
+
     if user is None:
-        print("❌ No user found for id:", user_id)
         raise credentials_exception
 
-    # داده‌های توکن را ضمیمه‌ی کاربر می‌کنیم
     user.token_roles = payload.get("roles", [])
     user.permissions = payload.get("permissions", [])
     user.features = payload.get("features", {})
 
-    print("✅ User loaded:", user.username)
     return user
+
+
 
 # ✅ ثبت‌نام کاربر
 @router.post("/register")
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    stmt = select(User).where(
         (User.username == user.username) | (User.email == user.email)
-    ).first()
+    )
+    result = await db.execute(stmt)
+    existing_user = result.scalar_one_or_none()
     if existing_user:
         return create_response(
             status="failed",
@@ -162,8 +177,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         is_email_verified=False
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
 
     # خروجی اصلی (می‌تونی فیلدهای اضافی رو حذف یا محدود کنی)
     user_data = {
@@ -173,7 +188,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         "first_name": db_user.first_name,
         "last_name": db_user.last_name,
         "phone_number": db_user.phone_number,
-        "user_type": db_user.user_type,
+        "user_type": str(db_user.user_type),
     }
 
     return create_response(
@@ -185,8 +200,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 # ✅ ورود کاربر و دریافت توکن
 @router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.username == user.username).first()
+async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == user.username))
+    db_user = result.scalar_one_or_none()
 
     if not db_user or not verify_password(user.password, db_user.password_hash):
         return create_response(
@@ -196,26 +212,123 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             data={"errors": {"auth": ["اطلاعات نادرست"]}}
         )
 
-    token = create_access_token(db_user)
+    token = await create_access_token(db_user.id, db)
     return create_response(
         status="success",
         message="ورود موفقیت‌آمیز",
         data={"access_token": token, "token_type": "bearer"}
     )
 
+# # ✅ دریافت اطلاعات حساب جاری
+# @router.get("/me")
+# def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+#     now = datetime.utcnow()
+#
+#     active_sub = db.query(models.UserSubscription).filter(
+#         models.UserSubscription.user_id == current_user.id,
+#         models.UserSubscription.is_active == True,
+#         models.UserSubscription.start_date <= now,
+#         models.UserSubscription.end_date >= now
+#     ).first()
+#
+#     active_plan = active_sub.subscription.name if active_sub and active_sub.subscription else None
+#
+#     user_data = {
+#         "id": current_user.id,
+#         "username": current_user.username,
+#         "email": current_user.email,
+#         "first_name": current_user.first_name,
+#         "last_name": current_user.last_name,
+#         "roles": current_user.token_roles,
+#         "features": current_user.features or {},
+#         "active_plan": active_plan
+#     }
+#
+#     return create_response(
+#         status="success",
+#         message="اطلاعات کاربر با موفقیت دریافت شد",
+#         data={"user": user_data}
+#     )
 
-# ✅ دریافت اطلاعات حساب جاری
+# ✅ ثبت اشتراک کاربر
+# @router.post("/subscribe")
+# def subscribe_to_plan(
+#     data: UserSubscribeIn,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     subscription = db.query(Subscription).filter(
+#         Subscription.id == data.subscription_id,
+#         Subscription.is_active == True
+#     ).first()
+#
+#     if not subscription:
+#         return create_response(
+#             status="failed",
+#             message="پلن یافت نشد یا غیرفعال است.",
+#             data={"errors": {"subscription": ["پلن یافت نشد یا غیرفعال است."]}}
+#         )
+#
+#     active_exists = db.query(UserSubscription).filter(
+#         UserSubscription.user_id == current_user.id,
+#         UserSubscription.subscription_id == subscription.id,
+#         UserSubscription.is_active == True
+#     ).first()
+#
+#     if active_exists:
+#         return create_response(
+#             status="failed",
+#             message="این اشتراک قبلاً فعال شده است.",
+#             data={"errors": {"subscription": ["این اشتراک قبلاً فعال شده است."]}}
+#         )
+#
+#     now = datetime.utcnow()
+#     end_date = now + timedelta(days=subscription.duration_days)
+#
+#     new_sub = UserSubscription(
+#         user_id=current_user.id,
+#         subscription_id=subscription.id,
+#         start_date=now,
+#         end_date=end_date,
+#         is_active=True,
+#         method=data.method,
+#         status="active"
+#     )
+#     db.add(new_sub)
+#
+#     if subscription.role_id:
+#         role = db.query(Role).filter_by(id=subscription.role_id).first()
+#         if role and role not in current_user.roles:
+#             current_user.roles.append(role)
+#
+#     db.commit()
+#     db.refresh(new_sub)
+#
+#     return create_response(
+#         status="success",
+#         message="✅ اشتراک با موفقیت ثبت شد",
+#         data={"subscription_id": new_sub.id}
+#     )
+
+# # ✅ دریافت اطلاعات حساب جاری
 @router.get("/me")
-def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_me(
+    current_user: User = Depends(get_current_user),  # ✅ درست شد
+    db: AsyncSession = Depends(get_db)
+):
     now = datetime.utcnow()
 
-    active_sub = db.query(models.UserSubscription).filter(
-        models.UserSubscription.user_id == current_user.id,
-        models.UserSubscription.is_active == True,
-        models.UserSubscription.start_date <= now,
-        models.UserSubscription.end_date >= now
-    ).first()
-
+    result = await db.execute(
+        select(models.UserSubscription)
+        .options(joinedload(models.UserSubscription.subscription))
+        .where(
+            models.UserSubscription.user_id == current_user.id,
+            models.UserSubscription.is_active == True,
+            models.UserSubscription.start_date <= now,
+            models.UserSubscription.end_date >= now
+        )
+    )
+    active_sub = result.scalar_one_or_none()
     active_plan = active_sub.subscription.name if active_sub and active_sub.subscription else None
 
     user_data = {
@@ -233,64 +346,4 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         status="success",
         message="اطلاعات کاربر با موفقیت دریافت شد",
         data={"user": user_data}
-    )
-
-# ✅ ثبت اشتراک کاربر
-@router.post("/subscribe")
-def subscribe_to_plan(
-    data: UserSubscribeIn,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    subscription = db.query(Subscription).filter(
-        Subscription.id == data.subscription_id,
-        Subscription.is_active == True
-    ).first()
-
-    if not subscription:
-        return create_response(
-            status="failed",
-            message="پلن یافت نشد یا غیرفعال است.",
-            data={"errors": {"subscription": ["پلن یافت نشد یا غیرفعال است."]}}
-        )
-
-    active_exists = db.query(UserSubscription).filter(
-        UserSubscription.user_id == current_user.id,
-        UserSubscription.subscription_id == subscription.id,
-        UserSubscription.is_active == True
-    ).first()
-
-    if active_exists:
-        return create_response(
-            status="failed",
-            message="این اشتراک قبلاً فعال شده است.",
-            data={"errors": {"subscription": ["این اشتراک قبلاً فعال شده است."]}}
-        )
-
-    now = datetime.utcnow()
-    end_date = now + timedelta(days=subscription.duration_days)
-
-    new_sub = UserSubscription(
-        user_id=current_user.id,
-        subscription_id=subscription.id,
-        start_date=now,
-        end_date=end_date,
-        is_active=True,
-        method=data.method,
-        status="active"
-    )
-    db.add(new_sub)
-
-    if subscription.role_id:
-        role = db.query(Role).filter_by(id=subscription.role_id).first()
-        if role and role not in current_user.roles:
-            current_user.roles.append(role)
-
-    db.commit()
-    db.refresh(new_sub)
-
-    return create_response(
-        status="success",
-        message="✅ اشتراک با موفقیت ثبت شد",
-        data={"subscription_id": new_sub.id}
     )

@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from enum import Enum as PyEnum
 from backend.db.connection import Base
 from sqlalchemy import Enum as SqlEnum  # اضافه کن بالا
+from sqlalchemy import select, join
+from backend.db.connection import async_session
 
 
 class UserType(PyEnum):
@@ -111,7 +113,6 @@ class UserSubscription(Base):
     start_date = Column(DateTime, default=datetime.utcnow)
     end_date = Column(DateTime)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
     payment_ref = Column(String(100))
     transaction_id = Column(String(100))
     method = Column(String(50), default="manual")
@@ -122,3 +123,27 @@ class UserSubscription(Base):
 
     user = relationship("User", back_populates="subscriptions")
     subscription = relationship("Subscription")
+
+async def get_user_by_id(user_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+
+
+
+
+async def get_user_permissions(user_id: int) -> list[str]:
+    async with async_session() as session:
+        stmt = (
+            select(Permission.name)
+            .join(RolePermission, Permission.id == RolePermission.permission_id)
+            .join(Role, Role.id == RolePermission.role_id)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+        )
+        result = await session.execute(stmt)
+        permissions = result.scalars().all()
+        return permissions

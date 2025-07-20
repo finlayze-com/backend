@@ -1,17 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends,Request
 from sqlalchemy.orm import Session
-from backend.db.connection import SessionLocal
+from backend.db.connection import async_session
 from backend.users import models
 from backend.users.dependencies import require_roles
+import traceback
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.users.routes.auth import get_current_user
+from backend.users.models import User
+from datetime import datetime
+from backend.utils.response import create_response  # خروجی هماهنگ با بقیه APIهات
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with async_session() as session:
+        yield session
 
 # ✅ لیست کاربران (فقط برای ادمین‌ها)
 @router.get("/admin/users")
@@ -30,3 +35,6 @@ def list_users_for_admin(
         }
         for user in users
     ]
+
+
+
