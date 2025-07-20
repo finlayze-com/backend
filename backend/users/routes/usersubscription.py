@@ -9,7 +9,7 @@ from backend.users.schemas import (
     UserSubscriptionCreateAdmin,
     UserSubscriptionUpdateAdmin
 )
-from backend.db.connection import SessionLocal
+from backend.db.connection import async_session
 from backend.users.dependencies import require_roles
 from backend.users import models
 
@@ -17,12 +17,10 @@ router = APIRouter()
 
 
 # 📦 اتصال به دیتابیس
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with async_session() as session:
+        yield session
+
 
 
 # ✅ لیست تمام اشتراک‌های کاربران (برای مدیریت)

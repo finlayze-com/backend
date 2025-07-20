@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from backend.db.connection import SessionLocal
+from backend.db.connection import async_session
 from backend.users import models, schemas
 from backend.users.dependencies import require_roles
 from backend.users.routes.auth import get_current_user
@@ -10,12 +10,9 @@ from backend.utils.response import create_response
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with async_session() as session:
+        yield session
 
 
 @router.post("/seed/superadmin")

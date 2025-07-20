@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.middleware.middleware_auth import AuthMiddleware
+from backend.middleware.middleware_auth import AuthMiddleware
+
+
 
 # 💼 APIهای مالی
 from backend.api import sankey, treemap, orderbook, OrderbookData, real_money_flow, candlestick, metadata
@@ -20,6 +24,8 @@ app = FastAPI(
     title="Full Financial API",
     version="1.0.0"
 )
+app.add_middleware(AuthMiddleware)  # 👈 اینو اضافه کن قبل از include_router
+
 
 # 🌐 فعال‌سازی CORS
 app.add_middleware(
