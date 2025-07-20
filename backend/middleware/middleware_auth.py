@@ -6,7 +6,7 @@ from backend.users.models import get_user_by_id, get_user_permissions
 from backend.users.routes.auth import SECRET_KEY, ALGORITHM
 
 # مسیرهایی که نیاز به احراز هویت ندارند
-PUBLIC_PATHS = [
+PUBLIC_PATHS = ["/docs",
      "/docs/", "/openapi.json", "/favicon.ico", "/ping", "/static",
     "/login", "/register"
 ]
