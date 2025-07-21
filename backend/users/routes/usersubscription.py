@@ -12,6 +12,9 @@ from backend.users.schemas import (
 from backend.db.connection import async_session
 from backend.users.dependencies import require_roles
 from backend.users import models
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from backend.users.models import UserSubscription
 
 router = APIRouter()
 
@@ -25,11 +28,12 @@ async def get_db():
 
 # ✅ لیست تمام اشتراک‌های کاربران (برای مدیریت)
 @router.get("/admin/user-subscriptions")
-def list_user_subscriptions_admin(
-    db: Session = Depends(get_db),
+async def list_user_subscriptions_admin(
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(require_roles(["admin", "superadmin"]))
 ):
-    subscriptions = db.query(UserSubscription).order_by(UserSubscription.start_date.desc()).all()
+    result = await db.execute(select(UserSubscription).order_by(UserSubscription.start_date.desc()))
+    subscriptions = result.scalars().all()
     return create_response(
         status="success",
         message="لیست اشتراک‌های کاربران با موفقیت دریافت شد",
