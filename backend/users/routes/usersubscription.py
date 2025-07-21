@@ -34,6 +34,8 @@ async def list_user_subscriptions_admin(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_roles(["admin", "superadmin"]))
 ):
+    # 👇 اینجا دقیقاً جای درستشه
+    print("🔔 وارد تابع list_user_subscriptions_admin شدیم")
     logger.info("✅ ورود به روت لیست اشتراک‌ها")
 
     try:
