@@ -213,10 +213,35 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
         )
 
     token = await create_access_token(db_user.id, db)
+    # شبیه‌سازی کد me (گرفتن پلن فعال)
+    now = datetime.utcnow()
+    result = await db.execute(
+        select(models.UserSubscription)
+        .options(joinedload(models.UserSubscription.subscription))
+        .where(
+            models.UserSubscription.user_id == db_user.id,
+            models.UserSubscription.is_active == True,
+            models.UserSubscription.start_date <= now,
+            models.UserSubscription.end_date >= now
+        )
+    )
+    active_sub = result.scalar_one_or_none()
+    active_plan = active_sub.subscription.name if active_sub and active_sub.subscription else None
+
+    user_data = {
+        "id": db_user.id,
+        "username": db_user.username,
+        "email": db_user.email,
+        "first_name": db_user.first_name,
+        "last_name": db_user.last_name,
+        "roles": db_user.token_roles,
+        "features": db_user.features or {},
+        "active_plan": active_plan
+    }
     return create_response(
         status="success",
         message="ورود موفقیت‌آمیز",
-        data={"access_token": token, "token_type": "bearer"}
+        data={"access_token": token, "token_type": "bearer",  "user": user_data}
     )
 
 # # ✅ دریافت اطلاعات حساب جاری
