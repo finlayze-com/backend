@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.middleware.middleware_auth import AuthMiddleware
 from backend.middleware.middleware_auth import AuthMiddleware
+from backend.utils.logger import logger  # ← لاگر سفارشی
 
 
 
@@ -24,6 +25,20 @@ app = FastAPI(
     title="Full Financial API",
     version="1.0.0"
 )
+
+# ✅ middleware برای لاگ‌گیری همه درخواست‌ها
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"➡️ Request: {request.method} {request.url}")
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        logger.exception("🔥 خطای ناشناخته هنگام پردازش درخواست")
+        raise e
+    logger.info(f"⬅️ Response: status_code={response.status_code}")
+    return response
+
+# 🛡️ احراز هویت کاستوم
 app.add_middleware(AuthMiddleware)  # 👈 اینو اضافه کن قبل از include_router
 
 
