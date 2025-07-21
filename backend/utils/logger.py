@@ -2,8 +2,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-# مسیر فایل لاگ
-log_dir = "logs"
+# ⛳ مسیر مطلق ریشه پروژه
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+log_dir = os.path.join(BASE_DIR, "logs")
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "app.log")
 
