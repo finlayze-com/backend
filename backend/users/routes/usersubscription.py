@@ -34,10 +34,13 @@ async def list_user_subscriptions_admin(
 ):
     result = await db.execute(select(UserSubscription).order_by(UserSubscription.start_date.desc()))
     subscriptions = result.scalars().all()
+    # تبدیل به Pydantic schema
+    subscription_out = [UserSubscriptionOut.from_orm(sub) for sub in subscriptions]
+
     return create_response(
         status="success",
         message="لیست اشتراک‌های کاربران با موفقیت دریافت شد",
-        data={"subscriptions": subscriptions}
+        data={"subscriptions":  subscription_out}
     )
 
 
