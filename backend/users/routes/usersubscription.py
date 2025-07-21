@@ -15,6 +15,7 @@ from backend.users import models
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.users.models import UserSubscription
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
 
@@ -32,7 +33,11 @@ async def list_user_subscriptions_admin(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_roles(["admin", "superadmin"]))
 ):
-    result = await db.execute(select(UserSubscription).order_by(UserSubscription.start_date.desc()))
+    result = await db.execute(
+        select(UserSubscription)
+        .options(selectinload(UserSubscription.subscription))
+        .order_by(UserSubscription.start_date.desc())
+    )
     subscriptions = result.scalars().all()
     # تبدیل به Pydantic schema
     subscription_out = [UserSubscriptionOut.from_orm(sub) for sub in subscriptions]
