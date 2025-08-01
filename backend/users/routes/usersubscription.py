@@ -1,43 +1,41 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Request, Depends,Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import select
 from datetime import datetime
-from typing import List
-from backend.utils.response import create_response  # ✅ تابع استانداردسازی خروجی
+from backend.utils.response import create_response
 from backend.users.models import User, UserSubscription, Subscription
 from backend.users.schemas import (
     UserSubscriptionOut,
     UserSubscriptionCreateAdmin,
     UserSubscriptionUpdateAdmin
 )
+from sqlalchemy.orm import joinedload
+
 from backend.db.connection import async_session
-from backend.users.dependencies import require_roles
-from backend.users import models
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from backend.users.models import UserSubscription
-from sqlalchemy.orm import selectinload
 from backend.utils.logger import logger
 
 router = APIRouter()
-
 
 # 📦 اتصال به دیتابیس
 async def get_db():
     async with async_session() as session:
         yield session
 
-
-
 # ✅ لیست تمام اشتراک‌های کاربران (برای مدیریت)
 @router.get("/admin/user-subscriptions")
 async def list_user_subscriptions_admin(
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_roles(["admin", "superadmin"]))
+    page: int = Query(1, ge=1),
+    size: int = Query(10, enum=[10, 50, 100])
 ):
-    # 👇 اینجا دقیقاً جای درستشه
-    print("🔔 وارد تابع list_user_subscriptions_admin شدیم")
-    logger.info("✅ ورود به روت لیست اشتراک‌ها")
+    # 🔒 بررسی سطح دسترسی
+    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
+    logger.info("✅ ورود به روت لیست اشتراک‌ها")
     try:
         result = await db.execute(
             select(UserSubscription)
@@ -45,17 +43,25 @@ async def list_user_subscriptions_admin(
             .order_by(UserSubscription.start_date.desc())
         )
         subscriptions = result.scalars().all()
+        # صفحه‌بندی دستی
+        start = (page - 1) * size
+        end = start + size
+        paginated = subscriptions[start:end]
 
-        subscription_out = [UserSubscriptionOut.from_orm(sub) for sub in subscriptions]
+
+        subscription_out = [UserSubscriptionOut.from_orm(sub).model_dump(mode="json") for sub in paginated]
 
         logger.info(f"📦 تعداد اشتراک یافت‌شده: {len(subscription_out)}")
-
         return create_response(
             status="success",
             message="لیست اشتراک‌های کاربران با موفقیت دریافت شد",
-            data={"subscriptions": subscription_out}
-        )
-
+            data={
+                "items": subscription_out,
+                "total": len(subscriptions),
+                "page": page,
+                "size": size,
+                "pages": (len(subscriptions) + size - 1) // size
+            })
     except Exception as e:
         logger.error("❌ خطا در اجرای کوئری لیست اشتراک‌ها", exc_info=True)
         return create_response(
@@ -64,17 +70,17 @@ async def list_user_subscriptions_admin(
             data={"error": str(e)}
         )
 
-
-
 # ✅ افزودن اشتراک جدید برای کاربر خاص توسط ادمین
 @router.post("/admin/user-subscriptions")
-def create_user_subscription_admin(
+async def create_user_subscription_admin(
+    request: Request,
     data: UserSubscriptionCreateAdmin,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_roles(["admin", "superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    # بررسی وجود پلن
-    subscription = db.query(Subscription).filter_by(id=data.subscription_id).first()
+    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
+
+    subscription = await db.get(Subscription, data.subscription_id)
     if not subscription:
         return create_response(
             status="failed",
@@ -82,8 +88,7 @@ def create_user_subscription_admin(
             data={"errors": {"subscription_id": ["پلن با این شناسه وجود ندارد."]}}
         )
 
-    # بررسی وجود کاربر
-    user = db.query(User).filter_by(id=data.user_id).first()
+    user = await db.get(User, data.user_id)
     if not user:
         return create_response(
             status="failed",
@@ -101,25 +106,37 @@ def create_user_subscription_admin(
         status=data.status
     )
     db.add(new_sub)
-    db.commit()
-    db.refresh(new_sub)
+    await db.commit()
+    await db.refresh(new_sub)
 
     return create_response(
         status="success",
         message="اشتراک برای کاربر با موفقیت ایجاد شد",
-        data={"subscription": new_sub}
+        data={"subscription": {
+            "id": new_sub.id,
+            "subscription_id": new_sub.subscription_id,
+            "start_date": new_sub.start_date.isoformat(),
+            "end_date": new_sub.end_date.isoformat(),
+            "is_active": new_sub.is_active,
+            "method": new_sub.method,
+            "status": new_sub.status
+        }}
     )
-
 
 # ✅ ویرایش اشتراک کاربر
 @router.put("/admin/user-subscriptions/{sub_id}")
-def update_user_subscription_admin(
+async def update_user_subscription_admin(
+    request: Request,
     sub_id: int,
     data: UserSubscriptionUpdateAdmin,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_roles(["admin", "superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    sub = db.query(UserSubscription).filter_by(id=sub_id).first()
+    role_names = getattr(request.state, "role_names", [])
+    if "admin" not in role_names and "superadmin" not in role_names:
+        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
+
+    result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
+    sub = result.scalar_one_or_none()
     if not sub:
         return create_response(
             status="failed",
@@ -130,24 +147,35 @@ def update_user_subscription_admin(
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
-    db.commit()
-    db.refresh(sub)
+    await db.commit()
+    await db.refresh(sub)
 
     return create_response(
         status="success",
         message="اشتراک با موفقیت بروزرسانی شد",
-        data={"subscription": sub}
+        data={"subscription": {
+            "id": sub.id,
+            "subscription_id": sub.subscription_id,
+            "start_date": sub.start_date.isoformat() if sub.start_date else None,
+            "end_date": sub.end_date.isoformat() if sub.start_date else None,
+            "is_active": sub.is_active,
+            "method": sub.method,
+            "status": sub.status
+        }}
     )
-
 
 # ✅ غیرفعال‌سازی (soft delete) اشتراک کاربر توسط ادمین
 @router.delete("/admin/user-subscriptions/{sub_id}")
-def delete_user_subscription_admin(
+async def delete_user_subscription_admin(
+    request: Request,
     sub_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_roles(["admin", "superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    sub = db.query(models.UserSubscription).filter_by(id=sub_id).first()
+    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
+
+    result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
+    sub = result.scalar_one_or_none()
     if not sub:
         return create_response(
             status="failed",
@@ -155,7 +183,13 @@ def delete_user_subscription_admin(
             data={"errors": {"sub_id": ["اشتراک با این شناسه وجود ندارد."]}}
         )
 
-    user = db.query(models.User).filter_by(id=sub.user_id).first()
+    result_user = await db.execute(
+        select(User).options(
+            joinedload(User.roles),
+            joinedload(User.subscriptions).joinedload(UserSubscription.subscription)
+        ).where(User.id == sub.user_id)
+    )
+    user = result_user.unique().scalar_one_or_none()
     if not user:
         return create_response(
             status="failed",
@@ -163,7 +197,6 @@ def delete_user_subscription_admin(
             data={"errors": {"user_id": ["کاربر مربوط به این اشتراک پیدا نشد."]}}
         )
 
-    # جلوگیری از حذف اشتراک ادمین یا سوپر ادمین
     role_names = [role.name for role in user.roles]
     if "admin" in role_names or "superadmin" in role_names:
         return create_response(
@@ -172,14 +205,28 @@ def delete_user_subscription_admin(
             data={"errors": {"roles": ["شما مجاز به حذف این نوع اشتراک نیستید."]}}
         )
 
-    # soft delete
-    sub.is_active = False
-    sub.status = "expired"
-    sub.deleted_at = datetime.utcnow()
-    db.commit()
+    try:
+        sub.is_active = False
+        sub.status = "expired"
+        sub.deleted_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(sub)
 
-    return create_response(
-        status="success",
-        message="✅ اشتراک با موفقیت غیرفعال شد (soft delete)",
-        data={"subscription_id": sub_id}
-    )
+        return create_response(
+            status="success",
+            message="✅ اشتراک با موفقیت غیرفعال شد (soft delete)",
+            data={
+                "subscription_id": sub.id,
+                "user_id": sub.user_id,
+                "status": sub.status,
+                "is_active": sub.is_active,
+                "deleted_at": sub.deleted_at.isoformat()
+            }
+        )
+    except Exception as e:
+        await db.rollback()
+        return create_response(
+            status="failed",
+            message="❌ خطا در غیرفعال‌سازی اشتراک",
+            data={"error": str(e)}
+        )

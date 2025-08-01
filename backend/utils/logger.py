@@ -21,9 +21,13 @@ if not logger.hasHandlers():
 
 
 # هندلر ترمینال (اختیاری)
-console_handler = logging.StreamHandler()
+import sys
+
+# هندلر کنسول با پشتیبانی از UTF-8 برای فارسی و ایموجی
+console_handler = logging.StreamHandler(stream=sys.stdout)
 console_formatter = logging.Formatter("%(levelname)s | %(message)s")
 console_handler.setFormatter(console_formatter)
+
 
 # اضافه‌کردن هندلرها
 logger.addHandler(file_handler)

@@ -1,47 +1,70 @@
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Request, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from typing import List
-
+from sqlalchemy.orm import selectinload
 from backend.db.connection import async_session
 from backend.users import models, schemas
-from backend.users.dependencies import require_roles
-from backend.users.routes.auth import get_current_user
 from backend.utils.response import create_response
+from sqlalchemy import select  # حتما اضافه کن
+from fastapi import Query
+
 
 router = APIRouter()
 
+# 📦 اتصال به دیتابیس
 async def get_db():
     async with async_session() as session:
         yield session
 
-
+# ✅ اختصاص نقش سوپرادمین به کاربر 1 (فقط برای seed اولیه)
 @router.post("/seed/superadmin")
-def seed_superadmin(db: Session = Depends(get_db)):
-    # بررسی وجود نقش
-    role = db.query(models.Role).filter(models.Role.name == "superadmin").first()
+async def seed_superadmin(db: AsyncSession  = Depends(get_db)):
+    # 1. بررسی وجود نقش
+    result = await db.execute(select(models.Role).where(models.Role.name == "superadmin"))
+    role = result.scalars().first()
+
     if not role:
         role = models.Role(name="superadmin", description="کاربر ریشه با دسترسی کامل")
         db.add(role)
-        db.commit()
-        db.refresh(role)
+        await db.commit()
+        await db.refresh(role)
 
-    # گرفتن اولین کاربر (یا تغییر به user_id دلخواه)
-    user = db.query(models.User).filter(models.User.id == 1).first()
+    # 2. بررسی وجود کاربر
+
+    result = await db.execute(
+        select(models.User)
+        .options(selectinload(models.User.roles))  # 🔁 بارگذاری roles همزمان با user
+        .where(models.User.id == 1)
+    )
+    user = result.scalars().first()
+
     if not user:
         return {"error": "❌ کاربر با id=1 وجود ندارد"}
-
+    # 3. بررسی اینکه نقش دارد یا نه
     if role in user.roles:
         return {"message": "✅ کاربر قبلاً نقش superadmin دارد"}
 
     user.roles.append(role)
-    db.commit()
+    await db.commit()
     return {"message": "✅ نقش superadmin به کاربر 1 اختصاص یافت"}
 
-# ✅ ساخت نقش جدید
-# ✅ ساخت نقش جدید با خروجی ساختاریافته
-@router.post("/admin/roles", dependencies=[Depends(require_roles(["superadmin"]))])
-def create_role(data: schemas.RoleCreate, db: Session = Depends(get_db)):
-    existing = db.query(models.Role).filter(models.Role.name == data.name).first()
+# ✅ ساخت نقش جدید (فقط برای سوپرادمین)
+@router.post("/admin/roles")
+async def create_role(
+    request: Request,
+    data: schemas.RoleCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # 🔒 بررسی نقش کاربر
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
+
+    # ✅ بررسی نقش تکراری (با async)
+    result = await db.execute(select(models.Role).where(models.Role.name == data.name))
+    existing = result.scalars().first()
+
     if existing:
         return create_response(
             status="failed",
@@ -49,10 +72,11 @@ def create_role(data: schemas.RoleCreate, db: Session = Depends(get_db)):
             data={"errors": {"name": ["نقش با این نام قبلاً ساخته شده است."]}}
         )
 
+    # ✅ ساخت نقش جدید
     new_role = models.Role(name=data.name, description=data.description)
     db.add(new_role)
-    db.commit()
-    db.refresh(new_role)
+    await db.commit()
+    await db.refresh(new_role)
 
     role_data = {
         "id": new_role.id,
@@ -66,50 +90,119 @@ def create_role(data: schemas.RoleCreate, db: Session = Depends(get_db)):
         data={"role": role_data}
     )
 
+# ✅ لیست نقش‌ها (فقط سوپرادمین)
+@router.get("/admin/roles")
+async def list_roles(
+        request: Request,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1),
+        size: int = Query(10, enum=[10, 50, 100]),
+):
+    # 🔒 بررسی سطح دسترسی
+    if "superadmin" not in request.state.role_names:
+        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
 
-# ✅ لیست نقش‌ها
-@router.get("/admin/roles", response_model=List[schemas.RoleOut], dependencies=[Depends(require_roles(["superadmin"]))])
-def list_roles(db: Session = Depends(get_db)):
-    return db.query(models.Role).all()
-#----------------------------------------------------------------------------------
-# ✅ اختصاص نقش به کاربر
+    result = await db.execute(select(models.Role))
+    roles = result.scalars().all()
+
+    # صفحه‌بندی دستی
+    start = (page - 1) * size
+    end = start + size
+    paginated_roles = roles[start:end]
+
+    role_list = [
+        {
+            "id": role.id,
+            "name": role.name,
+            "description": role.description
+        }
+        for role in paginated_roles
+    ]
+
+
+    return create_response(
+            status="success",
+            message="✅ لیست نقش‌ها با موفقیت دریافت شد",
+            data={
+                "items": role_list,
+                "total": len(roles),
+                "page": page,
+                "size": size,
+                "pages": (len(roles) + size - 1) // size
+            }
+        )
+
+# ✅ اختصاص نقش به کاربر خاص (فقط سوپرادمین)
 @router.post("/admin/user/{user_id}/assign-role")
-def assign_role_to_user(
+async def assign_role_to_user(
+    request: Request,
     user_id: int,
     data: schemas.AssignRoleInput,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    user = db.query(models.User).filter_by(id=user_id).first()
+    if "superadmin" not in request.state.role_names:
+        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
+
+    result = await db.execute(
+        select
+        (models.User)
+        .options(selectinload(models.User.roles))
+        .where(models.User.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
-    role = db.query(models.Role).filter_by(id=data.role_id).first()
+
+    result = await db.execute(select(models.Role).where(models.Role.id == data.role_id))
+    role = result.scalars().first()
     if not role:
         raise HTTPException(status_code=404, detail="نقش پیدا نشد")
+
     if role in user.roles:
         raise HTTPException(status_code=400, detail="این نقش قبلاً به کاربر داده شده")
 
     user.roles.append(role)
-    db.commit()
+    await db.commit()
+
     return {"message": f"✅ نقش '{role.name}' به کاربر اضافه شد"}
-#------------------------------------------------------------------------------------------
-#✅ حذف نقش از کاربر
+
+
+# ✅ حذف نقش از کاربر خاص (فقط سوپرادمین)
 @router.delete("/admin/user/{user_id}/remove-role")
-def remove_role_from_user(
+async def remove_role_from_user(
+    request: Request,
     user_id: int,
     data: schemas.RemoveRoleInput,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    user = db.query(models.User).filter_by(id=user_id).first()
+    # 🔍 پرینت مقدار role_names از توکن دیکد شده
+    print(" request.state.role_names =", request.state.role_names)
+
+    if "superadmin" not in request.state.role_names:
+        raise HTTPException(status_code=403, detail=" دسترسی غیرمجاز")
+
+    # بارگذاری کاربر با نقش‌هایش
+    result = await db.execute(
+        select(models.User).options(selectinload(models.User.roles)).where(models.User.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
-    role = db.query(models.Role).filter_by(id=data.role_id).first()
+
+    # پیدا کردن نقش
+    result = await db.execute(select(models.Role).where(models.Role.id == data.role_id))
+    role = result.scalars().first()
     if not role:
         raise HTTPException(status_code=404, detail="نقش پیدا نشد")
+
     if role not in user.roles:
         raise HTTPException(status_code=400, detail="این نقش به کاربر داده نشده")
 
     user.roles.remove(role)
-    db.commit()
-    return {"message": f"❎ نقش '{role.name}' از کاربر حذف شد"}
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"❎ نقش '{role.name}' از کاربر حذف شد",
+        "data": {}
+    }

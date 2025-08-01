@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.middleware.middleware_auth import AuthMiddleware
 from backend.middleware.middleware_auth import AuthMiddleware
 from backend.utils.logger import logger  # ← لاگر سفارشی
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path=".env")
+print("🧪 Loaded SECRET_KEY from middleware:", repr(os.getenv("SECRET_KEY")))
 
 
 
@@ -33,9 +38,9 @@ async def log_requests(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as e:
-        logger.exception("🔥 خطای ناشناخته هنگام پردازش درخواست")
+        logger.exception(" خطای ناشناخته هنگام پردازش درخواست")
         raise e
-    logger.info(f"⬅️ Response: status_code={response.status_code}")
+    logger.info(f" Response: status_code={response.status_code}")
     return response
 
 # 🛡️ احراز هویت کاستوم
