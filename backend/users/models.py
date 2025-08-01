@@ -6,6 +6,7 @@ from backend.db.connection import Base
 from sqlalchemy import Enum as SqlEnum  # اضافه کن بالا
 from sqlalchemy import select, join
 from backend.db.connection import async_session
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class UserType(PyEnum):

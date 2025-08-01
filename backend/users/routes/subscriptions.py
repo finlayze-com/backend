@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from typing import List
-
 from backend.users import models, schemas
 from backend.db.connection import async_session
-from backend.users.routes.auth import get_current_user
-from backend.users.dependencies import require_roles
 from backend.utils.response import create_response
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select,func
+from fastapi import Query
+
 
 router = APIRouter()
 
@@ -18,111 +20,134 @@ async def get_db():
 
 
 # ✅ خرید پلن (اشتراک)
+# ✅ روت خرید اشتراک جدید توسط کاربر (نیاز به لاگین دارد)
 @router.post("/subscribe")
-def subscribe_to_plan(
+async def subscribe_to_plan(
+    request: Request,
     data: schemas.UserSubscribeIn,
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    # ۱. پیدا کردن پلن
-    subscription = db.query(models.Subscription).filter(
-        models.Subscription.id == data.subscription_id,
-        models.Subscription.is_active == True
-    ).first()
+    # 🔐 گرفتن اطلاعات کاربر از middleware
+    user = request.state.user
+
+    result = await db.execute(
+        select(models.Subscription).where(
+            models.Subscription.id == data.subscription_id,
+            models.Subscription.is_active == True
+        )
+    )
+    subscription = result.scalars().first()
 
     if not subscription:
-        raise HTTPException(status_code=404, detail="پلن یافت نشد یا غیرفعال است")
+        return create_response(
+            status="failed",
+            message="پلن یافت نشد یا غیرفعال است",
+            data={"subscription_id": ["پلن موجود نیست یا غیرفعال است"]}
+        )
 
     now = datetime.utcnow()
+    # ✅ آخرین اشتراک کاربر
+    result = await db.execute(
+        select(models.UserSubscription).where(
+            models.UserSubscription.user_id == user.id
+        ).order_by(models.UserSubscription.end_date.desc())
+    )
+    latest_end = result.scalars().first()
 
-    # ۲. پیدا کردن آخرین تاریخ پایان برای کاربر
-    latest_end = db.query(models.UserSubscription).filter(
-        models.UserSubscription.user_id == user.id
-    ).order_by(models.UserSubscription.end_date.desc()).first()
-
-    # ۳. محاسبه تاریخ شروع
     start_date = latest_end.end_date if latest_end and latest_end.end_date > now else now
     end_date = start_date + timedelta(days=subscription.duration_days)
     is_active = start_date <= now < end_date
 
-    # ۴. ساخت اشتراک
+    # ✅ ساخت اشتراک جدید
     new_sub = models.UserSubscription(
         user_id=user.id,
         subscription_id=subscription.id,
-        start_date=start_date,
-        end_date=end_date,
+        start_date = start_date,  # ← تبدیل به str
+        end_date = end_date,  # ← تبدیل به str
         is_active=is_active,
         method=data.method,
         status="active"
     )
     db.add(new_sub)
-
-    # ۵. افزودن نقش در صورت نیاز
+# ✅ اضافه کردن نقش
     if subscription.role_id:
-        role = db.query(models.Role).filter(models.Role.id == subscription.role_id).first()
+        result = await db.execute(
+            select(models.Role).where(models.Role.id == subscription.role_id)
+        )
+        role = result.scalars().first()
         if role and role not in user.roles:
             user.roles.append(role)
 
-    # ۶. بروزرسانی is_active همه اشتراک‌ها
-    all_subs = db.query(models.UserSubscription).filter(
-        models.UserSubscription.user_id == user.id
-    ).all()
+    # ✅ بروزرسانی وضعیت فعال بودن همه اشتراک‌های کاربر
+    result = await db.execute(
+        select(models.UserSubscription).where(
+            models.UserSubscription.user_id == user.id
+        )
+    )
+    all_subs = result.scalars().all()
     for sub in all_subs:
         sub.is_active = sub.start_date <= now < sub.end_date
 
-    db.commit()
-    db.refresh(new_sub)
+    await db.commit()
+    await db.refresh(new_sub)
 
-    return {
-        "status": "success",
-        "message": "✅ اشتراک با موفقیت ثبت شد",
-        "data": {
-            "subscription": {
-                "id": new_sub.id,
-                "subscription_id": new_sub.subscription_id,
-                "start_date": new_sub.start_date,
-                "end_date": new_sub.end_date,
-                "is_active": new_sub.is_active,
-                "method": new_sub.method,
-                "status": new_sub.status
-            }
-        }
-    }
+    return create_response(
+        status="success",
+        message="✅ اشتراک با موفقیت ثبت شد",
+        data={"subscription": {
+            "id": new_sub.id,
+            "subscription_id": new_sub.subscription_id,
+            "start_date": new_sub.start_date.isoformat(),
+            "end_date": new_sub.end_date.isoformat(),
+            "is_active": new_sub.is_active,
+            "method": new_sub.method,
+            "status": new_sub.status
+        }}
+    )
 
-
-# ✅ اشتراک‌های من
+# ✅ روت گرفتن لیست اشتراک‌های فعال کاربر جاری
 @router.get("/my-subscriptions")
-def get_my_subscriptions(
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user)
-):
-    subscriptions = db.query(models.UserSubscription)\
-        .filter(models.UserSubscription.user_id == user.id)\
-        .order_by(models.UserSubscription.start_date.desc())\
-        .all()
+async def get_my_subscriptions(request: Request, db: AsyncSession = Depends(get_db)):
+        # 🔐 گرفتن اطلاعات کاربر از middleware
+        user = request.state.user
+        result = await db.execute(
+            select(models.UserSubscription).where(
+                models.UserSubscription.user_id == user.id
+            ).order_by(models.UserSubscription.end_date.desc())
+        )
+        user_subs = result.scalars().all()
 
-    return {
-        "status": "success",
-        "message": "لیست اشتراک‌های شما با موفقیت دریافت شد",
-        "data": {
-            "subscriptions": subscriptions
-        }
-    }
+        # تبدیل datetime به isoformat برای JSON
+        data = [{
+        "id": sub.id,
+        "subscription_id": sub.subscription_id,
+        "start_date": sub.start_date.isoformat(),
+        "end_date": sub.end_date.isoformat(),
+        "is_active": sub.is_active,
+        "method": sub.method,
+        "status": sub.status
+    } for sub in user_subs]
 
+        return create_response(
+            status="success",
+            message="✅ اشتراک‌های کاربر دریافت شد",
+            data={"subscriptions": data}
+        )
 
-# ✅ لیست اشتراک‌های فعال
-#@router.get("/subscriptions", response_model=List[schemas.SubscriptionOut])
-#def list_active_subscriptions(db: Session = Depends(get_db)):
-#    return db.query(models.Subscription).filter(models.Subscription.is_active == True).all()
-
-# ✅ دریافت اطلاعات یک پلن خاص با خروجی ساختاریافته
+# ✅ دریافت اطلاعات یک پلن خاص
+# ✅ گرفتن اطلاعات یک پلن خاص (مخصوص سوپرادمین)
 @router.get("/admin/subscriptions/{subscription_id}")
-def get_subscription_by_id(
-    subscription_id: int,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
-):
-    sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
+async def get_subscription_by_id(subscription_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    # 🔒 بررسی نقش کاربر از middleware
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+
+    # 🧠 استفاده از select به جای query
+    result = await db.execute(
+        select(models.Subscription).where(models.Subscription.id == subscription_id)
+    )
+    sub = result.scalar_one_or_none()
+
     if not sub:
         return create_response(
             status="failed",
@@ -133,21 +158,42 @@ def get_subscription_by_id(
     return create_response(
         status="success",
         message="اطلاعات پلن با موفقیت دریافت شد",
-        data={"subscription": sub}
+        data={"subscription": {
+            "id": sub.id,
+            "name": sub.name,
+            "name_fa": sub.name_fa,
+            "name_en": sub.name_en,
+            "duration_days": sub.duration_days,
+            "price": sub.price,
+            "features": sub.features,
+            "role_id": sub.role_id,
+            "is_active": sub.is_active
+        }}
     )
 
-
-# ✅ لیست کامل پلن‌ها برای سوپرادمین با خروجی ساختاریافته
+# ✅ لیست کامل پلن‌ها
+# ✅ گرفتن لیست کامل پلن‌ها (مخصوص سوپرادمین)
 @router.get("/subscriptions")
-def get_all_subscriptions(
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
+async def get_all_subscriptions(
+        request: Request,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1),
+        size: int = Query(10, enum=[10, 50, 100])
 ):
-    plans = db.query(models.Subscription).order_by(models.Subscription.id).all()
+    # 🔒 بررسی نقش کاربر از middleware
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
 
-    # تبدیل مدل به dict
-    plan_list = [
-        {
+    try:
+        result = await db.execute(select(models.Subscription).order_by(models.Subscription.id))
+        plans = result.scalars().all()
+
+        # صفحه‌بندی دستی
+        start = (page - 1) * size
+        end = start + size
+        paginated = plans[start:end]
+
+        plan_list = [{
             "id": plan.id,
             "name": plan.name,
             "name_fa": plan.name_fa,
@@ -157,24 +203,42 @@ def get_all_subscriptions(
             "features": plan.features,
             "role_id": plan.role_id,
             "is_active": plan.is_active,
-        }
-        for plan in plans
-    ]
+        } for plan in paginated  ]
+
+    except Exception as e:
+        # اگر مشکلی در دیتابیس بود
+        return create_response(
+            status="failed",
+            message="خطا در بازیابی اطلاعات پلن‌ها",
+            data={"error": str(e)}
+        )
 
     return create_response(
         status="success",
         message="✅ لیست پلن‌ها با موفقیت دریافت شد",
-        data={"subscriptions": plan_list}
+        data={
+            "items": plan_list,
+            "total": len(plans),
+            "page": page,
+            "size": size,
+            "pages": (len(plans) + size - 1) // size
+        }
     )
 
-# ✅ ساخت پلن جدید (با خروجی یکنواخت)
+
+
+# ✅ ساخت پلن جدید
+# ✅ ایجاد یک پلن جدید (مخصوص سوپرادمین)
 @router.post("/admin/subscriptions")
-def create_subscription(
-    data: schemas.SubscriptionCreate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
-):
-    existing = db.query(models.Subscription).filter_by(name=data.name).first()
+async def create_subscription(request: Request, data: schemas.SubscriptionCreate, db: AsyncSession = Depends(get_db)):
+        # 🔒 بررسی نقش کاربر از middleware
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+
+        # بررسی تکراری بودن نام پلن
+    result = await db.execute(select(models.Subscription).where(models.Subscription.name == data.name))
+    existing = result.scalars().first()
+
     if existing:
         return create_response(
             status="failed",
@@ -193,36 +257,42 @@ def create_subscription(
         is_active=True
     )
     db.add(new_sub)
-    db.commit()
-    db.refresh(new_sub)
-
-    sub_data = {
-        "id": new_sub.id,
-        "name": new_sub.name,
-        "name_fa": new_sub.name_fa,
-        "name_en": new_sub.name_en,
-        "duration_days": new_sub.duration_days,
-        "price": new_sub.price,
-        "features": new_sub.features,
-        "role_id": new_sub.role_id,
-        "is_active": new_sub.is_active,
-    }
+    await db.commit()
+    await db.refresh(new_sub)
 
     return create_response(
         status="success",
         message="پلن جدید با موفقیت ساخته شد.",
-        data={"subscription": sub_data}
+        data={"subscription": {
+            "id": new_sub.id,
+            "name": new_sub.name,
+            "name_fa": new_sub.name_fa,
+            "name_en": new_sub.name_en,
+            "duration_days": new_sub.duration_days,
+            "price": new_sub.price,
+            "features": new_sub.features,
+            "role_id": new_sub.role_id,
+            "is_active": new_sub.is_active,
+        }}
     )
 
+
 # ✅ ویرایش پلن
+# ✅ ویرایش یک پلن (مخصوص سوپرادمین)
 @router.put("/admin/subscriptions/{subscription_id}")
-def update_subscription(
+async def update_subscription(
     subscription_id: int,
+    request: Request,
     data: schemas.SubscriptionUpdate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
+    db: AsyncSession = Depends(get_db)
 ):
-    sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
+    # 🔒 بررسی نقش کاربر
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+
+    result = await db.execute(select(models.Subscription).filter_by(id=subscription_id))
+    sub = result.scalar_one_or_none()
+
     if not sub:
         return create_response(
             status="failed",
@@ -230,15 +300,13 @@ def update_subscription(
             data={"errors": {"subscription_id": ["شناسه معتبر نیست."]}}
         )
 
-    # فقط فیلدهای داده‌شده را به‌روزرسانی کن
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
-    db.commit()
-    db.refresh(sub)
+    await db.commit()
+    await db.refresh(sub)
 
-    # اگر می‌خوای خروجی تمیز باشه (مثلاً بدون role_id و is_active)، اینجا کنترل کن
-    sub_data = schemas.SubscriptionOut.from_orm(sub)
+    sub_data = schemas.SubscriptionOut.model_validate(sub, from_attributes=True)
 
     return create_response(
         status="success",
@@ -247,14 +315,16 @@ def update_subscription(
     )
 
 
-# ✅ حذف یا غیرفعال‌سازی پلن با خروجی ساختاریافته
+# ✅ حذف یا غیرفعال‌سازی پلن
+# ✅ غیرفعال‌سازی یا حذف منطقی یک پلن (مخصوص سوپرادمین)
 @router.delete("/admin/subscriptions/{subscription_id}")
-def delete_subscription(
-    subscription_id: int,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(require_roles(["superadmin"]))
-):
-    sub = db.query(models.Subscription).filter_by(id=subscription_id).first()
+async def delete_subscription(subscription_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if "superadmin" not in request.state.role_names:
+        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+
+    result = await db.execute(select(models.Subscription).where(models.Subscription.id == subscription_id))
+    sub = result.scalars().first()
+
     if not sub:
         return create_response(
             status="failed",
@@ -262,8 +332,11 @@ def delete_subscription(
             data={"errors": {"subscription_id": ["پلن با این شناسه یافت نشد."]}}
         )
 
-    # ⛔ چک می‌کنیم که آیا کاربران این پلن را دارند یا نه
-    related_users = db.query(models.UserSubscription).filter_by(subscription_id=subscription_id).count()
+    result = await db.execute(
+        select(func.count()).select_from(models.UserSubscription).where(models.UserSubscription.subscription_id == subscription_id)
+    )
+    related_users = result.scalar()
+
     if related_users > 0:
         return create_response(
             status="failed",
@@ -272,11 +345,13 @@ def delete_subscription(
         )
 
     sub.is_active = False
-    sub.deleted_at = datetime.utcnow()  # ← اگر ستون موجود است
-    db.commit()
+    sub.deleted_at = datetime.utcnow()
+
+    await db.commit()
 
     return create_response(
         status="success",
         message="✅ پلن با موفقیت غیرفعال شد (soft deleted)",
         data={"subscription_id": subscription_id}
     )
+
