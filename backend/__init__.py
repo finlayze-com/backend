@@ -1,1 +1,3 @@
-#
+
+def seed():
+    return None

@@ -7,6 +7,8 @@ from typing import List
 from backend.users import models, schemas
 from backend.db.connection import async_session
 from backend.utils.response import create_response
+from backend.users.dependencies import require_permissions
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
 
@@ -18,12 +20,11 @@ async def get_db():
 # ✅ ایجاد Permission جدید (فقط سوپرادمین)
 @router.post("/admin/permissions")
 async def create_permission(
-    request: Request,
     data: schemas.PermissionCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Permission.Create","ALL"))
 ):
-    if "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
+
 
     result = await db.execute(select(models.Permission).where(models.Permission.name == data.name))
     existing = result.scalars().first()
@@ -40,13 +41,12 @@ async def create_permission(
 # ✅ لیست کل Permissionها (برای ادمین و سوپرادمین)
 @router.get("/admin/permissions")
 async def list_permissions(
-        request: Request,
         db: AsyncSession = Depends(get_db),
+        _: models.User = Depends(require_permissions("Permission.ViewAll","ALL")),
         page: int = Query(1, ge=1),
         size: int = Query(10, enum=[10, 50, 100])
 ):
-    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
+
 
     result = await db.execute(select(models.Permission).order_by(models.Permission.id))
     permissions = result.scalars().all()
@@ -83,15 +83,18 @@ async def list_permissions(
 # ✅ اتصال چند پرمیشن به یک نقش خاص (فقط سوپرادمین)
 @router.post("/admin/roles/{role_id}/assign-permissions")
 async def assign_permissions_to_role(
-    request: Request,
     role_id: int,
     data: schemas.AssignPermissionInput,  # باید داشته باشه: permission_ids: List[int]
-    db: AsyncSession = Depends(get_db)
-):
-    if "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Permission.ViewById","ALL"))
 
-    result = await db.execute(select(models.Role).where(models.Role.id == role_id))
+):
+
+    result = await db.execute(
+        select(models.Role)
+        .options(selectinload(models.Role.permissions))  # ← این اضافه می‌کنه
+        .where(models.Role.id == role_id)
+    )
     role = result.scalars().first()
     if not role:
         raise HTTPException(status_code=404, detail="نقش پیدا نشد")

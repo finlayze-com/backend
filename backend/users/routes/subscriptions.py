@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from backend.users import models, schemas
 from backend.db.connection import async_session
+from backend.users.dependencies import require_permissions, get_subscription_dependencies
 from backend.utils.response import create_response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,10 +138,11 @@ async def get_my_subscriptions(request: Request, db: AsyncSession = Depends(get_
 # ✅ دریافت اطلاعات یک پلن خاص
 # ✅ گرفتن اطلاعات یک پلن خاص (مخصوص سوپرادمین)
 @router.get("/admin/subscriptions/{subscription_id}")
-async def get_subscription_by_id(subscription_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    # 🔒 بررسی نقش کاربر از middleware
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+async def get_subscription_by_id(
+    subscription_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Subscription.ViewById","ALL"))
+):
 
     # 🧠 استفاده از select به جای query
     result = await db.execute(
@@ -173,16 +175,13 @@ async def get_subscription_by_id(subscription_id: int, request: Request, db: Asy
 
 # ✅ لیست کامل پلن‌ها
 # ✅ گرفتن لیست کامل پلن‌ها (مخصوص سوپرادمین)
-@router.get("/subscriptions")
+@router.get("/admin/subscriptions")
 async def get_all_subscriptions(
-        request: Request,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1),
-        size: int = Query(10, enum=[10, 50, 100])
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Subscription.ViewAll","ALL")),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, enum=[10, 50, 100])
 ):
-    # 🔒 بررسی نقش کاربر از middleware
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
 
     try:
         result = await db.execute(select(models.Subscription).order_by(models.Subscription.id))
@@ -230,10 +229,11 @@ async def get_all_subscriptions(
 # ✅ ساخت پلن جدید
 # ✅ ایجاد یک پلن جدید (مخصوص سوپرادمین)
 @router.post("/admin/subscriptions")
-async def create_subscription(request: Request, data: schemas.SubscriptionCreate, db: AsyncSession = Depends(get_db)):
-        # 🔒 بررسی نقش کاربر از middleware
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+async def create_subscription(
+    data: schemas.SubscriptionCreate,
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Subscription.Create","ALL"))
+):
 
         # بررسی تکراری بودن نام پلن
     result = await db.execute(select(models.Subscription).where(models.Subscription.name == data.name))
@@ -282,13 +282,10 @@ async def create_subscription(request: Request, data: schemas.SubscriptionCreate
 @router.put("/admin/subscriptions/{subscription_id}")
 async def update_subscription(
     subscription_id: int,
-    request: Request,
     data: schemas.SubscriptionUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Subscription.Create","ALL"))
 ):
-    # 🔒 بررسی نقش کاربر
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
 
     result = await db.execute(select(models.Subscription).filter_by(id=subscription_id))
     sub = result.scalar_one_or_none()
@@ -318,9 +315,11 @@ async def update_subscription(
 # ✅ حذف یا غیرفعال‌سازی پلن
 # ✅ غیرفعال‌سازی یا حذف منطقی یک پلن (مخصوص سوپرادمین)
 @router.delete("/admin/subscriptions/{subscription_id}")
-async def delete_subscription(subscription_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="دسترسی غیرمجاز", data={})
+async def delete_subscription(
+    subscription_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Subscription.Delete"))
+):
 
     result = await db.execute(select(models.Subscription).where(models.Subscription.id == subscription_id))
     sub = result.scalars().first()
@@ -332,16 +331,14 @@ async def delete_subscription(subscription_id: int, request: Request, db: AsyncS
             data={"errors": {"subscription_id": ["پلن با این شناسه یافت نشد."]}}
         )
 
-    result = await db.execute(
-        select(func.count()).select_from(models.UserSubscription).where(models.UserSubscription.subscription_id == subscription_id)
-    )
-    related_users = result.scalar()
+        # ✅ بررسی وجود داده در سایر جداول مرتبط با subscription_id
+    violating_tables = await get_subscription_dependencies(subscription_id, db)
 
-    if related_users > 0:
+    if violating_tables:
         return create_response(
             status="failed",
-            message="حذف امکان‌پذیر نیست",
-            data={"errors": {"subscription": ["❌ این پلن به کاربران اختصاص داده شده است."]}}
+            message="❌ امکان حذف وجود ندارد. این پلن در جدول‌های زیر استفاده شده است.",
+            data={"tables": violating_tables}
         )
 
     sub.is_active = False

@@ -3,7 +3,7 @@ from sqlalchemy.dialects.oracle.dictionary import all_users
 from sqlalchemy.orm import Session
 from backend.db.connection import async_session
 from backend.users import models
-from backend.users.dependencies import require_roles
+from backend.users.dependencies import require_roles, require_permissions
 import traceback
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -23,7 +23,7 @@ async def get_db():
 @router.get("/admin/users")
 async def list_users_for_admin(
     db: AsyncSession  = Depends(get_db),
-    _: models.User = Depends(require_roles(["admin", "superadmin"])),
+    _: models.User = Depends(require_permissions("ALL")),
     page: int = Query(1, ge=1),
     size: int = Query(10, enum=[10, 50, 100])  # فقط مقادیر خاص مجاز
 ):
