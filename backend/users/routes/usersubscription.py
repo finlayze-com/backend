@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select
 from datetime import datetime
+
+from backend.users.dependencies import require_permissions
 from backend.utils.response import create_response
 from backend.users.models import User, UserSubscription, Subscription
 from backend.users.schemas import (
@@ -26,14 +28,11 @@ async def get_db():
 # ✅ لیست تمام اشتراک‌های کاربران (برای مدیریت)
 @router.get("/admin/user-subscriptions")
 async def list_user_subscriptions_admin(
-    request: Request,
     db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permissions("UserSubscription.ViewAll")),
     page: int = Query(1, ge=1),
     size: int = Query(10, enum=[10, 50, 100])
 ):
-    # 🔒 بررسی سطح دسترسی
-    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
     logger.info("✅ ورود به روت لیست اشتراک‌ها")
     try:
@@ -73,12 +72,10 @@ async def list_user_subscriptions_admin(
 # ✅ افزودن اشتراک جدید برای کاربر خاص توسط ادمین
 @router.post("/admin/user-subscriptions")
 async def create_user_subscription_admin(
-    request: Request,
     data: UserSubscriptionCreateAdmin,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permissions("UserSubscription.Create","ALL"))
 ):
-    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
     subscription = await db.get(Subscription, data.subscription_id)
     if not subscription:
@@ -126,14 +123,11 @@ async def create_user_subscription_admin(
 # ✅ ویرایش اشتراک کاربر
 @router.put("/admin/user-subscriptions/{sub_id}")
 async def update_user_subscription_admin(
-    request: Request,
-    sub_id: int,
-    data: UserSubscriptionUpdateAdmin,
-    db: AsyncSession = Depends(get_db)
+        sub_id: int,
+        data: UserSubscriptionUpdateAdmin,
+        db: AsyncSession = Depends(get_db),
+        _: User = Depends(require_permissions("UserSubscription.Update","ALL"))
 ):
-    role_names = getattr(request.state, "role_names", [])
-    if "admin" not in role_names and "superadmin" not in role_names:
-        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
     result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
     sub = result.scalar_one_or_none()
@@ -167,12 +161,10 @@ async def update_user_subscription_admin(
 # ✅ غیرفعال‌سازی (soft delete) اشتراک کاربر توسط ادمین
 @router.delete("/admin/user-subscriptions/{sub_id}")
 async def delete_user_subscription_admin(
-    request: Request,
     sub_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permissions("UserSubscription.Delete"))
 ):
-    if "admin" not in request.state.role_names and "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
     result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
     sub = result.scalar_one_or_none()

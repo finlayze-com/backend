@@ -6,9 +6,11 @@ from typing import List
 from sqlalchemy.orm import selectinload
 from backend.db.connection import async_session
 from backend.users import models, schemas
+from backend.users.dependencies import require_permissions
 from backend.utils.response import create_response
 from sqlalchemy import select  # حتما اضافه کن
 from fastapi import Query
+from backend.users.models import User
 
 
 router = APIRouter()
@@ -53,13 +55,12 @@ async def seed_superadmin(db: AsyncSession  = Depends(get_db)):
 # ✅ ساخت نقش جدید (فقط برای سوپرادمین)
 @router.post("/admin/roles")
 async def create_role(
-    request: Request,
+
     data: schemas.RoleCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permissions("Role.Create","ALL")),
+
 ):
-    # 🔒 بررسی نقش کاربر
-    if "superadmin" not in request.state.role_names:
-        return create_response(status="failed", message="⛔ دسترسی غیرمجاز", data={})
 
     # ✅ بررسی نقش تکراری (با async)
     result = await db.execute(select(models.Role).where(models.Role.name == data.name))
@@ -93,14 +94,11 @@ async def create_role(
 # ✅ لیست نقش‌ها (فقط سوپرادمین)
 @router.get("/admin/roles")
 async def list_roles(
-        request: Request,
         db: AsyncSession = Depends(get_db),
+        _: User = Depends(require_permissions("Role.ViewAll","ALL")),
         page: int = Query(1, ge=1),
         size: int = Query(10, enum=[10, 50, 100]),
 ):
-    # 🔒 بررسی سطح دسترسی
-    if "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
 
     result = await db.execute(select(models.Role))
     roles = result.scalars().all()
@@ -135,13 +133,11 @@ async def list_roles(
 # ✅ اختصاص نقش به کاربر خاص (فقط سوپرادمین)
 @router.post("/admin/user/{user_id}/assign-role")
 async def assign_role_to_user(
-    request: Request,
     user_id: int,
     data: schemas.AssignRoleInput,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permissions("Role.AssignToUser","ALL")),
 ):
-    if "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail="⛔ دسترسی غیرمجاز")
 
     result = await db.execute(
         select
@@ -173,13 +169,14 @@ async def remove_role_from_user(
     request: Request,
     user_id: int,
     data: schemas.RemoveRoleInput,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+_: User = Depends(require_permissions("Role.AssignToUser","ALL")),
+
 ):
     # 🔍 پرینت مقدار role_names از توکن دیکد شده
     print(" request.state.role_names =", request.state.role_names)
 
-    if "superadmin" not in request.state.role_names:
-        raise HTTPException(status_code=403, detail=" دسترسی غیرمجاز")
+
 
     # بارگذاری کاربر با نقش‌هایش
     result = await db.execute(
