@@ -20,9 +20,9 @@ def update_daily_data():
     load_dotenv(dotenv_path)
 
     # اتصال امن به دیتابیس
-    print("✅ Loaded DB_URL:", os.getenv("DB_URL"))
+    print("✅ Loaded DB_URL:", os.getenv("DB_URL_SYNC"))
 
-    conn = psycopg2.connect(os.getenv("DB_URL"))
+    conn = psycopg2.connect(os.getenv("DB_URL_SYNC"))
     cur = conn.cursor()
     # تعریف total_rows
     total_rows = 0
