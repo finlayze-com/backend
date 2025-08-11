@@ -15,7 +15,7 @@ load_dotenv()
 
 def update_haghighi_data():
     # اتصال امن به دیتابیس
-    conn = psycopg2.connect(os.getenv("DB_URL"))
+    conn = psycopg2.connect(os.getenv("DB_URL_SYNC"))
     cursor = conn.cursor()
     conn.rollback()
 

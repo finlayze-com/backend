@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, text
 
 # مشخصات اتصال به دیتابیس رو وارد کن
-DATABASE_URL = "postgresql://username:password@localhost:5432/postgres1"
+DATABASE_URL = "postgresql://postgres:Afiroozi12@localhost:5432/postgres1"
 engine = create_engine(DATABASE_URL)
 
 update_sql = text("""
