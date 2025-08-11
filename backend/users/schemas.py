@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List, Dict
 from enum import Enum
 from datetime import datetime
+from pydantic import field_validator
 
 # ----------------------------
 # 🎭 نوع کاربر (حقیقی / حقوقی)
@@ -29,10 +30,50 @@ class UserCreate(BaseModel):
     company_national_id: Optional[str] = None
     economic_code: Optional[str] = None
 
+    @field_validator("user_type", mode="before")
+    @classmethod
+    def to_enum_user_type_create(cls, v):
+        if v is None:
+            return v
+        s = str(getattr(v, "value", v)).strip().upper()
+        if s == "HAGHIGHI":
+            return UserType.haghighi
+        if s == "HOGHOGHI":
+            return UserType.hoghoghi
+        raise ValueError("user_type must be 'haghighi' or 'hoghoghi'")
+
+
 ## 🧾 ورودی ورود به حساب
 class UserLogin(BaseModel):
     username: str
     password: str
+
+# 🧾 ورودی بروزرسانی کاربر
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[constr(min_length=6)] = None
+    phone_number: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    user_type: Optional[UserType] = None
+    national_code: Optional[str] = None
+    company_national_id: Optional[str] = None
+    economic_code: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("user_type", mode="before")
+    @classmethod
+    def to_enum_user_type_create(cls, v):
+        if v is None:
+            return v
+        s = str(getattr(v, "value", v)).strip().upper()
+        if s == "HAGHIGHI":
+            return UserType.haghighi
+        if s == "HOGHOGHI":
+            return UserType.hoghoghi
+        raise ValueError("user_type must be 'haghighi' or 'hoghoghi'")
+
 
 ## 🧾 ورودی خرید اشتراک
 class UserSubscribeIn(BaseModel):

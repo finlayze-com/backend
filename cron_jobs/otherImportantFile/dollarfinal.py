@@ -8,23 +8,44 @@ import psycopg2
 import time
 import tempfile
 
-# تنظیمات مرورگر (headless)
-options = Options()
-options.binary_location = "/usr/bin/google-chrome"
-options.add_argument("--headless=new")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--disable-gpu")
-options.add_argument("--remote-debugging-port=9222")
+# # تنظیمات مرورگر (headless)
+# options = Options()
+# #options.binary_location = "/usr/bin/google-chrome"
+# options.add_argument("--headless=new")
+# options.add_argument("--no-sandbox")
+# options.add_argument("--disable-dev-shm-usage")
+# options.add_argument("--disable-gpu")
+# options.add_argument("--remote-debugging-port=9222")
+#
+# # جلوگیری از conflict در user-data-dir
+# options.add_argument(f'--user-data-dir={tempfile.mkdtemp()}')
+#
+# # راه‌اندازی مرورگر با chromedriver سیستم
+# driver = webdriver.Chrome(
+#     service=Service("/usr/local/bin/chromedriver"),
+#     options=options
+# )
 
-# جلوگیری از conflict در user-data-dir
-options.add_argument(f'--user-data-dir={tempfile.mkdtemp()}')
+import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
-# راه‌اندازی مرورگر با chromedriver سیستم
-driver = webdriver.Chrome(
-    service=Service("/usr/local/bin/chromedriver"),
-    options=options
-)
+chrome_options = Options()
+chrome_options.add_argument("--headless=new")           # برای سرور
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1920,1080")
+
+# اگر مسیر باینری Chrome را از قبل داری، از ENV بخوان (برای سرور لینوکسی مفیده)
+chrome_bin = os.getenv("CHROME_BIN")
+if chrome_bin:
+    chrome_options.binary_location = chrome_bin
+
+# درایور را خودکار دانلود و ست می‌کند (روی ویندوز/لینوکس)
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # آدرس سایت
 url = 'https://www.tgju.org/profile/price_dollar_rl/history'
@@ -55,7 +76,7 @@ df['date_miladi'] = pd.to_datetime(df['date_miladi'], format='%Y/%m/%d')
 conn = psycopg2.connect(
     host='localhost',
     dbname='postgres1',
-    user='myuser',
+    user='postgres',
     password='Afiroozi12'
 )
 cur = conn.cursor()
