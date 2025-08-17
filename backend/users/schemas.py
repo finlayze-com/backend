@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List, Dict,Any
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 from pydantic import field_validator
 
 # ----------------------------
@@ -144,6 +144,17 @@ class UserSubscriptionCreateAdmin(BaseModel):
         if v == "" or v is None:
             return None
         return v
+
+        # همه تاریخ‌ها => UTC naive (برای ستون‌های WITHOUT TIME ZONE)
+        @field_validator("start_date", "end_date", mode="after")
+        @classmethod
+        def to_naive_utc(cls, v: Optional[datetime]):
+            if v is None:
+                return v
+            if v.tzinfo is not None:
+                v = v.astimezone(timezone.utc).replace(tzinfo=None)
+            return v
+
 
 # ✅ ورودی برای ویرایش اشتراک توسط ادمین
 class UserSubscriptionUpdateAdmin(BaseModel):
