@@ -400,23 +400,96 @@ ALTER TABLE IF EXISTS public.quote
 CREATE TABLE IF NOT EXISTS public.symboldetail
 (
     "insCode" bigint,
-    name text COLLATE pg_catalog."default",
-    name_en text COLLATE pg_catalog."default",
-    sector text COLLATE pg_catalog."default",
+    name text,
+    name_en text,
+    sector text,
     sector_code bigint,
-    subsector text COLLATE pg_catalog."default",
-    market text COLLATE pg_catalog."default",
-    panel text COLLATE pg_catalog."default",
-    stock_ticker text COLLATE pg_catalog."default",
+    subsector text,
+    market text,
+    panel text,
+    stock_ticker text,
     share_number bigint,
     base_vol bigint,
-    "instrumentID" text COLLATE pg_catalog."default"
+    "instrumentID" text
+);
+
+-- ستون‌های جدید (بدون دستکاری داده‌های قبلی)
+ALTER TABLE public.symboldetail
+  ADD COLUMN IF NOT EXISTS instrument_type TEXT,
+  ADD COLUMN IF NOT EXISTS source_file     TEXT,
+  ADD COLUMN IF NOT EXISTS created_at      TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ;
+
+UPDATE public.symboldetail
+SET created_at = COALESCE(created_at, NOW()),
+    updated_at = COALESCE(updated_at, NOW());
+
+-- حذف دوبلیکیت‌های insCode و نگه‌داشتن جدیدترین ردیف
+WITH ranked AS (
+  SELECT ctid,"insCode",
+         ROW_NUMBER() OVER (PARTITION BY "insCode"
+                            ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST) rn
+  FROM public.symboldetail
 )
+DELETE FROM public.symboldetail s
+USING ranked r
+WHERE s.ctid = r.ctid AND r.rn > 1;
 
-TABLESPACE pg_default;
+-- ایندکس یکتا و کلید اصلی روی insCode
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname='public' AND indexname='ux_symboldetail_inscode'
+  ) THEN
+    -- خارج از تراکنش لازم نیست چون جدول سبک است؛ اگر بزرگ بود می‌توانی CONCURRENTLY بزنی.
+    CREATE UNIQUE INDEX ux_symboldetail_inscode ON public.symboldetail("insCode");
+  END IF;
+END$$;
 
-ALTER TABLE IF EXISTS public.symboldetail
-    OWNER to postgres;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.symboldetail'::regclass AND contype='p'
+  ) THEN
+    ALTER TABLE public.symboldetail
+      ADD CONSTRAINT symboldetail_pk PRIMARY KEY USING INDEX ux_symboldetail_inscode;
+  END IF;
+END$$;
+
+-- محدودیت مقدار مجاز نوع ابزار
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname='symboldetail_instrument_type_chk'
+  ) THEN
+    ALTER TABLE public.symboldetail
+      ADD CONSTRAINT symboldetail_instrument_type_chk
+      CHECK (instrument_type IS NULL OR instrument_type IN
+             ('stock','fund','option','bond','commodity','unknown'));
+  END IF;
+END$$;
+
+-- تریگر زمان به‌روزرسانی
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.symboldetail'::regclass AND tgname='trg_symboldetail_updated_at'
+  ) THEN
+    CREATE TRIGGER trg_symboldetail_updated_at
+    BEFORE UPDATE ON public.symboldetail
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+  END IF;
+END$$;
+
+-- ایندکس‌های کاربردی
+CREATE INDEX IF NOT EXISTS idx_symboldetail_stock_ticker   ON public.symboldetail (stock_ticker);
+CREATE INDEX IF NOT EXISTS idx_symboldetail_instrument_type ON public.symboldetail (instrument_type);
+CREATE INDEX IF NOT EXISTS idx_symboldetail_sector_code     ON public.symboldetail (sector_code);
+
 
 -- Table: public.weekly_haghighi
 

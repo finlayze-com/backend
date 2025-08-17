@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, constr
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict,Any
 from enum import Enum
 from datetime import datetime
 from pydantic import field_validator
@@ -88,7 +88,7 @@ class SubscriptionCreate(BaseModel):
     name_en: Optional[str]
     duration_days: int
     price: int
-    features: Dict[str, bool]
+    features: Dict[str, Any]
     role_id: Optional[int]  # نقشی که با این پلن مرتبط است
 
     class Config:
@@ -101,7 +101,7 @@ class SubscriptionUpdate(BaseModel):
     name_en: Optional[str] = None
     duration_days: Optional[int] = None
     price: Optional[int] = None
-    features: Optional[Dict[str, bool]] = None
+    features: Optional[Dict[str, Any]] = None
     role_id: Optional[int] = None
     is_active: Optional[bool] = None
 
