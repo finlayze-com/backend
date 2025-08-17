@@ -30,15 +30,7 @@ def update_daily_data():
     cur.execute("""
         SELECT stock_ticker 
         FROM symbolDetail 
-        WHERE panel NOT IN (
-            'بازار ابزارهای نوین مالی',
-            'بازار ابزارهاي نوين مالي فرابورس',
-            'بازار اوراق بدهی',
-            'بازار سایر اوراق بهادار قابل معامله'
-            
-        )
-        AND panel IS NOT NULL
-        ;
+        WHERE instrument_type = 'saham';
     """)
     stock_list = [row[0] for row in cur.fetchall()]
 
