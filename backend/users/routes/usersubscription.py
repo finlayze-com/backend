@@ -92,12 +92,32 @@ async def create_user_subscription_admin(
             message="کاربر پیدا نشد",
             data={"errors": {"user_id": ["کاربر با این شناسه وجود ندارد."]}}
         )
+        # 3) محاسبه end_date در صورت عدم ارسال
+        end_date = data.end_date
+        if end_date is None:
+            # اطمینان از موجود بودن duration_days
+            duration = getattr(subscription, "duration_days", None)
+            if not isinstance(duration, int) or duration <= 0:
+                return create_response(
+                    status="failed",
+                    message="مدت اشتراک پلن نامعتبر است",
+                    data={"errors": {"duration_days": ["duration_days پلن باید عدد مثبت باشد."]}}
+                )
+            end_date = data.start_date + timedelta(days=duration)
+
+        # (اختیاری) اعتبارسنجی ساده
+        if end_date <= data.start_date:
+            return create_response(
+                status="failed",
+                message="end_date باید بعد از start_date باشد",
+                data={"errors": {"end_date": ["end_date معتبر نیست."]}}
+            )
 
     new_sub = UserSubscription(
         user_id=data.user_id,
         subscription_id=data.subscription_id,
         start_date=data.start_date,
-        end_date=data.end_date,
+        end_date=end_date,
         is_active=data.is_active,
         method=data.method,
         status=data.status

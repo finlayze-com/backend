@@ -132,7 +132,7 @@ class UserSubscriptionCreateAdmin(BaseModel):
     user_id: int
     subscription_id: int
     start_date: datetime
-    end_date: datetime
+    end_date: Optional[datetime] = None   # ← اختیاری شد
     is_active: bool = True
     method: str = "manual"
     status: str = "active"
