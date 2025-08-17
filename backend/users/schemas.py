@@ -146,9 +146,9 @@ class UserSubscriptionCreateAdmin(BaseModel):
         return v
 
         # همه تاریخ‌ها => UTC naive (برای ستون‌های WITHOUT TIME ZONE)
-        @field_validator("start_date", "end_date", mode="after")
-        @classmethod
-        def to_naive_utc(cls, v: Optional[datetime]):
+    @field_validator("start_date", "end_date", mode="after")
+    @classmethod
+    def to_naive_utc(cls, v: Optional[datetime]):
             if v is None:
                 return v
             if v.tzinfo is not None:
