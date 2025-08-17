@@ -129,15 +129,17 @@ async def create_user_subscription_admin(
     return create_response(
         status="success",
         message="اشتراک برای کاربر با موفقیت ایجاد شد",
-        data={"subscription": {
-            "id": new_sub.id,
-            "subscription_id": new_sub.subscription_id,
-            "start_date": new_sub.start_date.isoformat(),
-            "end_date": new_sub.end_date.isoformat(),
-            "is_active": new_sub.is_active,
-            "method": new_sub.method,
-            "status": new_sub.status
-        }}
+        data={
+            "subscription": {
+                "id": new_sub.id,
+                "subscription_id": new_sub.subscription_id,
+                "start_date": new_sub.start_date.isoformat(),
+                "end_date": new_sub.end_date.isoformat(),
+                "is_active": new_sub.is_active,
+                "method": new_sub.method,
+                "status": new_sub.status,
+            }
+        },
     )
 
 # ✅ ویرایش اشتراک کاربر
