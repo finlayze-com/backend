@@ -137,6 +137,11 @@ class UserSubscriptionCreateAdmin(BaseModel):
     method: str = "manual"
     status: str = "active"
 
+    @field_validator("end_date", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        return None if v == "" else v
+
 # ✅ ورودی برای ویرایش اشتراک توسط ادمین
 class UserSubscriptionUpdateAdmin(BaseModel):
     start_date: Optional[datetime] = None
