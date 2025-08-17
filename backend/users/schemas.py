@@ -137,10 +137,13 @@ class UserSubscriptionCreateAdmin(BaseModel):
     method: str = "manual"
     status: str = "active"
 
+    # 👇 این ولیدیتور رشتهٔ خالی را None می‌کند
     @field_validator("end_date", mode="before")
     @classmethod
-    def empty_str_to_none(cls, v):
-        return None if v == "" else v
+    def empty_string_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 # ✅ ورودی برای ویرایش اشتراک توسط ادمین
 class UserSubscriptionUpdateAdmin(BaseModel):
