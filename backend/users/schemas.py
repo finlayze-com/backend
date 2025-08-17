@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List, Dict,Any
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import field_validator
 
 # ----------------------------
