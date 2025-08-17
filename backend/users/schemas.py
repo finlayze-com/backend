@@ -190,7 +190,7 @@ class SubscriptionOut(BaseModel):
     name_en: Optional[str]
     duration_days: int
     price: int
-    features: Dict[str, bool]
+    features: Dict[str, Any]
     is_active: bool
     role_id: Optional[int]
 
@@ -225,7 +225,7 @@ class MeResponse(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     roles: List[str]
-    features: Dict[str, bool]
+    features: Dict[str, Any]
     active_plan: Optional[str]  # ← اضافه شده
 
     class Config:
