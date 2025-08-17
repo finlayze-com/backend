@@ -237,7 +237,7 @@ class MeResponse(BaseModel):
 class SimpleSubscription(BaseModel):
     name: str
     name_en: Optional[str]
-    features: Dict[str, bool]
+    features: Dict[str, Any]
 
     class Config:
         from_attributes = True
