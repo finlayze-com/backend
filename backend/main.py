@@ -21,7 +21,8 @@ from backend.users.routes import (
     roles,
     permissions,
     users,
-    usersubscription
+    usersubscription,
+    inscodeid
 )
 
 print("🚀 [MAIN] FastAPI is loading main.py")
@@ -93,6 +94,9 @@ app.include_router(orderbook.router, prefix="/api")
 app.include_router(real_money_flow.router, prefix="/api")
 app.include_router(OrderbookData.router, prefix="/api")
 app.include_router(candlestick.router, prefix="/api")
+
+
+app.include_router(inscodeid.router, prefix="/inscodeid")
 
 # 🔍 health check
 @app.get("/ping")
