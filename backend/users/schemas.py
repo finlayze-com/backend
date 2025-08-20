@@ -164,6 +164,22 @@ class UserSubscriptionUpdateAdmin(BaseModel):
     method: Optional[str] = None
     status: Optional[str] = None
 
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def parse_to_naive_utc(cls, v):
+        if v in (None, "", "null"):
+            return None
+        # اگر استرینگ ISO با Z بود
+        if isinstance(v, str):
+            v = v.replace("Z", "+00:00")
+            v = datetime.fromisoformat(v)
+        # اگر datetime بود، tz رو به UTC و بعد tzinfo رو حذف کن
+        if isinstance(v, datetime):
+            if v.tzinfo is not None:
+                v = v.astimezone(timezone.utc).replace(tzinfo=None)
+            return v
+        raise ValueError("Invalid datetime")
+
 # ----------------------------
 # 📤 خروجی‌ها (Outputs)
 # ----------------------------

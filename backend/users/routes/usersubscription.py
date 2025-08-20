@@ -174,7 +174,7 @@ async def update_user_subscription_admin(
             "id": sub.id,
             "subscription_id": sub.subscription_id,
             "start_date": sub.start_date.isoformat() if sub.start_date else None,
-            "end_date": sub.end_date.isoformat() if sub.start_date else None,
+            "end_date": sub.end_date.isoformat() if sub.end_date else None,
             "is_active": sub.is_active,
             "method": sub.method,
             "status": sub.status
