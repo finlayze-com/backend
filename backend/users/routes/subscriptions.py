@@ -224,6 +224,56 @@ async def get_all_subscriptions(
         }
     )
 
+# ✅ لیست کامل پلن‌ها
+# ✅ گرفتن لیست کامل پلن‌ها (مخصوص سوپرادمین)
+@router.get("/admin/subscriptionswithoutpermisshion")
+async def get_all_subscriptions(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, enum=[10, 50, 100])
+):
+
+    try:
+        result = await db.execute(select(models.Subscription).order_by(models.Subscription.id))
+        plans = result.scalars().all()
+
+        # صفحه‌بندی دستی
+        start = (page - 1) * size
+        end = start + size
+        paginated = plans[start:end]
+
+        plan_list = [{
+            "id": plan.id,
+            "name": plan.name,
+            "name_fa": plan.name_fa,
+            "name_en": plan.name_en,
+            "duration_days": plan.duration_days,
+            "price": plan.price,
+            "features": plan.features,
+            "role_id": plan.role_id,
+            "is_active": plan.is_active,
+        } for plan in paginated  ]
+
+    except Exception as e:
+        # اگر مشکلی در دیتابیس بود
+        return create_response(
+            status="failed",
+            message="خطا در بازیابی اطلاعات پلن‌ها",
+            data={"error": str(e)}
+        )
+
+    return create_response(
+        status="success",
+        message="✅ لیست پلن‌ها با موفقیت دریافت شد",
+        data={
+            "items": plan_list,
+            "total": len(plans),
+            "page": page,
+            "size": size,
+            "pages": (len(plans) + size - 1) // size
+        }
+    )
+
 
 
 # ✅ ساخت پلن جدید

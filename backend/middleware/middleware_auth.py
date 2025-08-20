@@ -25,7 +25,8 @@ ALGORITHM = "HS256"
 # مسیرهایی که نیاز به احراز هویت ندارند
 PUBLIC_PATHS = [
     "/docs", "/docs/", "/openapi.json", "/favicon.ico", "/ping", "/static",
-    "/login", "/register","/seed/superadmin"
+    "/login", "/register","/seed/superadmin", "/admin/subscriptionswithoutpermisshion",
+    "/admin/subscriptionswithoutpermisshion/"
 ]
 
 def is_public_path(path: str) -> bool:
