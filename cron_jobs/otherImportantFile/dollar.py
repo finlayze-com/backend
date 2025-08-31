@@ -103,7 +103,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException, ElementClickInterceptedException, JavascriptException
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -169,7 +169,6 @@ def get_chromedriver_path() -> str:
 
 def new_driver():
     options = Options()
-    # بعضی نسخه‌ها با --headless=new مشکل دارند؛ ولی روی کرومیوم‌های جدید بهتره
     if HEADLESS:
         try:
             options.add_argument("--headless=new")
@@ -186,9 +185,36 @@ def new_driver():
                          "Chrome/118.0.0.0 Safari/537.36")
     # options.binary_location = "/usr/bin/chromium-browser"  # در صورت نیاز
 
-    # روی سرور از chromedriver سیستم استفاده می‌کنیم (دانلود ممنوع/بلاک است)
     service = Service(executable_path=get_chromedriver_path())
     return webdriver.Chrome(service=service, options=options)
+
+def dismiss_overlays(driver):
+    """بنرها/اوورلی‌های مزاحم (footer, toast, modal, info-price, ads) را حذف/مخفی می‌کند."""
+    js = """
+    (function(){
+      const sel = [
+        '.fixed-bottom', '.fixed-top', '.sticky', '.toast', '.modal', '.modal-backdrop',
+        '#cookie', '#cookies', '.cookie', '.cookie-consent', '.ad', '[id*="ad"]',
+        '.navbar-fixed-bottom', '.footer', '.info-price'
+      ];
+      const nodes = [];
+      sel.forEach(s => document.querySelectorAll(s).forEach(el => nodes.push(el)));
+      nodes.forEach(el => { try { el.style.display='none'; el.remove(); } catch(e){} });
+    })();
+    """
+    try:
+        driver.execute_script(js)
+    except JavascriptException:
+        pass
+
+def js_click(driver, element):
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
+        time.sleep(0.1)
+        driver.execute_script("arguments[0].click();", element)
+        return True
+    except Exception:
+        return False
 
 def parse_visible_rows_from_dom(html: str):
     """ردیف‌های صفحهٔ فعلی جدول را از DOM پارس می‌کند."""
@@ -244,16 +270,16 @@ def fetch_all_rows() -> list[tuple]:
         # افزایش طول صفحه (اگر select وجود داشته باشد)
         try:
             length_select = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#DataTables_Table_0_length select")))
+            sel = Select(length_select)
             try:
-                Select(length_select).select_by_visible_text("100")
+                sel.select_by_visible_text("100")
             except Exception:
-                # اگر "100" نبود، آخرین گزینهٔ بزرگ‌تر را انتخاب کن
+                # اگر '100' نبود، بزرگ‌ترین گزینه (ممکن است 'All' باشد)
                 try:
-                    Select(length_select).select_by_index(len(Select(length_select).options)-1)
+                    sel.select_by_index(len(sel.options)-1)
                 except Exception:
                     pass
-            # صبر برای رندر مجدد
-            time.sleep(1.0)
+            time.sleep(0.8)
             wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
         except Exception:
             pass  # اگر نبود، ادامه
@@ -262,7 +288,7 @@ def fetch_all_rows() -> list[tuple]:
         # صفحهٔ اول
         all_rows.extend(parse_visible_rows_from_dom(driver.page_source))
 
-        # پابلیشر DataTables: دکمه Next با id #DataTables_Table_0_next
+        # 2) پیمایش صفحه‌ها با کلیک Next (با مقاومت در برابر اوورلی)
         while True:
             try:
                 next_btn = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0_next")
@@ -273,22 +299,54 @@ def fetch_all_rows() -> list[tuple]:
             if "disabled" in classes:
                 break
 
-            # کلیک Next و صبر برای نوسازی سطرها
-            # قبل از کلیک، یک عنصر از سطر فعلی را می‌گیریم تا staleness چک شود
+            # متن اولین سلول قبل از کلیک برای تشخیص تغییر
             try:
                 any_row = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")
+                first_cell_before = any_row.find_element(By.CSS_SELECTOR, "td").text
             except Exception:
                 any_row = None
+                first_cell_before = None
 
-            next_btn.click()
-
-            if any_row:
+            clicked = False
+            for attempt in range(4):
                 try:
-                    wait.until(EC.staleness_of(any_row))
-                except Exception:
-                    pass
+                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", next_btn)
+                    time.sleep(0.1)
+                    next_btn.click()
+                    clicked = True
+                    break
+                except ElementClickInterceptedException:
+                    dismiss_overlays(driver)
+                    if js_click(driver, next_btn):
+                        clicked = True
+                        break
+                    time.sleep(0.2)
+                except WebDriverException:
+                    # احتمال تغییر DOM
+                    try:
+                        next_btn = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0_next")
+                    except Exception:
+                        break
 
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
+            if not clicked:
+                # نتوانستیم کلیک کنیم
+                break
+
+            # صبر تا داده‌ها واقعاً تغییر کنند
+            try:
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
+                if first_cell_before:
+                    for _ in range(50):  # ~5s
+                        try:
+                            first_cell_after = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr td").text
+                        except Exception:
+                            first_cell_after = None
+                        if first_cell_after and first_cell_after != first_cell_before:
+                            break
+                        time.sleep(0.1)
+            except Exception:
+                pass
+
             # اضافه کردن سطرهای صفحهٔ جدید
             all_rows.extend(parse_visible_rows_from_dom(driver.page_source))
 
