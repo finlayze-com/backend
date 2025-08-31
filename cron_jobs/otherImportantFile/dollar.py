@@ -87,13 +87,14 @@
     source .venv/bin/activate
     python -m cron_jobs.otherImportantFile.dollar
 """
+
 import os
 import sys
 import time
 import shutil
 import traceback
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 
 from dotenv import load_dotenv
 import pandas as pd
@@ -109,7 +110,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import psycopg2
 from psycopg2.extras import execute_batch
-from convertdate import jalali  # ← برای تبدیل تاریخ شمسی→میلادی
 
 
 # ---------- تنظیمات عمومی ----------
@@ -119,7 +119,6 @@ ENV_PATH = REPO_ROOT / ".env"
 URL = "https://www.tgju.org/profile/price_dollar_rl/history"
 
 HEADLESS = True
-PAGELOAD_WAIT = 6   # seconds
 WAIT_TIMEOUT = 20   # WebDriverWait seconds
 
 
@@ -257,13 +256,46 @@ def parse_visible_rows_from_dom(html: str):
         ))
     return rows
 
-# ----- تبدیل تاریخ: شمسی → میلادی -----
+# ----- تبدیل تاریخ: شمسی → میلادی (بدون وابستگی خارجی) -----
+def _g_is_leap(gy: int) -> bool:
+    return gy % 4 == 0 and (gy % 100 != 0 or gy % 400 == 0)
+
+def _jalali_to_gregorian(jy: int, jm: int, jd: int):
+    jy += 1595
+    days = -355668 + (365 * jy) + (jy // 33) * 8 + ((jy % 33) + 3) // 4 + jd
+    if jm < 7:
+        days += (jm - 1) * 31
+    else:
+        days += ((jm - 7) * 30) + 186
+
+    gy = 400 * (days // 146097)
+    days %= 146097
+
+    if days > 36524:
+        gy += 100 * ((days - 1) // 36524)
+        days = (days - 1) % 36524
+        if days >= 365:
+            days += 1
+
+    gy += 4 * (days // 1461)
+    days %= 1461
+
+    if days > 365:
+        gy += (days - 1) // 365
+        days = (days - 1) % 365
+
+    gd = days + 1
+    g_md = [31, 28 + int(_g_is_leap(gy)), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    gm = 0
+    while gm < 12 and gd > g_md[gm]:
+        gd -= g_md[gm]
+        gm += 1
+    return gy, gm + 1, gd
+
 def to_gregorian_date(s: str):
     """
-    ورودی: 'YYYY/MM/DD' یا 'YYYY-MM-DD'
-    خروجی: تاریخ میلادی به صورت datetime.date
-    - اگر سال < 1700 باشد، شمسی فرض می‌کنیم و تبدیل می‌کنیم.
-    - در غیر این صورت میلادی فرض می‌شود.
+    'YYYY/MM/DD' یا 'YYYY-MM-DD' → datetime.date
+    اگر سال < 1700 باشد، شمسی فرض می‌کنیم.
     """
     if not s:
         return None
@@ -278,13 +310,13 @@ def to_gregorian_date(s: str):
 
     if y < 1700:
         try:
-            gy, gm, gd = jalali.jalali_to_gregorian(y, m, d)
-            return datetime(gy, gm, gd).date()
+            gy, gm, gd = _jalali_to_gregorian(y, m, d)
+            return date(gy, gm, gd)
         except Exception:
             return None
     else:
         try:
-            return datetime(y, m, d).date()
+            return date(y, m, d)
         except Exception:
             return None
 
@@ -340,7 +372,7 @@ def fetch_all_rows() -> list[tuple]:
                 first_cell_before = None
 
             clicked = False
-            for attempt in range(4):
+            for _ in range(4):
                 try:
                     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", next_btn)
                     time.sleep(0.1)
@@ -396,7 +428,7 @@ def parse_all_pages_to_df() -> pd.DataFrame:
         raise ValueError("هیچ سطری از جدول استخراج نشد.")
     df = pd.DataFrame(rows, columns=["date_miladi", "open", "high", "low", "close"])
 
-    # 👇 جایگزین نسخه قبلی: تبدیل شمسی→میلادی یا عبور از میلادی
+    # تبدیل شمسی→میلادی یا عبور از میلادی
     df["date_miladi"] = df["date_miladi"].map(to_gregorian_date)
     df = df.dropna(subset=["date_miladi"]).copy()
     # حذف دوبل احتمالی
