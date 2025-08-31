@@ -87,7 +87,6 @@
     source .venv/bin/activate
     python -m cron_jobs.otherImportantFile.dollar
 """
-
 import os
 import sys
 import time
@@ -103,6 +102,10 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
 
 import psycopg2
 from psycopg2.extras import execute_batch
@@ -115,7 +118,8 @@ ENV_PATH = REPO_ROOT / ".env"
 URL = "https://www.tgju.org/profile/price_dollar_rl/history"
 
 HEADLESS = True
-PAGELOAD_WAIT = 6  # seconds
+PAGELOAD_WAIT = 6   # seconds
+WAIT_TIMEOUT = 20   # WebDriverWait seconds
 
 
 # ---------- DB helpers ----------
@@ -165,8 +169,12 @@ def get_chromedriver_path() -> str:
 
 def new_driver():
     options = Options()
+    # بعضی نسخه‌ها با --headless=new مشکل دارند؛ ولی روی کرومیوم‌های جدید بهتره
     if HEADLESS:
-        options.add_argument("--headless=new")
+        try:
+            options.add_argument("--headless=new")
+        except Exception:
+            options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1440,900")
@@ -176,54 +184,39 @@ def new_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
                          "AppleWebKit/537.36 (KHTML, like Gecko) "
                          "Chrome/118.0.0.0 Safari/537.36")
-    # در صورت نیاز باینری مرورگر را ست کن:
-    # options.binary_location = "/usr/bin/chromium-browser"  # یا "/usr/bin/chromium"
+    # options.binary_location = "/usr/bin/chromium-browser"  # در صورت نیاز
 
+    # روی سرور از chromedriver سیستم استفاده می‌کنیم (دانلود ممنوع/بلاک است)
     service = Service(executable_path=get_chromedriver_path())
     return webdriver.Chrome(service=service, options=options)
 
-def fetch_html() -> str:
-    log(f"در حال باز کردن صفحه: {URL}")
-    driver = new_driver()
-    try:
-        driver.get(URL)
-        time.sleep(PAGELOAD_WAIT)
-        return driver.page_source
-    finally:
-        try:
-            driver.quit()
-        except Exception:
-            pass
-
-def parse_table(html: str) -> pd.DataFrame:
+def parse_visible_rows_from_dom(html: str):
+    """ردیف‌های صفحهٔ فعلی جدول را از DOM پارس می‌کند."""
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "DataTables_Table_0"})
     if not table:
-        raise ValueError("جدول با id=DataTables_Table_0 پیدا نشد.")
+        return []
     tbody = table.find("tbody")
     if not tbody:
-        raise ValueError("tbody جدول پیدا نشد.")
-
+        return []
     rows = []
     for tr in tbody.find_all("tr"):
-        tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+        tds = [td.get_text(strip=True).replace(",", "") for td in tr.find_all("td")]
         if len(tds) < 7:
             continue
 
-        cleaned = [c.replace(",", "") for c in tds]
-
         # تاریخ را از راست‌ترین ستون شبیه تاریخ بردار
         date_idx = None
-        for i in range(len(cleaned)-1, -1, -1):
-            token = cleaned[i]
+        for i in range(len(tds)-1, -1, -1):
+            token = tds[i]
             if "/" in token and len(token.split("/")) == 3:
                 date_idx = i
                 break
         if date_idx is None:
             date_idx = 6  # fallback
 
-        date_gregorian = cleaned[date_idx]
-        open_, low, high, close = cleaned[0:4]
+        date_gregorian = tds[date_idx]
+        open_, low, high, close = tds[0:4]
 
         def to_float(x):
             try:
@@ -231,12 +224,86 @@ def parse_table(html: str) -> pd.DataFrame:
             except:
                 return None
 
-        rows.append((date_gregorian.strip(),
-                     to_float(open_), to_float(high), to_float(low), to_float(close)))
+        rows.append((
+            date_gregorian.strip(),
+            to_float(open_), to_float(high), to_float(low), to_float(close),
+        ))
+    return rows
 
+def fetch_all_rows() -> list[tuple]:
+    """همه صفحات DataTables را پیمایش و همهٔ ردیف‌ها را برمی‌گرداند."""
+    driver = new_driver()
+    try:
+        driver.get(URL)
+        wait = WebDriverWait(driver, WAIT_TIMEOUT)
+
+        # صبر تا جدول لود شود
+        wait.until(EC.presence_of_element_located((By.ID, "DataTables_Table_0")))
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
+
+        # افزایش طول صفحه (اگر select وجود داشته باشد)
+        try:
+            length_select = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#DataTables_Table_0_length select")))
+            try:
+                Select(length_select).select_by_visible_text("100")
+            except Exception:
+                # اگر "100" نبود، آخرین گزینهٔ بزرگ‌تر را انتخاب کن
+                try:
+                    Select(length_select).select_by_index(len(Select(length_select).options)-1)
+                except Exception:
+                    pass
+            # صبر برای رندر مجدد
+            time.sleep(1.0)
+            wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
+        except Exception:
+            pass  # اگر نبود، ادامه
+
+        all_rows = []
+        # صفحهٔ اول
+        all_rows.extend(parse_visible_rows_from_dom(driver.page_source))
+
+        # پابلیشر DataTables: دکمه Next با id #DataTables_Table_0_next
+        while True:
+            try:
+                next_btn = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0_next")
+            except Exception:
+                break
+
+            classes = (next_btn.get_attribute("class") or "")
+            if "disabled" in classes:
+                break
+
+            # کلیک Next و صبر برای نوسازی سطرها
+            # قبل از کلیک، یک عنصر از سطر فعلی را می‌گیریم تا staleness چک شود
+            try:
+                any_row = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")
+            except Exception:
+                any_row = None
+
+            next_btn.click()
+
+            if any_row:
+                try:
+                    wait.until(EC.staleness_of(any_row))
+                except Exception:
+                    pass
+
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0 tbody tr")))
+            # اضافه کردن سطرهای صفحهٔ جدید
+            all_rows.extend(parse_visible_rows_from_dom(driver.page_source))
+
+        return all_rows
+
+    finally:
+        try:
+            driver.quit()
+        except Exception:
+            pass
+
+def parse_all_pages_to_df() -> pd.DataFrame:
+    rows = fetch_all_rows()
     if not rows:
         raise ValueError("هیچ سطری از جدول استخراج نشد.")
-
     df = pd.DataFrame(rows, columns=["date_miladi", "open", "high", "low", "close"])
 
     def parse_date(s):
@@ -250,6 +317,8 @@ def parse_table(html: str) -> pd.DataFrame:
 
     df["date_miladi"] = df["date_miladi"].map(parse_date)
     df = df.dropna(subset=["date_miladi"]).copy()
+    # حذف دوبل احتمالی
+    df = df.drop_duplicates(subset=["date_miladi"], keep="first")
     return df
 
 def ensure_table(conn):
@@ -294,18 +363,15 @@ def main():
         else:
             log("⚠️ .env پیدا نشد. از env فعلی استفاده می‌کنم.")
 
-        # دیباگ شفاف
         print("RAW DB_URL     =", repr(os.getenv("DB_URL")))
         print("RAW DB_URL_SYNC=", repr(os.getenv("DB_URL_SYNC")))
 
         db_url = get_db_url()
         log(f"EFFECTIVE DB_URL (psycopg2) = {db_url}")
 
-        html = fetch_html()
-        log("HTML دریافت شد.")
-
-        df = parse_table(html)
-        log(f"🧮 ردیف‌های استخراج‌شده: {len(df)}")
+        log("در حال استخراج همه صفحات…")
+        df = parse_all_pages_to_df()
+        log(f"🧮 کل ردیف‌های استخراج‌شده: {len(df)}")
 
         conn = connect_db(db_url)
         try:
