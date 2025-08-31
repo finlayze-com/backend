@@ -18,34 +18,41 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade():
     # حذف امن daily_joined_data (اگر view یا materialized view باشد)
     op.execute("""
-    DO $$
-    BEGIN
-        -- اگر materialized view است
-        IF EXISTS (
-            SELECT 1
-            FROM pg_matviews
-            WHERE schemaname = current_schema()
-              AND matviewname = 'daily_joined_data'
-        ) THEN
-            EXECUTE 'DROP MATERIALIZED VIEW daily_joined_data CASCADE';
-        END IF;
+       DO $do$
+       BEGIN
+           -- drop if TABLE exists
+           IF EXISTS (
+               SELECT 1 FROM pg_class c
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE n.nspname='public' AND c.relname='daily_joined_data' AND c.relkind='r'
+           ) THEN
+               EXECUTE 'DROP TABLE IF EXISTS public.daily_joined_data CASCADE';
+           END IF;
 
-        -- اگر view عادی است
-        IF EXISTS (
-            SELECT 1
-            FROM pg_views
-            WHERE schemaname = current_schema()
-              AND viewname = 'daily_joined_data'
-        ) THEN
-            EXECUTE 'DROP VIEW daily_joined_data CASCADE';
-        END IF;
-    END
-    $$;
-    """)
+           -- drop if MATERIALIZED VIEW exists
+           IF EXISTS (
+               SELECT 1 FROM pg_class c
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE n.nspname='public' AND c.relname='daily_joined_data' AND c.relkind='m'
+           ) THEN
+               EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS public.daily_joined_data CASCADE';
+           END IF;
+
+           -- drop if VIEW exists
+           IF EXISTS (
+               SELECT 1 FROM pg_class c
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE n.nspname='public' AND c.relname='daily_joined_data' AND c.relkind='v'
+           ) THEN
+               EXECUTE 'DROP VIEW IF EXISTS public.daily_joined_data CASCADE';
+           END IF;
+       END
+       $do$;
+       """)
 
     # ساخت ویو جدید
     op.execute("""
-        CREATE OR REPLACE VIEW daily_joined_data AS
+        CREATE OR REPLACE VIEW public.daily_joined_data AS
         SELECT
             -- 🟢 تمام ستون‌های روزانه سهم
             dsd.*,
@@ -105,25 +112,39 @@ def upgrade():
     """)
 
 
-def downgrade():
+def downgrade() -> None:
     op.execute("""
-    DO $$
+    DO $do$
     BEGIN
+        -- اگر MATERIALIZED VIEW است
         IF EXISTS (
             SELECT 1 FROM pg_matviews
             WHERE schemaname = current_schema()
               AND matviewname = 'daily_joined_data'
         ) THEN
-            EXECUTE 'DROP MATERIALIZED VIEW daily_joined_data CASCADE';
+            EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS ' || quote_ident(current_schema()) || '.daily_joined_data CASCADE';
         END IF;
 
+        -- اگر VIEW است
         IF EXISTS (
             SELECT 1 FROM pg_views
             WHERE schemaname = current_schema()
               AND viewname = 'daily_joined_data'
         ) THEN
-            EXECUTE 'DROP VIEW daily_joined_data CASCADE';
+            EXECUTE 'DROP VIEW IF EXISTS ' || quote_ident(current_schema()) || '.daily_joined_data CASCADE';
+        END IF;
+
+        -- اگر TABLE است (برای پاکسازی مطمئن)
+        IF EXISTS (
+            SELECT 1
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = current_schema()
+              AND c.relname  = 'daily_joined_data'
+              AND c.relkind  = 'r'
+        ) THEN
+            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(current_schema()) || '.daily_joined_data CASCADE';
         END IF;
     END
-    $$;
+    $do$;
     """)
