@@ -109,6 +109,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import psycopg2
 from psycopg2.extras import execute_batch
+from convertdate import jalali  # ← برای تبدیل تاریخ شمسی→میلادی
 
 
 # ---------- تنظیمات عمومی ----------
@@ -256,6 +257,37 @@ def parse_visible_rows_from_dom(html: str):
         ))
     return rows
 
+# ----- تبدیل تاریخ: شمسی → میلادی -----
+def to_gregorian_date(s: str):
+    """
+    ورودی: 'YYYY/MM/DD' یا 'YYYY-MM-DD'
+    خروجی: تاریخ میلادی به صورت datetime.date
+    - اگر سال < 1700 باشد، شمسی فرض می‌کنیم و تبدیل می‌کنیم.
+    - در غیر این صورت میلادی فرض می‌شود.
+    """
+    if not s:
+        return None
+    s = s.strip().replace("-", "/")
+    parts = s.split("/")
+    if len(parts) != 3:
+        return None
+    try:
+        y, m, d = [int(x) for x in parts]
+    except Exception:
+        return None
+
+    if y < 1700:
+        try:
+            gy, gm, gd = jalali.jalali_to_gregorian(y, m, d)
+            return datetime(gy, gm, gd).date()
+        except Exception:
+            return None
+    else:
+        try:
+            return datetime(y, m, d).date()
+        except Exception:
+            return None
+
 def fetch_all_rows() -> list[tuple]:
     """همه صفحات DataTables را پیمایش و همهٔ ردیف‌ها را برمی‌گرداند."""
     driver = new_driver()
@@ -288,7 +320,7 @@ def fetch_all_rows() -> list[tuple]:
         # صفحهٔ اول
         all_rows.extend(parse_visible_rows_from_dom(driver.page_source))
 
-        # 2) پیمایش صفحه‌ها با کلیک Next (با مقاومت در برابر اوورلی)
+        # پیمایش صفحه‌ها با کلیک Next (با مقاومت در برابر اوورلی)
         while True:
             try:
                 next_btn = driver.find_element(By.CSS_SELECTOR, "#DataTables_Table_0_next")
@@ -364,16 +396,8 @@ def parse_all_pages_to_df() -> pd.DataFrame:
         raise ValueError("هیچ سطری از جدول استخراج نشد.")
     df = pd.DataFrame(rows, columns=["date_miladi", "open", "high", "low", "close"])
 
-    def parse_date(s):
-        s = (s or "").strip()
-        for fmt in ("%Y/%m/%d", "%Y-%m-%d"):
-            try:
-                return datetime.strptime(s, fmt).date()
-            except:
-                pass
-        return None
-
-    df["date_miladi"] = df["date_miladi"].map(parse_date)
+    # 👇 جایگزین نسخه قبلی: تبدیل شمسی→میلادی یا عبور از میلادی
+    df["date_miladi"] = df["date_miladi"].map(to_gregorian_date)
     df = df.dropna(subset=["date_miladi"]).copy()
     # حذف دوبل احتمالی
     df = df.drop_duplicates(subset=["date_miladi"], keep="first")
