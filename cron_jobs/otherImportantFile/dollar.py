@@ -117,55 +117,55 @@ URL = "https://www.tgju.org/profile/price_dollar_rl/history"
 HEADLESS = True
 PAGELOAD_WAIT = 6  # seconds
 
-# ---------- کمک‌تابع‌ها ----------
-def log(msg: str):
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+
+# ---------- DB helpers ----------
+def normalize_psycopg2_url(url: str) -> str:
+    """psycopg2 فقط postgresql:// را می‌شناسد."""
+    return (
+        url.replace("postgresql+asyncpg://", "postgresql://")
+           .replace("postgresql+psycopg2://", "postgresql://")
+    )
 
 def get_db_url():
-    # ترتیب اولویت: DB_URL -> DB_URL_SYNC -> DATABASE_URL
-    db_url = os.getenv("DB_URL") or os.getenv("DB_URL_SYNC") or os.getenv("DATABASE_URL")
-    if db_url:
-        return db_url
-
-    # fallback به اتصال دستی (اگر env نبود)
-    host = os.getenv("DB_HOST", "localhost")
-    dbname = os.getenv("DB_NAME", "postgres1")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "Afiroozi12")
-    port = os.getenv("DB_PORT", "5432")
-    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    # اولویت: sync → async
+    db_url = os.getenv("DB_URL_SYNC") or os.getenv("DB_URL") or os.getenv("DATABASE_URL")
+    if not db_url:
+        host = os.getenv("DB_HOST", "localhost")
+        dbname = os.getenv("DB_NAME", "postgres1")
+        user = os.getenv("DB_USER", "postgres")
+        password = os.getenv("DB_PASSWORD", "Afiroozi12")
+        port = os.getenv("DB_PORT", "5432")
+        db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    return normalize_psycopg2_url(db_url)
 
 def connect_db(db_url: str):
-    # psycopg2 با DSN هم کار می‌کند
     conn = psycopg2.connect(db_url)
     conn.autocommit = False
     return conn
 
+
+# ---------- سایر کمک‌تابع‌ها ----------
+def log(msg: str):
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+
 def get_chromedriver_path() -> str:
-    # اول با which
     p = shutil.which("chromedriver")
     if p:
         return p
-    # fallback مسیرهای رایج
-    candidates = [
-        "/usr/bin/chromedriver",
-        "/usr/lib/chromium-browser/chromedriver",
-        "/usr/lib/chromium/chromedriver",
-        "/usr/local/bin/chromedriver",
-    ]
-    for c in candidates:
+    for c in ["/usr/bin/chromedriver",
+              "/usr/lib/chromium-browser/chromedriver",
+              "/usr/lib/chromium/chromedriver",
+              "/usr/local/bin/chromedriver"]:
         if os.path.exists(c):
             return c
     raise RuntimeError(
-        "chromedriver یافت نشد. لطفاً با دستور زیر نصب کن:\n"
+        "chromedriver یافت نشد. نصب کن:\n"
         "  sudo apt-get install -y chromium-driver\n"
-        "و سپس دوباره اجرا کن."
     )
 
 def new_driver():
     options = Options()
     if HEADLESS:
-        # حالت جدید headless برای نسخه‌های جدید
         options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -176,14 +176,11 @@ def new_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
                          "AppleWebKit/537.36 (KHTML, like Gecko) "
                          "Chrome/118.0.0.0 Safari/537.36")
+    # در صورت نیاز باینری مرورگر را ست کن:
+    # options.binary_location = "/usr/bin/chromium-browser"  # یا "/usr/bin/chromium"
 
-    # اگر نیاز بود باینری کرومیوم را مشخص کن (بعضی سرورها)
-    # options.binary_location = "/usr/bin/chromium-browser"  # یا /usr/bin/chromium
-
-    driver_path = get_chromedriver_path()
-    service = Service(executable_path=driver_path)
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
+    service = Service(executable_path=get_chromedriver_path())
+    return webdriver.Chrome(service=service, options=options)
 
 def fetch_html() -> str:
     log(f"در حال باز کردن صفحه: {URL}")
@@ -191,8 +188,7 @@ def fetch_html() -> str:
     try:
         driver.get(URL)
         time.sleep(PAGELOAD_WAIT)
-        html = driver.page_source
-        return html
+        return driver.page_source
     finally:
         try:
             driver.quit()
@@ -200,15 +196,10 @@ def fetch_html() -> str:
             pass
 
 def parse_table(html: str) -> pd.DataFrame:
-    """
-    جدول با id=DataTables_Table_0 → هشت ستون (باز،کمترین،بیشترین،پایانی،...،تاریخ میلادی،…)
-    ساختار ممکن است توسط سایت تغییر کند؛ در صورت تغییر، این بخش را تطبیق بده.
-    """
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "DataTables_Table_0"})
     if not table:
-        raise ValueError("جدول با id=DataTables_Table_0 پیدا نشد. شاید ساختار صفحه تغییر کرده.")
-
+        raise ValueError("جدول با id=DataTables_Table_0 پیدا نشد.")
     tbody = table.find("tbody")
     if not tbody:
         raise ValueError("tbody جدول پیدا نشد.")
@@ -216,61 +207,39 @@ def parse_table(html: str) -> pd.DataFrame:
     rows = []
     for tr in tbody.find_all("tr"):
         tds = [td.get_text(strip=True) for td in tr.find_all("td")]
-        # ساختار معمولاً 8 ستونه است؛ اگر تغییر کرد، لاگ بگیر
         if len(tds) < 7:
             continue
 
-        # معمولاً ترتیب: باز، کمترین، بیشترین، پایانی، ... ، تاریخ میلادی، ...
-        # پاکسازی اعداد
-        try:
-            # حذف ویرگول
-            cleaned = [c.replace(",", "") for c in tds]
-            # تلاش برای تشخیص تاریخ از ستون‌های انتهایی
-            # در بسیاری از نمونه‌ها ستون 6 تاریخ است (ایندکس 6 یا -2)
-            # امن‌تر: از راست به چپ اولین چیزی که شبیه تاریخ هست را بردار
-            date_idx = None
-            for i in range(len(cleaned)-1, -1, -1):
-                token = cleaned[i]
-                if "/" in token and len(token.split("/")) == 3:
-                    date_idx = i
-                    break
-            if date_idx is None:
-                # fallback: فرض 6
-                date_idx = 6
+        cleaned = [c.replace(",", "") for c in tds]
 
-            # استخراج تاریخ میلادی
-            date_gregorian = cleaned[date_idx]
+        # تاریخ را از راست‌ترین ستون شبیه تاریخ بردار
+        date_idx = None
+        for i in range(len(cleaned)-1, -1, -1):
+            token = cleaned[i]
+            if "/" in token and len(token.split("/")) == 3:
+                date_idx = i
+                break
+        if date_idx is None:
+            date_idx = 6  # fallback
 
-            # مقادیر قیمت را از ابتدای ردیف بردار (فرض: 0..3)
-            open_, low, high, close = cleaned[0:4]
+        date_gregorian = cleaned[date_idx]
+        open_, low, high, close = cleaned[0:4]
 
-            # تبدیل به float
-            def to_float(x):
-                try:
-                    return float(x)
-                except:
-                    return None
+        def to_float(x):
+            try:
+                return float(x)
+            except:
+                return None
 
-            rows.append(
-                (
-                    date_gregorian.strip(),
-                    to_float(open_),
-                    to_float(high),
-                    to_float(low),
-                    to_float(close),
-                )
-            )
-        except Exception as e:
-            log(f"⚠️ خطا در پارس یک ردیف: {e}")
+        rows.append((date_gregorian.strip(),
+                     to_float(open_), to_float(high), to_float(low), to_float(close)))
 
     if not rows:
-        raise ValueError("هیچ سطری از جدول استخراج نشد. شاید صفحه کامل لود نشده یا DOM تغییر کرده.")
+        raise ValueError("هیچ سطری از جدول استخراج نشد.")
 
     df = pd.DataFrame(rows, columns=["date_miladi", "open", "high", "low", "close"])
 
-    # تاریخ‌ها با فرمت  YYYY/MM/DD
     def parse_date(s):
-        # برخی ردیف‌ها ممکن است dash داشته باشند یا خالی باشند
         s = (s or "").strip()
         for fmt in ("%Y/%m/%d", "%Y-%m-%d"):
             try:
@@ -284,10 +253,6 @@ def parse_table(html: str) -> pd.DataFrame:
     return df
 
 def ensure_table(conn):
-    """
-    اگر جدول dollar_data وجود ندارد، بساز (ستون date_miladi یکتا باشد برای upsert).
-    اگر جدول داری، این تابع بی‌خطر است.
-    """
     ddl = """
     CREATE TABLE IF NOT EXISTS public.dollar_data (
         date_miladi date PRIMARY KEY,
@@ -302,14 +267,9 @@ def ensure_table(conn):
     conn.commit()
 
 def upsert_dollar_data(conn, df: pd.DataFrame):
-    """
-    آپسرت بر اساس date_miladi.
-    اگر constraint یکتا نداری، حتماً PRIMARY KEY یا UNIQUE روی date_miladi بگذار.
-    """
     if df.empty:
         log("هیچ داده‌ای برای درج وجود ندارد.")
         return 0
-
     sql = """
     INSERT INTO public.dollar_data (date_miladi, open, high, low, close)
     VALUES (%s, %s, %s, %s, %s)
@@ -332,10 +292,14 @@ def main():
             load_dotenv(ENV_PATH)
             log(f".env loaded from {ENV_PATH}")
         else:
-            log("⚠️ فایل .env پیدا نشد. از متغیرهای محیطی فعلی استفاده می‌کنم.")
+            log("⚠️ .env پیدا نشد. از env فعلی استفاده می‌کنم.")
+
+        # دیباگ شفاف
+        print("RAW DB_URL     =", repr(os.getenv("DB_URL")))
+        print("RAW DB_URL_SYNC=", repr(os.getenv("DB_URL_SYNC")))
 
         db_url = get_db_url()
-        log(f"DB_URL: {db_url}")
+        log(f"EFFECTIVE DB_URL (psycopg2) = {db_url}")
 
         html = fetch_html()
         log("HTML دریافت شد.")
@@ -346,18 +310,13 @@ def main():
         conn = connect_db(db_url)
         try:
             ensure_table(conn)
-
-            # اگر فقط می‌خواهی سطرهای جدید را درج کنی (و نه آپدیت):
-            #   - می‌توانی ابتدا تاریخ‌های موجود را بخوانی و فیلتر کنی.
-            #   - ولی ما آپسرت می‌کنیم تا مطمئن باشیم مقدارها به‌روز می‌شوند.
             inserted = upsert_dollar_data(conn, df)
             log(f"✅ {inserted} ردیف درج/به‌روزرسانی شد در dollar_data.")
         finally:
             conn.close()
 
         log("🎉 انجام شد.")
-
-    except Exception as e:
+    except Exception:
         log("❌ خطا رخ داد:")
         print(traceback.format_exc())
         sys.exit(1)
