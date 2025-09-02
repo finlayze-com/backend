@@ -284,10 +284,3 @@ async def delete_user_subscription_admin(
                 "deleted_at": sub.deleted_at.isoformat()
             }
         )
-    except Exception as e:
-        await db.rollback()
-        return create_response(
-            status="failed",
-            message="❌ خطا در غیرفعال‌سازی اشتراک",
-            data={"error": str(e)}
-        )
