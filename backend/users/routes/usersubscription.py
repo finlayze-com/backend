@@ -1,10 +1,10 @@
 
-from fastapi import APIRouter, Request, Depends,Query
+from fastapi import APIRouter, Request, Depends,Query,HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select
 from datetime import datetime
-
+from sqlalchemy.exc import IntegrityError
 from backend.users.dependencies import require_permissions
 from backend.utils.response import create_response
 from backend.users.models import User, UserSubscription, Subscription
@@ -14,10 +14,11 @@ from backend.users.schemas import (
     UserSubscriptionUpdateAdmin
 )
 from sqlalchemy.orm import joinedload
-
 from backend.db.connection import async_session
 from backend.utils.logger import logger
 from datetime import datetime, timedelta
+from fastapi import status as http_status
+
 
 router = APIRouter()
 
@@ -53,6 +54,7 @@ async def list_user_subscriptions_admin(
 
         logger.info(f"📦 تعداد اشتراک یافت‌شده: {len(subscription_out)}")
         return create_response(
+            status_code=http_status.HTTP_200_OK,
             status="success",
             message="لیست اشتراک‌های کاربران با موفقیت دریافت شد",
             data={
@@ -80,18 +82,16 @@ async def create_user_subscription_admin(
 
     subscription = await db.get(Subscription, data.subscription_id)
     if not subscription:
-        return create_response(
-            status="failed",
-            message="پلن پیدا نشد",
-            data={"errors": {"subscription_id": ["پلن با این شناسه وجود ندارد."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن پیدا نشد",
         )
 
     user = await db.get(User, data.user_id)
     if not user:
-        return create_response(
-            status="failed",
-            message="کاربر پیدا نشد",
-            data={"errors": {"user_id": ["کاربر با این شناسه وجود ندارد."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن پیدا نشد",
         )
 
     # --- این بخش قبلاً اشتباهاً داخل if not user بود ---
@@ -99,20 +99,17 @@ async def create_user_subscription_admin(
     if end_date is None:
         duration = getattr(subscription, "duration_days", None)
         if not isinstance(duration, int) or duration <= 0:
-            return create_response(
-                status="failed",
-                message="مدت اشتراک پلن نامعتبر است",
-                data={"errors": {"duration_days": ["duration_days پلن باید عدد مثبت باشد."]}}
+            raise HTTPException(
+                status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="مدت اشتراک پلن نامعتبر است",
             )
         end_date = data.start_date + timedelta(days=duration)
 
     if end_date <= data.start_date:
-        return create_response(
-            status="failed",
-            message="end_date باید بعد از start_date باشد",
-            data={"errors": {"end_date": ["end_date معتبر نیست."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="end_date باید بعد از start_date باشد",
         )
-    # --- پایان اصلاح ---
 
     new_sub = UserSubscription(
         user_id=data.user_id,
@@ -124,10 +121,16 @@ async def create_user_subscription_admin(
         status=data.status
     )
     db.add(new_sub)
-    await db.commit()
+    # 5) commit با هندل استاندارد خطاهای دیتابیس
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
     await db.refresh(new_sub)
 
     return create_response(
+        status_code=http_status.HTTP_201_CREATED,
         status="success",
         message="اشتراک برای کاربر با موفقیت ایجاد شد",
         data={
@@ -155,19 +158,60 @@ async def update_user_subscription_admin(
     result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
     sub = result.scalar_one_or_none()
     if not sub:
-        return create_response(
-            status="failed",
-            message="اشتراک پیدا نشد",
-            data={"errors": {"sub_id": ["هیچ اشتراکی با این شناسه وجود ندارد."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="اشتراک پیدا نشد",
         )
+
+        # # 2) اگر subscription_id تغییر می‌کند، وجودش را چک کن
+        # if "subscription_id" in payload:
+        #     sub_q = await db.execute(
+        #         select(Subscription).where(Subscription.id == payload["subscription_id"])
+        #     )
+        #     new_plan = sub_q.scalar_one_or_none()
+        #     if not new_plan:
+        #         raise HTTPException(
+        #             status_code=http_status.HTTP_404_NOT_FOUND,
+        #             detail="پلن مرتبط یافت نشد",
+        #         )
+        #
+        # # 3) اگر user_id تغییر می‌کند، وجود کاربر را چک کن
+        # if "user_id" in payload:
+        #     user_q = await db.execute(select(User).where(User.id == payload["user_id"]))
+        #     new_user = user_q.scalar_one_or_none()
+        #     if not new_user:
+        #         raise HTTPException(
+        #             status_code=http_status.HTTP_404_NOT_FOUND,
+        #             detail="کاربر مرتبط یافت نشد",
+        #         )
+        #
+        # # 4) اعتبارسنجی تاریخ‌ها (اگر هر دو ست شده‌اند یا یک‌طرفه اصلاح می‌شود)
+        # new_start = payload.get("start_date", sub.start_date)
+        # new_end = payload.get("end_date", sub.end_date)
+        # if new_start is not None and new_end is not None and new_end <= new_start:
+        #     raise HTTPException(
+        #         status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+        #         detail="end_date باید بعد از start_date باشد",
+        #     )
 
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
-    await db.commit()
+    #     # (اختیاری) محاسبهٔ وضعیت active بر اساس تاریخ‌های جدید
+    # if ("start_date" in payload) or ("end_date" in payload):
+    #     now = datetime.utcnow()
+    #     sub.is_active = (sub.start_date is not None and sub.end_date is not None
+    #                          and sub.start_date <= now < sub.end_date)
+
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
     await db.refresh(sub)
 
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="اشتراک با موفقیت بروزرسانی شد",
         data={"subscription": {
@@ -192,10 +236,9 @@ async def delete_user_subscription_admin(
     result = await db.execute(select(UserSubscription).where(UserSubscription.id == sub_id))
     sub = result.scalar_one_or_none()
     if not sub:
-        return create_response(
-            status="failed",
-            message="❌ اشتراک پیدا نشد",
-            data={"errors": {"sub_id": ["اشتراک با این شناسه وجود ندارد."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="اشتراک پیدا نشد",
         )
 
     result_user = await db.execute(
@@ -206,31 +249,34 @@ async def delete_user_subscription_admin(
     )
     user = result_user.unique().scalar_one_or_none()
     if not user:
-        return create_response(
-            status="failed",
-            message="❌ کاربر مربوطه پیدا نشد",
-            data={"errors": {"user_id": ["کاربر مربوط به این اشتراک پیدا نشد."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر مربوطه پیدا نشد",
         )
 
     role_names = [role.name for role in user.roles]
     if "admin" in role_names or "superadmin" in role_names:
-        return create_response(
-            status="failed",
-            message="⛔ نمی‌توان اشتراک ادمین یا سوپر ادمین را حذف کرد",
-            data={"errors": {"roles": ["شما مجاز به حذف این نوع اشتراک نیستید."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="امکان حذف اشتراک کاربر ادمین/سوپرادمین وجود ندارد",
         )
 
-    try:
-        sub.is_active = False
-        sub.status = "expired"
-        sub.deleted_at = datetime.utcnow()
-        await db.commit()
-        await db.refresh(sub)
 
-        return create_response(
-            status="success",
-            message="✅ اشتراک با موفقیت غیرفعال شد (soft delete)",
-            data={
+    sub.is_active = False
+    sub.status = "expired"
+    sub.deleted_at = datetime.utcnow()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
+    await db.refresh(sub)
+
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message="✅ اشتراک با موفقیت غیرفعال شد (soft delete)",
+        data={
                 "subscription_id": sub.id,
                 "user_id": sub.user_id,
                 "status": sub.status,

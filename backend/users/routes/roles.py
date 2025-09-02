@@ -11,6 +11,8 @@ from backend.utils.response import create_response
 from sqlalchemy import select  # حتما اضافه کن
 from fastapi import Query
 from backend.users.models import User
+from fastapi import status as http_status
+from sqlalchemy.exc import IntegrityError
 
 
 router = APIRouter()
@@ -29,9 +31,13 @@ async def seed_superadmin(db: AsyncSession  = Depends(get_db)):
 
     if not role:
         role = models.Role(name="superadmin", description="کاربر ریشه با دسترسی کامل")
-        db.add(role)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise exc
         await db.refresh(role)
+        role_created = True
 
     # 2. بررسی وجود کاربر
 
@@ -43,14 +49,35 @@ async def seed_superadmin(db: AsyncSession  = Depends(get_db)):
     user = result.scalars().first()
 
     if not user:
-        return {"error": "❌ کاربر با id=1 وجود ندارد"}
-    # 3. بررسی اینکه نقش دارد یا نه
+        # ⛔️ بگذار هندلر 404 پاسخ استاندارد بدهد
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر با id=1 یافت نشد",
+        )    # 3. بررسی اینکه نقش دارد یا نه
+
+    # 3) اگر نقش را دارد، خروجی 200 بده؛ وگرنه نقش را اضافه کن و 201 بده
     if role in user.roles:
-        return {"message": "✅ کاربر قبلاً نقش superadmin دارد"}
+        return create_response(
+            status_code=http_status.HTTP_200_OK,
+            status="success",
+            message="کاربر قبلاً نقش superadmin دارد",
+            data={"user_id": user.id, "role": role.name, "role_created": role_created},
+    )
+
 
     user.roles.append(role)
-    await db.commit()
-    return {"message": "✅ نقش superadmin به کاربر 1 اختصاص یافت"}
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
+
+    return create_response(
+        status_code=http_status.HTTP_201_CREATED,
+        status="success",
+        message="نقش superadmin به کاربر 1 اختصاص یافت",
+        data={"user_id": user.id, "role": role.name, "role_created": role_created},
+    )
 
 # ✅ ساخت نقش جدید (فقط برای سوپرادمین)
 @router.post("/admin/roles")
@@ -67,16 +94,21 @@ async def create_role(
     existing = result.scalars().first()
 
     if existing:
-        return create_response(
-            status="failed",
-            message="نقش تکراری است",
-            data={"errors": {"name": ["نقش با این نام قبلاً ساخته شده است."]}}
+        # ⛔️ بگذار هندلرها جواب استاندارد بدهند
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="نقش تکراری است",
         )
 
     # ✅ ساخت نقش جدید
     new_role = models.Role(name=data.name, description=data.description)
     db.add(new_role)
-    await db.commit()
+    # commit با هندل درست IntegrityError (بره به هندلر دیتابیس)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
     await db.refresh(new_role)
 
     role_data = {
@@ -86,6 +118,7 @@ async def create_role(
     }
 
     return create_response(
+        status_code=http_status.HTTP_201_CREATED,
         status="success",
         message="✅ نقش با موفقیت ساخته شد",
         data={"role": role_data}
@@ -147,21 +180,37 @@ async def assign_role_to_user(
     )
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر پیدا نشد",
+        )
 
     result = await db.execute(select(models.Role).where(models.Role.id == data.role_id))
     role = result.scalars().first()
     if not role:
-        raise HTTPException(status_code=404, detail="نقش پیدا نشد")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="نقش پیدا نشد",
+        )
     if role in user.roles:
-        raise HTTPException(status_code=400, detail="این نقش قبلاً به کاربر داده شده")
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="این نقش قبلاً به کاربر داده شده",
+        )
 
     user.roles.append(role)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
 
-    return {"message": f"✅ نقش '{role.name}' به کاربر اضافه شد"}
-
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message=f"نقش '{role.name}' به کاربر اضافه شد",
+        data={"user_id": user.id, "role_id": role.id, "role_name": role.name},
+    )
 
 # ✅ حذف نقش از کاربر خاص (فقط سوپرادمین)
 @router.delete("/admin/user/{user_id}/remove-role")
@@ -184,22 +233,33 @@ _: User = Depends(require_permissions("Role.AssignToUser","ALL")),
     )
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر پیدا نشد",
+        )
     # پیدا کردن نقش
     result = await db.execute(select(models.Role).where(models.Role.id == data.role_id))
     role = result.scalars().first()
     if not role:
-        raise HTTPException(status_code=404, detail="نقش پیدا نشد")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="نقش پیدا نشد",
+        )
     if role not in user.roles:
-        raise HTTPException(status_code=400, detail="این نقش به کاربر داده نشده")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="این نقش به کاربر داده نشده",
+        )
     user.roles.remove(role)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
 
-    return {
-        "status": "success",
-        "message": f"❎ نقش '{role.name}' از کاربر حذف شد",
-        "data": {}
-    }
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message=f"نقش '{role.name}' از کاربر حذف شد",
+        data={"user_id": user.id, "role_id": role.id, "role_name": role.name},
+    )

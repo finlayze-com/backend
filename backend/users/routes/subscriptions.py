@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends,HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from backend.users import models, schemas
@@ -10,7 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,func
 from fastapi import Query
-
+from fastapi import status as http_status
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
@@ -28,8 +29,13 @@ async def subscribe_to_plan(
     data: schemas.UserSubscribeIn,
     db: AsyncSession = Depends(get_db)
 ):
-    # 🔐 گرفتن اطلاعات کاربر از middleware
-    user = request.state.user
+    # 1) احراز هویت از middleware
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="توکن نامعتبر یا کاربر یافت نشد",
+        )
 
     result = await db.execute(
         select(models.Subscription).where(
@@ -40,10 +46,10 @@ async def subscribe_to_plan(
     subscription = result.scalars().first()
 
     if not subscription:
-        return create_response(
-            status="failed",
-            message="پلن یافت نشد یا غیرفعال است",
-            data={"subscription_id": ["پلن موجود نیست یا غیرفعال است"]}
+        # ⛔️ بگذار هندلرها پاسخ استاندارد بدهند
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن یافت نشد یا غیرفعال است",
         )
 
     now = datetime.utcnow()
@@ -71,10 +77,9 @@ async def subscribe_to_plan(
     )
     db.add(new_sub)
 # ✅ اضافه کردن نقش
-    if subscription.role_id:
-        result = await db.execute(
-            select(models.Role).where(models.Role.id == subscription.role_id)
-        )
+    # 5) در صورت نیاز نقش پلن را به کاربر اضافه کن
+    if getattr(subscription, "role_id", None):
+        result = await db.execute(select(models.Role).where(models.Role.id == subscription.role_id))
         role = result.scalars().first()
         if role and role not in user.roles:
             user.roles.append(role)
@@ -89,10 +94,17 @@ async def subscribe_to_plan(
     for sub in all_subs:
         sub.is_active = sub.start_date <= now < sub.end_date
 
-    await db.commit()
-    await db.refresh(new_sub)
+        # 7) commit با هندل استاندارد خطای دیتابیس
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            # ⛔️ فقط raise تا به هندلر IntegrityError برود (409 یا 400 بسته به نوع خطا)
+            raise exc
+        await db.refresh(new_sub)
 
     return create_response(
+        status_code=http_status.HTTP_201_CREATED,
         status="success",
         message="✅ اشتراک با موفقیت ثبت شد",
         data={"subscription": {
@@ -109,17 +121,23 @@ async def subscribe_to_plan(
 # ✅ روت گرفتن لیست اشتراک‌های فعال کاربر جاری
 @router.get("/my-subscriptions")
 async def get_my_subscriptions(request: Request, db: AsyncSession = Depends(get_db)):
-        # 🔐 گرفتن اطلاعات کاربر از middleware
-        user = request.state.user
-        result = await db.execute(
+    # 🔐 گرفتن اطلاعات کاربر از middleware
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="توکن نامعتبر یا کاربر یافت نشد",
+        )
+
+    result = await db.execute(
             select(models.UserSubscription).where(
                 models.UserSubscription.user_id == user.id
             ).order_by(models.UserSubscription.end_date.desc())
         )
-        user_subs = result.scalars().all()
+    user_subs = result.scalars().all()
 
-        # تبدیل datetime به isoformat برای JSON
-        data = [{
+    # تبدیل datetime به isoformat برای JSON
+    data = [{
         "id": sub.id,
         "subscription_id": sub.subscription_id,
         "start_date": sub.start_date.isoformat(),
@@ -127,9 +145,12 @@ async def get_my_subscriptions(request: Request, db: AsyncSession = Depends(get_
         "is_active": sub.is_active,
         "method": sub.method,
         "status": sub.status
-    } for sub in user_subs]
+    }
+    for sub in user_subs
+    ]
 
-        return create_response(
+    return create_response(
+            status_code=http_status.HTTP_200_OK,
             status="success",
             message="✅ اشتراک‌های کاربر دریافت شد",
             data={"subscriptions": data}
@@ -151,13 +172,14 @@ async def get_subscription_by_id(
     sub = result.scalar_one_or_none()
 
     if not sub:
-        return create_response(
-            status="failed",
-            message="پلن یافت نشد",
-            data={"errors": {"subscription_id": ["هیچ پلنی با این شناسه وجود ندارد."]}}
+        # ⛔️ بگذار هندلر 404 پاسخ استاندارد بدهد
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن یافت نشد",
         )
 
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="اطلاعات پلن با موفقیت دریافت شد",
         data={"subscription": {
@@ -290,11 +312,23 @@ async def create_subscription(
     existing = result.scalars().first()
 
     if existing:
-        return create_response(
-            status="failed",
-            message="نام پلن تکراری است.",
-            data={"errors": {"name": ["پلنی با این نام قبلاً ثبت شده است."]}}
+        # بگذار هندلرها پاسخ استاندارد بدهند
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="نام پلن تکراری است",
         )
+
+        # 2) اگر role_id داده شده، وجود نقش را چک کن (اختیاری ولی مفید)
+    # if data.role_id is not None:
+    #     role_q = await db.execute(
+    #     select(models.Role).where(models.Role.id == data.role_id)
+    #     )
+    #     role = role_q.scalars().first()
+    #     if not role:
+    #         raise HTTPException(
+    #             status_code=http_status.HTTP_404_NOT_FOUND,
+    #             detail="نقش مرتبط با پلن یافت نشد",
+    #             )
 
     new_sub = models.Subscription(
         name=data.name,
@@ -307,10 +341,17 @@ async def create_subscription(
         is_active=True
     )
     db.add(new_sub)
-    await db.commit()
-    await db.refresh(new_sub)
+    # 4) commit با هندل استاندارد IntegrityError
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
+
+        await db.refresh(new_sub)
 
     return create_response(
+        status_code=http_status.HTTP_201_CREATED,
         status="success",
         message="پلن جدید با موفقیت ساخته شد.",
         data={"subscription": {
@@ -341,21 +382,50 @@ async def update_subscription(
     sub = result.scalar_one_or_none()
 
     if not sub:
-        return create_response(
-            status="failed",
-            message="پلن پیدا نشد.",
-            data={"errors": {"subscription_id": ["شناسه معتبر نیست."]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن پیدا نشد",
         )
+    #     # 2) اگر name در ورودی هست، چک تکراری نبودن
+    # payload = data.model_dump(exclude_unset=True)
+    # if "name" in payload:
+    #     name_check = await db.execute(
+    #         select(models.Subscription).where(
+    #             models.Subscription.name == payload["name"],
+    #             models.Subscription.id != subscription_id,
+    #         )
+    #     )
+    #     dup = name_check.scalar_one_or_none()
+    #     if dup:
+    #         raise HTTPException(
+    #             status_code=http_status.HTTP_409_CONFLICT,
+    #             detail="نام پلن تکراری است",
+    #         )
+    #
+    # # 3) اگر role_id در ورودی هست، وجود نقش را چک کن
+    # if "role_id" in payload and payload["role_id"] is not None:
+    #     role_q = await db.execute(select(models.Role).where(models.Role.id == payload["role_id"]))
+    #     role = role_q.scalar_one_or_none()
+    #     if not role:
+    #         raise HTTPException(
+    #             status_code=http_status.HTTP_404_NOT_FOUND,
+    #             detail="نقش مرتبط با پلن یافت نشد",
+    #         )
 
     for field, value in data.dict(exclude_unset=True).items():
         setattr(sub, field, value)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
     await db.refresh(sub)
 
     sub_data = schemas.SubscriptionOut.model_validate(sub, from_attributes=True)
 
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="پلن با موفقیت ویرایش شد.",
         data={"subscription": sub_data}
@@ -375,28 +445,33 @@ async def delete_subscription(
     sub = result.scalars().first()
 
     if not sub:
-        return create_response(
-            status="failed",
-            message="پلن مورد نظر پیدا نشد",
-            data={"errors": {"subscription_id": ["پلن با این شناسه یافت نشد."]}}
+        # ⛔️ بگذار هندلر 404 پاسخ استاندارد بدهد
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="پلن مورد نظر پیدا نشد",
         )
 
-        # ✅ بررسی وجود داده در سایر جداول مرتبط با subscription_id
+        # 2) بررسی وجود استفاده در جداول وابسته
     violating_tables = await get_subscription_dependencies(subscription_id, db)
-
     if violating_tables:
-        return create_response(
-            status="failed",
-            message="❌ امکان حذف وجود ندارد. این پلن در جدول‌های زیر استفاده شده است.",
-            data={"tables": violating_tables}
+        # ⛔️ در حال حاضر حذف ممکن نیست (تعارض/قیود)
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="امکان حذف وجود ندارد؛ این پلن در جداول دیگری استفاده شده است.",
         )
 
     sub.is_active = False
     sub.deleted_at = datetime.utcnow()
 
-    await db.commit()
+    # 4) commit با هندل استاندارد IntegrityError
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise exc
 
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="✅ پلن با موفقیت غیرفعال شد (soft deleted)",
         data={"subscription_id": subscription_id}
