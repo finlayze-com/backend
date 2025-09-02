@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from pathlib import Path
 import os, tempfile, shutil
+from backend.utils.response import create_response  # فقط از همین استفاده می‌کنیم
+from fastapi import status as http_status
 
 # اگر پروژه‌ات create_response دارد، از همان استفاده کن
 try:
@@ -111,10 +113,18 @@ async def _check_permission(request: Request):
             perms = list(getattr(request.state, attr) or [])
             break
     if not perms:
-        raise HTTPException(status_code=401, detail="Missing auth or permissions")
+        # ⛔️ بدون احراز هویت/مجوز
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="احراز هویت/مجوز یافت نشد",
+        )
     if ("ALL" in perms) or ("inscode" in perms):
-        return True
-    raise HTTPException(status_code=403, detail="Permission denied: need ALL or Txt.Edit")
+        return
+    raise HTTPException(
+        status_code=http_status.HTTP_403_FORBIDDEN,
+        detail="دسترسی کافی ندارید (ALL یا inscode لازم است).",
+    )
+
 
 # ===========
 #  Main Route
@@ -133,42 +143,58 @@ async def edit_txt(
 
     filename = FILE_MAP[list_name.value]
     fullpath: Path = (TXT_EXPORT_DIR / filename).resolve()
+    # امنیت مسیر (خروج از دایرکتوری مجاز)
+    if TXT_EXPORT_DIR not in fullpath.parents and fullpath.parent != TXT_EXPORT_DIR:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="مسیر فایل نامعتبر است",
+        )
+
     code_str = str(body.insCode)
 
     if action == Action.add:
         fullpath.parent.mkdir(parents=True, exist_ok=True)
         existing = set(await _read_codes(fullpath))
         if code_str in existing:
-            return create_response(
-                message="ℹ️ این کد از قبل داخل فایل وجود دارد",
-                data={"file": filename, "path": str(fullpath), "insCode": body.insCode},
-                status_code=200
+            # ⛔️ تکراری → 409
+            raise HTTPException(
+                status_code=http_status.HTTP_409_CONFLICT,
+                detail="این کد از قبل داخل فایل وجود دارد",
             )
-        # append
-        with fullpath.open("a", encoding="utf-8") as f:
-            f.write(code_str + "\n")
-        return create_response(
-            message="✅ به فایل اضافه شد",
-            data={"file": filename, "path": str(fullpath), "insCode": body.insCode},
-            status_code=200
-        )
+            # append
+            try:
+                with fullpath.open("a", encoding="utf-8") as f:
+                    f.write(code_str + "\n")
+            except Exception:
+                # بگذار به هندلر Exception برود
+                raise
 
-    # remove
+            # ✅ موفقیت
+            return create_response(
+                status_code=http_status.HTTP_200_OK,
+                message="به فایل اضافه شد",
+                data={"file": filename, "path": str(fullpath), "insCode": body.insCode},
+            )
+
     if not fullpath.exists():
-        raise HTTPException(status_code=404, detail="فایل پیدا نشد")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="فایل پیدا نشد",
+        )
 
     lines = await _read_codes(fullpath)
     new_lines = [x for x in lines if x != code_str]
     if len(new_lines) == len(lines):
-        return create_response(
-            message="ℹ️ این کد داخل فایل نبود",
-            data={"file": filename, "path": str(fullpath), "insCode": body.insCode},
-            status_code=404
+        # ⛔️ کد در فایل نبود → 404
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="این کد داخل فایل نبود",
         )
 
     await _atomic_write(fullpath, "\n".join(new_lines) + ("\n" if new_lines else ""))
+    # ✅ موفقیت
     return create_response(
-        message="🗑️ از فایل حذف شد",
+        status_code=http_status.HTTP_200_OK,
+        message="از فایل حذف شد",
         data={"file": filename, "path": str(fullpath), "insCode": body.insCode},
-        status_code=200
     )

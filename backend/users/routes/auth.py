@@ -17,6 +17,12 @@ from fastapi.security import HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+from fastapi import HTTPException, status as http_status, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+from backend.utils.exceptions import AppException  # اگر قدم 0 را رفتی
+
 
 router = APIRouter()
 
@@ -121,10 +127,11 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     stmt = select(User).where((User.username == user.username) | (User.email == user.email))
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
-        return create_response(
-            status="failed",
+        # گزینه تمیزتر
+        raise AppException(
+            status_code=http_status.HTTP_409_CONFLICT,
             message="نام کاربری یا ایمیل تکراری است",
-            data={"errors": {"auth": ["این اطلاعات قبلاً ثبت شده است."]}}
+            errors=[{"field": "username/email", "msg": "duplicate"}],
         )
 
     hashed_password = get_password_hash(user.password)
@@ -143,7 +150,13 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         is_email_verified=False
     )
     db.add(db_user)
-    await db.commit()
+    # 3) commit با هندل‌کردن IntegrityError → به هندلر IntegrityError برود
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        # ❗️هیچ پاسخ دستی نده؛ فقط raise تا به handle_integrity_error بره
+        raise exc
     await db.refresh(db_user)
 
     user_data = {
@@ -158,7 +171,8 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return create_response(
         status="success",
         message="ثبت‌نام با موفقیت انجام شد",
-        data={"user": user_data}
+        data={"user": user_data},
+        status_code = http_status.HTTP_201_CREATED
     )
 
 # ✅ ورود و دریافت توکن (مسیر عمومی)
@@ -167,12 +181,18 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.username == user.username))
     db_user = result.scalar_one_or_none()
 
+    # نام کاربری/رمز اشتباه → اجازه بدیم هندلرها پاسخ استاندارد بدهند
     if not db_user or not verify_password(user.password, db_user.password_hash):
-        return create_response(
-            status="failed",
-            status_code=422,
-            message="نام کاربری یا کلمه عبور اشتباه است",
-            data={"errors": {"auth": ["اطلاعات نادرست"]}}
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="نام کاربری یا کلمه عبور اشتباه است",
+        )
+
+    # کاربر غیرفعال؟
+    if not getattr(db_user, "is_active", True):
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="حساب کاربری غیرفعال است",
         )
 
     token = await create_access_token(db_user.id, db)
@@ -185,44 +205,44 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
 # ✅ دریافت اطلاعات حساب کاربر جاری (نیازمند middleware)
 @router.get("/me")
 async def get_me(request: Request, db: AsyncSession = Depends(get_db)):
-    print("✅ request.state.user:", getattr(request.state, "user", None))
-    user: User = getattr(request.state, "user", None)
+    # کاربر باید توسط middleware روی request.state.user ست شده باشد
+    user: User | None = getattr(request.state, "user", None)
     if not user:
-        return create_response(status="fail", message="توکن نامعتبر یا کاربر یافت نشد", data={})
-    try:
-        now = datetime.utcnow()
-
-        result = await db.execute(
-            select(UserSubscription)
-            .options(joinedload(UserSubscription.subscription))
-            .where(
-                UserSubscription.user_id == user.id,
-                UserSubscription.is_active == True,
-                UserSubscription.start_date <= now,
-                UserSubscription.end_date >= now
-            )
+        # ⛔️ بگذار هندلرها جواب استاندارد بدهند
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="توکن نامعتبر یا کاربر یافت نشد",
         )
-        active_sub = result.scalar_one_or_none()
-        active_plan = active_sub.subscription.name if active_sub and active_sub.subscription else None
 
-        user_data = {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "roles": getattr(user, "role_names", []),
-            "features": getattr(request.state, "permissions", {}),
-            "active_plan": active_plan
-        }
-
-        return create_response(
-            status="success",
-            message="اطلاعات کاربر با موفقیت دریافت شد",
-            data={"user": user_data}
+    # اطلاعات پلن فعال کاربر (در بازهٔ زمانی معتبر)
+    now = datetime.utcnow()
+    result = await db.execute(
+        select(UserSubscription)
+        .options(joinedload(UserSubscription.subscription))
+        .where(
+            UserSubscription.user_id == user.id,
+            UserSubscription.is_active.is_(True),
+            UserSubscription.start_date <= now,
+            UserSubscription.end_date >= now,
         )
-    except Exception as e:
-        import traceback
-        print("🔥 Exception in /me:", e)
-        traceback.print_exc()
-        raise e
+    )
+    active_sub = result.scalar_one_or_none()
+    active_plan = active_sub.subscription.name if (active_sub and active_sub.subscription) else None
+
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "roles": getattr(user, "role_names", []),
+        "features": getattr(request.state, "permissions", {}),
+        "active_plan": active_plan,
+    }
+
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message="اطلاعات کاربر با موفقیت دریافت شد",
+        data={"user": user_data},
+    )

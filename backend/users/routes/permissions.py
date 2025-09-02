@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Request, Depends, HTTPException,Query
+from fastapi import APIRouter, Request, Depends, HTTPException,Query,status as http_status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -29,14 +29,22 @@ async def create_permission(
     result = await db.execute(select(models.Permission).where(models.Permission.name == data.name))
     existing = result.scalars().first()
     if existing:
-        raise HTTPException(status_code=400, detail="⚠️ Permission تکراری است")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="Permission تکراری است",
+        )
     permission = models.Permission(name=data.name)
     db.add(permission)
     await db.commit()
     await db.refresh(permission)
 
-    return {"message": f"✅ Permission '{permission.name}' ساخته شد", "id": permission.id}
+    # پاسخ موفقیت
+    return create_response(
+        status_code=http_status.HTTP_201_CREATED,
+        message=f"Permission '{permission.name}' ساخته شد",
+        data={"id": permission.id, "name": permission.name},
+        status="success",
+    )
 
 # ✅ لیست کل Permissionها (برای ادمین و سوپرادمین)
 @router.get("/admin/permissions")
@@ -97,15 +105,19 @@ async def assign_permissions_to_role(
     )
     role = result.scalars().first()
     if not role:
-        raise HTTPException(status_code=404, detail="نقش پیدا نشد")
-
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="نقش پیدا نشد",
+        )
     added = 0
     skipped = 0
+    not_found: list[int] = []
 
     for perm_id in data.permission_ids:
         result = await db.execute(select(models.Permission).where(models.Permission.id == perm_id))
         perm = result.scalars().first()
         if not perm:
+            not_found.append(perm_id)
             continue
         if perm in role.permissions:
             skipped += 1
@@ -114,9 +126,15 @@ async def assign_permissions_to_role(
         added += 1
 
     await db.commit()
-    return {
-        "message": f"✅ {added} دسترسی جدید اضافه شد. {skipped} تکراری بود.",
-        "added": added,
-        "skipped": skipped
-    }
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message=f"{added} دسترسی جدید اضافه شد. {skipped} تکراری بود.",
+        data={
+            "added": added,
+            "skipped": skipped,
+            "not_found": not_found,
+            "role_id": role.id,
+        },
+    )
 

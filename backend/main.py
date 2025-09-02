@@ -1,10 +1,24 @@
 from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.middleware.middleware_auth import AuthMiddleware
-from backend.middleware.middleware_auth import AuthMiddleware
 from backend.utils.logger import logger  # ← لاگر سفارشی
 from dotenv import load_dotenv
 import os
+# 📦 Exception handlers
+from backend.utils.Exception_Handler import (
+    handle_http_exception,
+    handle_validation_error,
+    handle_integrity_error,
+    handle_jwt_error,
+    handle_general_exception,
+    handle_app_exception
+)
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
+from jose.exceptions import JWTError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from backend.utils.exceptions import AppException
+
 
 load_dotenv(dotenv_path=".env")
 print("🧪 Loaded SECRET_KEY from middleware:", repr(os.getenv("SECRET_KEY")))
@@ -32,24 +46,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 📦 Exception handlers
-from backend.utils.Exception_Handler import (
-    handle_http_exception,
-    handle_validation_error,
-    handle_integrity_error,
-    handle_jwt_error,
-    handle_general_exception
-)
-from fastapi.exceptions import RequestValidationError
-from sqlalchemy.exc import IntegrityError
-from jose.exceptions import JWTError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 # ⛑️ ثبت هندلرهای اختصاصی برای خطاها
 app.add_exception_handler(StarletteHTTPException, handle_http_exception)
 app.add_exception_handler(RequestValidationError, handle_validation_error)
 app.add_exception_handler(IntegrityError, handle_integrity_error)
 app.add_exception_handler(JWTError, handle_jwt_error)
+app.add_exception_handler(AppException, handle_app_exception)      # ← اگر قدم 0
 app.add_exception_handler(Exception, handle_general_exception)
 
 

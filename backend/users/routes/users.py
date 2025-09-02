@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from backend.users import models, schemas
 from backend.users.routes.auth import get_password_hash
 from backend.users.schemas import UserUpdate
+from fastapi import status as http_status
 
 
 router = APIRouter()
@@ -78,10 +79,10 @@ async def create_user_for_admin(
     )
     exists = (await db.execute(exists_stmt)).scalars().first()
     if exists:
-        return create_response(
-            status="error",
-            message="نام کاربری یا ایمیل تکراری است",
-            data=None
+        # ⛔️ بگذار هندلرها پاسخ استاندارد بدهند
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="نام کاربری یا ایمیل تکراری است",
         )
 
     # helper کوچک برای تبدیل به UpperCase
@@ -109,14 +110,13 @@ async def create_user_for_admin(
     db.add(user)
     try:
         await db.commit()
-        await db.refresh(user)
-    except IntegrityError as e:
+    except IntegrityError as exc:
         await db.rollback()
-        return create_response(
-            status="error",
-            message="خطای یکپارچگی دیتابیس",
-            data=str(e.orig) if hasattr(e, "orig") else str(e)
-        )
+        # ⛔️ فقط raise تا به handle_integrity_error برود
+        raise exc
+
+    await db.refresh(user)
+
 
     # 3) برای خروجی مشابه لیست، نقش‌ها رو eager-load می‌کنیم
     stmt = (
@@ -128,6 +128,7 @@ async def create_user_for_admin(
 
     # 4) خروجی هماهنگ با روت لیست کاربران
     return create_response(
+        status_code=http_status.HTTP_201_CREATED,
         status="success",
         message="کاربر با موفقیت ایجاد شد",
         data={
@@ -152,8 +153,18 @@ async def get_user_by_id(
     user = (await db.execute(stmt)).unique().scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="کاربر یافت نشد")
-    return user
-
+    return create_response(
+        status_code=http_status.HTTP_200_OK,
+        status="success",
+        message="اطلاعات کاربر با موفقیت دریافت شد",
+        data={
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "roles": [r.name for r in (user.roles or [])],
+        },
+    )
 
 # 📌 بروزرسانی کاربر
 @router.put("/admin/users/{user_id}")
@@ -161,25 +172,36 @@ async def update_user_for_admin(
     user_id: int,
     payload: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    _: models.User = Depends(require_permissions("ALL")),  # هماهنگ با منطق بالا
+    _: models.User = Depends(require_permissions("User.Update","ALL")),  # هماهنگ با منطق بالا
 ):
     # 1) پیدا کردن کاربر
     stmt = select(models.User).where(models.User.id == user_id)
     user = (await db.execute(stmt)).scalars().first()
     if not user:
-        return create_response(status="error", message="کاربر یافت نشد", data=None)
+        # ⛔️ خطا از مسیر هندلرها
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر یافت نشد",
+        )
 
     # 2) اگر username/email قرار است تغییر کند، چک یکتا بودن
-    if payload.username or payload.email:
+    new_username = payload.username if payload.username is not None else user.username
+    new_email = payload.email if payload.email is not None else user.email
+
+    # 2) اگر username/email قرار است تغییر کند، چک یکتا بودن
+    if (payload.username is not None) or (payload.email is not None):
         conflict_stmt = select(models.User).where(
-            (models.User.id != user_id) & (
-                (models.User.username == (payload.username or user.username)) |
-                (models.User.email == (payload.email or user.email))
+            (models.User.id != user_id) &
+            ((models.User.username == new_username) | (models.User.email == new_email))
             )
-        )
+
         conflict = (await db.execute(conflict_stmt)).scalars().first()
         if conflict:
-            return create_response(status="error", message="نام کاربری یا ایمیل تکراری است", data=None)
+            raise HTTPException(
+                status_code=http_status.HTTP_409_CONFLICT,
+                detail="نام کاربری یا ایمیل تکراری است",
+            )
+
 
     # 3) اعمال تغییراتِ ارسال‌شده (فقط فیلدهای موجود)
     if payload.username is not None:
@@ -205,17 +227,16 @@ async def update_user_for_admin(
     if payload.is_active is not None:
         user.is_active = payload.is_active
 
-    # 4) ذخیره و هندل خطا
+        # 4) ذخیره و هندل استاندارد خطاهای دیتابیس
     try:
         await db.commit()
-        await db.refresh(user)
-    except IntegrityError as e:
+    except IntegrityError as exc:
         await db.rollback()
-        return create_response(
-            status="error",
-            message="خطای یکپارچگی دیتابیس",
-            data=str(e.orig) if hasattr(e, "orig") else str(e)
-        )
+        #  بگذار هندلر IntegrityError پاسخ استاندارد بدهد
+        raise exc
+
+    await db.refresh(user)
+
 
     # 5) برای خروجی یکدست با لیست، نقش‌ها را لود کن
     stmt_out = (
@@ -227,6 +248,7 @@ async def update_user_for_admin(
 
     # 6) خروجی هماهنگ با روت لیست
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="کاربر با موفقیت ویرایش شد",
         data={
@@ -244,24 +266,27 @@ async def update_user_for_admin(
 async def delete_user_for_admin(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _: models.User = Depends(require_permissions("ALL")),  # هماهنگ با لیست
+    _: models.User = Depends(require_permissions("User.Delete","ALL")),  # هماهنگ با لیست
 ):
     # 1) پیدا کردن کاربر
     stmt = select(models.User).where(models.User.id == user_id)
     user = (await db.execute(stmt)).scalars().first()
     if not user:
-        return create_response(
-            status="error",
-            message="کاربر یافت نشد",
-            data=None
+        # ⛔️ بگذار هندلر 404 پاسخ استاندارد بدهد
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="کاربر یافت نشد",
         )
 
     # 2) تلاش برای حذف
     try:
         await db.delete(user)
         await db.commit()
-    except IntegrityError as e:
+    except IntegrityError as exc:
         await db.rollback()
+        # ⛔️ فقط raise تا به handle_integrity_error برسد (و پیام/کد استاندارد بدهد)
+        raise exc
+
         return create_response(
             status="error",
             message="حذف ممکن نیست؛ وابستگی داده‌ای وجود دارد",
@@ -270,6 +295,7 @@ async def delete_user_for_admin(
 
     # 3) پاسخ موفق
     return create_response(
+        status_code=http_status.HTTP_200_OK,
         status="success",
         message="کاربر با موفقیت حذف شد",
         data={"id": user_id}
