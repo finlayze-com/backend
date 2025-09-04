@@ -124,6 +124,14 @@ async def get_current_user(
 # ✅ ثبت‌نام کاربر (مسیر عمومی)
 @router.post("/register")
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    # 0) Password confirmation (422 با ساختار سفارشی)
+    if user.password != user.password_confirm:
+        raise AppException(
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            message="پسورد و تکرار پسورد یکسان نیستند",
+            errors=[{"field": "password_confirm", "msg": "Passwords do not match"}],
+        )
+
     stmt = select(User).where((User.username == user.username) | (User.email == user.email))
     result = await db.execute(stmt)
     if result.scalar_one_or_none():

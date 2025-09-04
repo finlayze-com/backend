@@ -2,8 +2,20 @@ from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List, Dict,Any
 from enum import Enum
 from datetime import datetime, timedelta,timezone
-from pydantic import field_validator
+from pydantic import BaseModel, EmailStr, constr, field_validator, model_validator
+import re
 
+
+# ----------------------------
+
+# --- الگوها و کاراکترهای مجاز/ممنوع ---
+USERNAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{6,}$")  # شروع با حرف + حداقل 7 کاراکتر
+NAME_RE = re.compile(r"^[\u0600-\u06FFa-zA-Z\s'-]+$")      # فارسی/انگلیسی + فاصله/'/-
+IR_MOBILE_RE = re.compile(r"^(?:\+?98|0)?9\d{9}$")          # 09xxxxxxxxx یا +989xxxxxxxxx
+ONLY_DIGITS_RE = re.compile(r"^\d+$")
+FORBIDDEN_IN_USERNAME = set("@#%^&*()!×÷`")
+
+PASSWORD_MIN_LEN = 5
 # ----------------------------
 # 🎭 نوع کاربر (حقیقی / حقوقی)
 # ----------------------------
@@ -22,6 +34,7 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: constr(min_length=6)
+    password_confirm: str
     phone_number: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -29,6 +42,98 @@ class UserCreate(BaseModel):
     national_code: Optional[str] = None
     company_national_id: Optional[str] = None
     economic_code: Optional[str] = None
+
+    # --- نرمال‌سازی اولیه فیلدهای متنی ---
+    @field_validator("username", "first_name", "last_name", "phone_number",
+                     "national_code", "company_national_id", "economic_code",
+                     mode="before")
+    @classmethod
+    def strip_strings(cls, v):
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+        # --- username rules ---
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str):
+            # عدم وجود کاراکترهای ممنوع
+            if any(ch in FORBIDDEN_IN_USERNAME for ch in v):
+                raise ValueError("نام کاربری شامل کاراکترهای ممنوع است")
+            # الگوی مجاز: شروع با حرف، حداقل 7 کاراکتر، فقط حروف/اعداد/._-
+            if not USERNAME_RE.match(v):
+                raise ValueError(
+                    "نام کاربری باید با حرف انگلیسی شروع شود و حداقل ۷ کاراکتر باشد و فقط شامل حروف، اعداد و . _ - باشد")
+            return v
+            # --- first_name / last_name rules ---
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def validate_names(cls, v: Optional[str], info):
+        if v is None:
+            return v
+        if not NAME_RE.match(v):
+            raise ValueError(f"{info.field_name} فقط شامل حروف (فارسی/انگلیسی)، فاصله، - و ' باشد")
+        return v
+
+        # --- phone_number: ایران ---
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone(cls, v: str):
+            if not IR_MOBILE_RE.match(v):
+                raise ValueError("شماره موبایل معتبر نیست (الگوی مجاز: 09xxxxxxxxx یا +989xxxxxxxxx)")
+            return v
+
+            # --- national_code: 10 رقمی + چک‌سام ---
+
+    @field_validator("national_code")
+    @classmethod
+    def validate_national_code(cls, v: Optional[str]):
+        if v is None or v == "":
+            return v
+        if not (len(v) == 10 and ONLY_DIGITS_RE.match(v)):
+            raise ValueError("کد ملی باید ۱۰ رقم باشد")
+        # چک‌سام کد ملی ایران
+        digits = list(map(int, v))
+        if len(set(digits)) == 1:  # همه ارقام یکسان
+            raise ValueError("کد ملی نامعتبر است")
+        checksum = digits[-1]
+        s = sum(d * (10 - i) for i, d in enumerate(digits[:9]))
+        r = s % 11
+        valid = (r < 2 and checksum == r) or (r >= 2 and checksum == (11 - r))
+        if not valid:
+            raise ValueError("کد ملی نامعتبر است")
+        return v
+
+        # --- company_national_id: اگر حقوقی → اجباری و 11 رقمی ---
+    @field_validator("company_national_id")
+    @classmethod
+    def validate_company_id(cls, v: Optional[str]):
+            if v is None or v == "":
+                return v
+            if not (len(v) == 11 and ONLY_DIGITS_RE.match(v)):
+                raise ValueError("شناسه ملی شرکت باید ۱۱ رقم باشد")
+            return v
+
+    # --- economic_code: 11 تا 16 رقم ---
+    @field_validator("economic_code")
+    @classmethod
+    def validate_economic_code(cls, v: Optional[str]):
+        if v is None or v == "":
+            return v
+        if not (11 <= len(v) <= 16 and ONLY_DIGITS_RE.match(v)):
+            raise ValueError("کد اقتصادی باید عددی و بین ۱۱ تا ۱۶ رقم باشد")
+        return v
+
+        # --- password rules: حداقل 5 کاراکتر + حداقل یک عدد و یک حرف ---
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str):
+            if len(v) < PASSWORD_MIN_LEN:
+                raise ValueError(f"رمز عبور باید حداقل {PASSWORD_MIN_LEN} کاراکتر باشد")
+            if not re.search(r"[A-Za-z]", v) or not re.search(r"\d", v):
+                raise ValueError("رمز عبور باید ترکیبی از حروف و اعداد باشد")
+            return v
 
     @field_validator("user_type", mode="before")
     @classmethod
@@ -41,7 +146,14 @@ class UserCreate(BaseModel):
         if s == "HOGHOGHI":
             return UserType.hoghoghi
         raise ValueError("user_type must be 'haghighi' or 'hoghoghi'")
-
+    # ✅ بررسی تساوی password و password_confirm
+    @field_validator("password_confirm")
+    @classmethod
+    def passwords_match(cls, v, values):
+        password = values.get("password")
+        if password and v != password:
+            raise ValueError("Passwords do not match")
+        return v
 
 ## 🧾 ورودی ورود به حساب
 class UserLogin(BaseModel):
