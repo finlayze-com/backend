@@ -139,27 +139,7 @@ async def assign_permissions_to_role(
     )
 
 
-# ---------- Serializers ----------
-def serialize_permission(p: models.Permission) -> dict:
-    return {
-        "id": p.id,
-        "name": getattr(p, "name", None),
-    }
-
-def serialize_role(r: models.Role) -> dict:
-    perms = list(r.permissions or [])
-    return {
-        "id": r.id,
-        "name": getattr(r, "name", None),
-        "description": getattr(r, "description", None),
-        "permissions": [serialize_permission(p) for p in perms],
-
-    }
-
-# ---------- Helpers ----------
-def clamp(val: int, lo: int, hi: int) -> int:
-    return max(lo, min(val, hi))
-
+# --- helpers ---
 def make_pagination_meta(total: int, page: int, size: int) -> dict:
     total_pages = (total + size - 1) // size if size > 0 else 0
     return {
@@ -171,72 +151,57 @@ def make_pagination_meta(total: int, page: int, size: int) -> dict:
         "has_prev": page > 1,
     }
 
-# ---------- Route ----------
-@router.get("/admin/roles-permissions")
-async def list_roles_and_permissions(
-    # Pagination for roles
-    roles_page: int = Query(1, ge=1, description="شماره صفحه رول‌ها (>=1)"),
-    roles_size: int = Query(20, ge=1, le=200, description="تعداد اقلام در هر صفحهٔ رول‌ها (1..200)"),
-    # Pagination for permissions
-    perms_page: int = Query(1, ge=1, description="شماره صفحه دسترسی‌ها (>=1)"),
-    perms_size: int = Query(50, ge=1, le=500, description="تعداد اقلام در هر صفحهٔ دسترسی‌ها (1..500)"),
+def serialize_permission(p: models.Permission) -> dict:
+    return {"id": p.id, "name": getattr(p, "name", None)}
+
+# --- route: get one role with its permissions (paginated) ---
+@router.get("/admin/roles/{role_id}/permissions")
+async def get_role_permissions(
+    role_id: int,
+    page: int = Query(1, ge=1, description="شماره صفحه پرمیشن‌ها (>=1)"),
+    size: int = Query(50, ge=1, le=500, description="تعداد اقلام در هر صفحهٔ پرمیشن‌ها (1..500)"),
     db: AsyncSession = Depends(get_db),
     _: models.User = Depends(require_permissions("Role.ViewAll", "Permission.ViewAll", "ALL")),
 ):
-    # (اختیاری) قفل کردن به بازه‌های منطقی اگر پارامترها بیرون از یوآرال Set شده باشند
-    roles_page = clamp(roles_page, 1, 10_000_000)
-    roles_size = clamp(roles_size, 1, 200)
-    perms_page = clamp(perms_page, 1, 10_000_000)
-    perms_size = clamp(perms_size, 1, 500)
-
-    # ---------- Roles (with permissions selectinload) ----------
-    # Count
-    roles_count_stmt = select(func.count(models.Role.id))
-    roles_total = (await db.execute(roles_count_stmt)).scalar_one()
-
-    # Page slice
-    roles_stmt = (
+    # load role + all permissions (selectinload برای جلوگیری از N+1)
+    stmt = (
         select(models.Role)
         .options(selectinload(models.Role.permissions))
-        .order_by(models.Role.id.asc())
-        .offset((roles_page - 1) * roles_size)
-        .limit(roles_size)
+        .where(models.Role.id == role_id)
     )
-    roles = (await db.execute(roles_stmt)).scalars().all()
-    roles_items = [serialize_role(r) for r in roles]
-    roles_meta = make_pagination_meta(roles_total, roles_page, roles_size)
+    role = (await db.execute(stmt)).scalars().first()
+    if not role:
+        return create_response(
+            status="error",
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            message="نقش پیدا نشد",
+            data={"role_id": role_id},
+        )
 
-    # ---------- Permissions ----------
-    # Count
-    perms_count_stmt = select(func.count(models.Permission.id))
-    perms_total = (await db.execute(perms_count_stmt)).scalar_one()
+    # sort permissions by id for stable order
+    all_perms = sorted(list(role.permissions or []), key=lambda x: x.id)
+    total = len(all_perms)
 
-    # Page slice
-    perms_stmt = (
-        select(models.Permission)
-        .order_by(models.Permission.id.asc())
-        .offset((perms_page - 1) * perms_size)
-        .limit(perms_size)
-    )
-    permissions = (await db.execute(perms_stmt)).scalars().all()
-    permissions_items = [serialize_permission(p) for p in permissions]
-    perms_meta = make_pagination_meta(perms_total, perms_page, perms_size)
+    # pagination window
+    start = (page - 1) * size
+    end = start + size
+    page_items = all_perms[start:end]
 
-    # ---------- Response ----------
     data = {
-        "roles": {
-            "items": roles_items,
-            "meta": roles_meta,
+        "role": {
+            "id": role.id,
+            "name": getattr(role, "name", None),
+            "description": getattr(role, "description", None),
         },
         "permissions": {
-            "items": permissions_items,
-            "meta": perms_meta,
+            "items": [serialize_permission(p) for p in page_items],
+            "meta": make_pagination_meta(total=total, page=page, size=size),
         },
     }
 
     return create_response(
         status="success",
         status_code=http_status.HTTP_200_OK,
-        message="فهرست نقش‌ها و دسترسی‌ها با موفقیت بازیابی شد",
+        message="فهرست دسترسی‌های نقش با موفقیت بازیابی شد",
         data=data,
     )
