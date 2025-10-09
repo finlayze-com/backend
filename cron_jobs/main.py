@@ -18,8 +18,8 @@ APP_TZ = os.getenv("APP_TZ", "Asia/Tehran")
 # پنجره‌ی اجرای خودکار: همه‌ی تسک‌هایی که زمان سفارشی ندارند
 # از 20:00 با فاصله‌ی 1 دقیقه شروع می‌شوند.
 WINDOW_START_HOUR = 17
-WINDOW_START_MINUTE = 10
-SPACING_MINUTES = 2  # فاصله بین تسک‌ها دقیقاً یک دقیقه
+WINDOW_START_MINUTE = 40
+SPACING_MINUTES = 1  # فاصله بین تسک‌ها دقیقاً یک دقیقه
 
 # حداکثر دفعات تلاش مجدد برای هر تسک
 RETRY_TIMES = 2
@@ -126,7 +126,7 @@ INDICATOR_TASKS: List[Tuple[str, Path]] = [
 # ⚠️ طبق درخواست: run_option به صورت سفارشی زمان‌بندی شد (پیش‌فرض 19:55).
 # =========================
 CUSTOM_SCHEDULE: Dict[str, Dict[str, int]] = {
-    "run_option": {"hour": 19, "minute": 55},  # ← هر زمان خواستی عوضش کن (مثلاً 20:45)
+    "run_option": {"hour": 17, "minute": 45},  # ← هر زمان خواستی عوضش کن (مثلاً 20:45)
     # مثال‌ها:
     # "run_saham": {"hour": 19, "minute": 45},
     # "run_fund_leverage_ind": {"hour": 21, "minute": 5},
