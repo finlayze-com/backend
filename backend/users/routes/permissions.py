@@ -151,6 +151,7 @@ def make_pagination_meta(total: int, page: int, size: int) -> dict:
         "has_prev": page > 1,
     }
 
+
 def serialize_permission(p: models.Permission) -> dict:
     return {"id": p.id, "name": getattr(p, "name", None)}
 
