@@ -1,5 +1,6 @@
 from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
+
 from backend.middleware.middleware_auth import AuthMiddleware
 from backend.utils.logger import logger  # ← لاگر سفارشی
 from dotenv import load_dotenv
@@ -26,7 +27,7 @@ print("🧪 Loaded SECRET_KEY from middleware:", repr(os.getenv("SECRET_KEY")))
 
 
 # 💼 APIهای مالی
-from backend.api import sankey, treemap, orderbook, OrderbookData, real_money_flow, candlestick, metadata
+from backend.api import sankey, treemap, orderbook, OrderbookData, real_money_flow, candlestick, metadata,liquidity_weekly
 
 # 👤 ماژول‌های کاربری
 from backend.users.routes import (
@@ -96,6 +97,8 @@ app.include_router(orderbook.router, prefix="/api")
 app.include_router(real_money_flow.router, prefix="/api")
 app.include_router(OrderbookData.router, prefix="/api")
 app.include_router(candlestick.router, prefix="/api")
+
+app.include_router(liquidity_weekly.router, prefix="/api")  # ✅ درست
 
 
 app.include_router(inscodeid.router, prefix="/inscodeid")
