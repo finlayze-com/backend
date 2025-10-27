@@ -16,7 +16,7 @@ router = APIRouter(prefix="", tags=["💧 Liquidity (Weekly)"])
 async def liquidity_weekly_pivot(
     mode: str = Query("sector", description="sector | symbol"),
     # تاریخ‌ها
-    date_to: date = Query(..., description="YYYY-MM-DD (include weeks with week_end <= date_to)"),
+    date_to: date = Query(default_factory=date.today, description="YYYY-MM-DD (include weeks with week_end <= date_to)"),
     date_from: Optional[date] = Query(None, description="YYYY-MM-DD (optional range start)"),
     # محدودسازی صنایع (sector mode)
     sectors: Optional[str] = Query(None, description="comma-separated industries to include"),

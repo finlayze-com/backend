@@ -46,6 +46,18 @@ async def get_orderbook_bumpchart_data(
 
     df = pd.DataFrame(rows)
 
+    # ✅ فیلتر فقط «داده‌های امروز» بر اساس ستون minute
+    # - فرض بر این است که ستون minute از نوع datetime/timestamp است یا قابل تبدیل به آن.
+    # - اگر TZ نداشت، همان تاریخ سیستم سرور مبنا قرار می‌گیرد.
+    df["minute"] = pd.to_datetime(df["minute"], errors="coerce")
+    today_date = pd.Timestamp.now().date()
+    df = df[df["minute"].dt.date == today_date]
+
+    # اگر بعد از فیلتر امروز چیزی نماند، پاسخ استاندارد بده
+    if df.empty:
+        return create_response(data=[], message="برای امروز داده‌ای موجود نیست", status_code=200)
+
+
     # ستون‌های موردنیاز
     need = {"total_buy", "total_sell", "minute", group_col}
     miss = need - set(df.columns)
