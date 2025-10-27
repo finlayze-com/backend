@@ -46,22 +46,25 @@ async def get_orderbook_bumpchart_data(
 
     df = pd.DataFrame(rows)
 
-    # ✅ فیلتر فقط «داده‌های امروز» بر اساس ستون minute
-    # - فرض بر این است که ستون minute از نوع datetime/timestamp است یا قابل تبدیل به آن.
-    # - اگر TZ نداشت، همان تاریخ سیستم سرور مبنا قرار می‌گیرد.
-    # ✅ فیلتر فقط داده‌های امروز از ساعت 08:30 به بعد
+    # ✅ فیلتر فقط «داده‌های امروز از ساعت 08:30 به بعد»
+    # - اگر ستون minute tz-naive باشد (timestamp without time zone) و به وقت تهران ذخیره شده:
+    #   آن را به صورت محلی به Asia/Tehran نسبت می‌دهیم (بدون تغییر مقدار ظاهری).
+    # - سپس بازه امروزِ تهران [08:30, 24:00) را نگه می‌داریم.
     df["minute"] = pd.to_datetime(df["minute"], errors="coerce")
+    # تبدیل به زمانِ آگاه از منطقه زمانی تهران (localize) - مقدار لحظه را تغییر نمی‌دهد، فقط TZ اضافه می‌کند
+    df["minute_local"] = df["minute"].dt.tz_localize("Asia/Tehran", nonexistent="shift_forward", ambiguous="NaT")
 
-    now = pd.Timestamp.now()
-    today_start = pd.Timestamp.combine(now.date(), pd.Timestamp("08:30").time())
+    tehran_now = pd.Timestamp.now(tz="Asia/Tehran")
+    today_teh = tehran_now.normalize()                             # 00:00 امروز به وقت تهران
+    start_teh = today_teh + pd.Timedelta(hours=8, minutes=30)      # 08:30 امروز
+    end_teh   = today_teh + pd.Timedelta(days=1)                   # 00:00 فردا
 
-    # فقط ردیف‌هایی که هم برای امروز هستند و هم بعد از 08:30
-    df = df[df["minute"] >= today_start]
+    # فقط ردیف‌هایی که در بازه‌ی امروز تهران و از 08:30 به بعد هستند
+    df = df[(df["minute_local"] >= start_teh) & (df["minute_local"] < end_teh)]
 
     # اگر بعد از فیلتر امروز چیزی نماند، پاسخ استاندارد بده
     if df.empty:
         return create_response(data=[], message="برای امروز داده‌ای موجود نیست", status_code=200)
-
 
     # ستون‌های موردنیاز
     need = {"total_buy", "total_sell", "minute", group_col}
@@ -74,12 +77,13 @@ async def get_orderbook_bumpchart_data(
     df = df.fillna(0)
 
     # ساخت داده رتبه‌ها برای Bump Chart
-    minutes = sorted(df["minute"].unique())
+    # ⬅️ برای هم‌خوانی با فیلتر، محور زمانی را از minute_local می‌سازیم.
+    minutes = sorted(df["minute_local"].unique())
     groups = df[group_col].unique().tolist()
     bump = defaultdict(list)
 
     for m in minutes:
-        tmp = df[df["minute"] == m].groupby(group_col)["net_value"].sum().reset_index()
+        tmp = df[df["minute_local"] == m].groupby(group_col)["net_value"].sum().reset_index()
         tmp = tmp.sort_values("net_value", ascending=False).reset_index(drop=True)
         tmp["rank"] = tmp.index + 1
         rank_map = dict(zip(tmp[group_col], tmp["rank"]))
@@ -92,6 +96,8 @@ async def get_orderbook_bumpchart_data(
 
     # خروجی استاندارد
     payload = {
+        # اگر خروجی ساده‌تر می‌خواهی، می‌توانی فقط ساعت/دقیقه بدهی:
+        # "minutes": [pd.Timestamp(m).strftime("%H:%M") for m in minutes],
         "minutes": [str(m) for m in minutes],
         "series": [{"name": g, "ranks": bump_filled[g]} for g in groups]
     }
