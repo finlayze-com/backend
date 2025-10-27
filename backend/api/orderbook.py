@@ -49,9 +49,14 @@ async def get_orderbook_bumpchart_data(
     # ✅ فیلتر فقط «داده‌های امروز» بر اساس ستون minute
     # - فرض بر این است که ستون minute از نوع datetime/timestamp است یا قابل تبدیل به آن.
     # - اگر TZ نداشت، همان تاریخ سیستم سرور مبنا قرار می‌گیرد.
+    # ✅ فیلتر فقط داده‌های امروز از ساعت 08:30 به بعد
     df["minute"] = pd.to_datetime(df["minute"], errors="coerce")
-    today_date = pd.Timestamp.now().date()
-    df = df[df["minute"].dt.date == today_date]
+
+    now = pd.Timestamp.now()
+    today_start = pd.Timestamp.combine(now.date(), pd.Timestamp("08:30").time())
+
+    # فقط ردیف‌هایی که هم برای امروز هستند و هم بعد از 08:30
+    df = df[df["minute"] >= today_start]
 
     # اگر بعد از فیلتر امروز چیزی نماند، پاسخ استاندارد بده
     if df.empty:
