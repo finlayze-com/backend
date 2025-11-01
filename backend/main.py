@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from jose.exceptions import JWTError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.utils.exceptions import AppException
+from backend.api import ceiling
 
 
 load_dotenv(dotenv_path=".env")
@@ -99,6 +100,9 @@ app.include_router(OrderbookData.router, prefix="/api")
 app.include_router(candlestick.router, prefix="/api")
 
 app.include_router(liquidity_weekly.router, prefix="/api")  # ✅ درست
+
+
+app.include_router(ceiling.router, prefix="/api")  # ✅
 
 
 app.include_router(inscodeid.router, prefix="/inscodeid")
