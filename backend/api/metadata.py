@@ -60,7 +60,7 @@ async def get_all_sectors(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خطا در دریافت صنایع: {str(e)}")
 
-@router.get("/sectors", summary="دریافت لیست صنایع از جدول live_market_data با صفحه‌بندی")
+@router.get("/sectorslive", summary="دریافت لیست صنایع از جدول live_market_data با صفحه‌بندی")
 async def get_all_sectors_live_market(
     db: AsyncSession = Depends(get_db),
     _: models.User = Depends(require_permissions("Report.Metadata.Sectors", "ALL")),
