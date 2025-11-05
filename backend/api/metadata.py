@@ -60,6 +60,48 @@ async def get_all_sectors(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"خطا در دریافت صنایع: {str(e)}")
 
+@router.get("/sectors", summary="دریافت لیست صنایع از جدول live_market_data با صفحه‌بندی")
+async def get_all_sectors_live_market(
+    db: AsyncSession = Depends(get_db),
+    _: models.User = Depends(require_permissions("Report.Metadata.Sectors", "ALL")),
+
+    page: int = Query(1, ge=1),
+    size: int = Query(10, enum=[10, 50, 100])
+):
+    try:
+        # 🔢 تعداد کل صنایع از جدول live_market_data
+        count_result = await db.execute(
+            text("SELECT COUNT(DISTINCT sector) FROM live_market_data WHERE sector IS NOT NULL")
+        )
+        total = count_result.scalar_one()
+
+        offset = (page - 1) * size
+        result = await db.execute(
+            text("""
+                SELECT DISTINCT sector
+                FROM live_market_data
+                WHERE sector IS NOT NULL
+                ORDER BY sector
+                LIMIT :size OFFSET :offset
+            """),
+            {"size": size, "offset": offset}
+        )
+        sectors = [row[0] for row in result.fetchall()]
+
+        return create_response(
+            status="success",
+            message="✅ لیست صنایع از جدول live_market_data با موفقیت دریافت شد",
+            data={
+                "items": sectors,
+                "total": total,
+                "page": page,
+                "size": size,
+                "pages": (total + size - 1) // size
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خطا در دریافت صنایع از جدول live_market_data: {str(e)}")
 
 @router.get("/stocks", summary="دریافت نمادهای یک صنعت خاص")
 async def get_stocks_in_sector(
