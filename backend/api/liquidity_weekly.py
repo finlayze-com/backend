@@ -22,6 +22,7 @@ router = APIRouter(prefix="/liquidity/weekly", tags=["📈 Weekly Liquidity"])
 # تقسیم بر 1e10 برای نمایش "میلیارد تومان"
 RIAL_TO_TOMAN_BILLION_DIV = 1e10
 
+
 def _metric_sql(metric: str) -> Tuple[str, str]:
     """
     برمی‌گرداند: (عبارتِ SQL برای جمع در سطح گروه‌بندی, توضیحِ واحد)
@@ -41,6 +42,71 @@ def _metric_sql(metric: str) -> Tuple[str, str]:
         return "SUM(buy_i_value_usd - sell_i_value_usd)", "USD"
     else:
         raise HTTPException(status_code=400, detail="Invalid metric. Use: value | value_usd | net_flow | net_flow_usd")
+
+
+async def _build_fix_value_pie_range(db: AsyncSession, min_week: Optional[date], max_week: Optional[date], weeks: List[str]) -> Dict:
+    """
+    Pie صنایع روی «کل بازه‌ی فعلی محور X» (مستقل از metric):
+    مجموع value_usd هر صنعت روی [min_week, max_week] را برمی‌گرداند.
+    """
+    if not weeks or not min_week or not max_week:
+        return {"week_end": None, "unit": "USD", "weeks": [], "items": []}
+
+    q = text("""
+        SELECT
+            COALESCE(sector, 'نامشخص') AS sector_name,
+            SUM(value_usd)              AS total_value_usd
+        FROM weekly_joined_data
+        WHERE week_end BETWEEN :wmin AND :wmax
+        GROUP BY sector_name
+        ORDER BY total_value_usd DESC NULLS LAST
+    """)
+    rows = (await db.execute(q, {"wmin": min_week, "wmax": max_week})).mappings().all()
+    items = [{"name": r["sector_name"], "value": float(r["total_value_usd"] or 0.0)} for r in rows]
+
+    return {
+        "week_end": max_week.isoformat(),
+        "unit": "USD",
+        "weeks": weeks,
+        "items": items
+    }
+
+
+async def _build_fix_value_pie_symbols_range(
+    db: AsyncSession,
+    min_week: Optional[date],
+    max_week: Optional[date],
+    weeks: List[str],
+    sector: Optional[str]
+) -> Dict:
+    """
+    Pie نمادهای یک صنعت روی «کل بازه‌ی فعلی محور X» (مستقل از metric):
+    اگر sector خالی/None باشد، خروجی خالی برمی‌گردد.
+    """
+    if not sector or not str(sector).strip() or not weeks or not min_week or not max_week:
+        return {"week_end": None, "unit": "USD", "sector": sector, "weeks": [], "items": []}
+
+    q = text("""
+        SELECT
+            stock_ticker                  AS symbol_name,
+            SUM(value_usd)                AS total_value_usd
+        FROM weekly_joined_data
+        WHERE week_end BETWEEN :wmin AND :wmax
+          AND sector   = :sector
+        GROUP BY symbol_name
+        ORDER BY total_value_usd DESC NULLS LAST
+    """)
+    rows = (await db.execute(q, {"wmin": min_week, "wmax": max_week, "sector": sector})).mappings().all()
+    items = [{"name": r["symbol_name"], "value": float(r["total_value_usd"] or 0.0)} for r in rows]
+
+    return {
+        "week_end": max_week.isoformat(),
+        "unit": "USD",
+        "sector": sector,
+        "weeks": weeks,
+        "items": items
+    }
+
 
 @router.get("/pivot", summary="Pivot هفتگی نقدینگی (sector | symbol | total)")
 async def get_weekly_liquidity_pivot(
@@ -106,6 +172,21 @@ async def get_weekly_liquidity_pivot(
             categories = [r["week_end"].isoformat() for r in rows][-limit_weeks:]
             data = [float(r["total_val"] or 0.0) for r in rows][-limit_weeks:]
 
+            # بازه برای Pieها
+            if categories:
+                min_w, max_w = date.fromisoformat(categories[0]), date.fromisoformat(categories[-1])
+            else:
+                min_w = max_w = None
+
+            # Pie صنایع روی «کل بازه»
+            fix_value_pie = await _build_fix_value_pie_range(db, min_w, max_w, categories) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "weeks": [], "items": []
+            }
+            # Pie نمادهای همان صنعت روی «کل بازه»
+            fix_value_pie_symbols = await _build_fix_value_pie_symbols_range(db, min_w, max_w, categories, sector) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "sector": sector, "weeks": [], "items": []
+            }
+
             return {
                 "unit": unit_label,
                 "metric": metric,
@@ -118,7 +199,9 @@ async def get_weekly_liquidity_pivot(
                         "emphasis": {"focus": "series"},
                         "data": data
                     }
-                ]
+                ],
+                "fix_value_pie": fix_value_pie,
+                "fix_value_pie_symbols": fix_value_pie_symbols
             }
 
         # -------------------- mode = sector / total --------------------
@@ -165,11 +248,28 @@ async def get_weekly_liquidity_pivot(
                     "data": data
                 })
 
+            # بازه برای Pieها
+            if all_weeks:
+                min_w, max_w = date.fromisoformat(all_weeks[0]), date.fromisoformat(all_weeks[-1])
+            else:
+                min_w = max_w = None
+
+            # Pie صنایع روی «کل بازه»
+            fix_value_pie = await _build_fix_value_pie_range(db, min_w, max_w, all_weeks) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "weeks": [], "items": []
+            }
+            # Pie نمادها (چون sector مشخص نشده، عمداً خالی)
+            fix_value_pie_symbols = await _build_fix_value_pie_symbols_range(db, min_w, max_w, all_weeks, None) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "sector": None, "weeks": [], "items": []
+            }
+
             return {
                 "unit": unit_label,
                 "metric": metric,
                 "categories": all_weeks,
-                "series": series_list
+                "series": series_list,
+                "fix_value_pie": fix_value_pie,
+                "fix_value_pie_symbols": fix_value_pie_symbols
             }
 
         # حالت B: mode=sector و پارامتر sector «ست شده» → pivot بر اساس نمادهای همان صنعت
@@ -222,7 +322,7 @@ async def get_weekly_liquidity_pivot(
                     total_w += series_map[sym].get(w, 0.0)
                 total_data.append(total_w)
 
-            # Totals روی نمادها برای Pie/Bar رتبه‌ای
+            # Totals روی نمادها برای رتبه‌بندی
             symbol_totals = []
             for sym in symbols:
                 s_sum = sum(series_map[sym].get(w, 0.0) for w in all_weeks)
@@ -242,6 +342,21 @@ async def get_weekly_liquidity_pivot(
             elif sort_by_norm == "name_desc":
                 symbol_totals.sort(key=lambda x: x["name"], reverse=True)
 
+            # بازه برای Pieها
+            if all_weeks:
+                min_w, max_w = date.fromisoformat(all_weeks[0]), date.fromisoformat(all_weeks[-1])
+            else:
+                min_w = max_w = None
+
+            # Pie «صنایع روی بازه‌ی فعلی محور X»
+            fix_value_pie = await _build_fix_value_pie_range(db, min_w, max_w, all_weeks) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "weeks": [], "items": []
+            }
+            # Pie «نمادهای همان صنعت روی بازه‌ی فعلی محور X»
+            fix_value_pie_symbols = await _build_fix_value_pie_symbols_range(db, min_w, max_w, all_weeks, sector) if min_w and max_w else {
+                "week_end": None, "unit": "USD", "sector": sector, "weeks": [], "items": []
+            }
+
             return {
                 "unit": unit_label,
                 "metric": metric,
@@ -252,11 +367,12 @@ async def get_weekly_liquidity_pivot(
                     "name": "Total",
                     "data": total_data
                 },
-                "symbol_totals": symbol_totals         # یک عدد جمع برای هر symbol (در بازه)
+                "symbol_totals": symbol_totals,        # یک عدد جمع برای هر symbol (در بازه)
+                "fix_value_pie": fix_value_pie,        # Pie صنایع روی بازه‌ی فعلی
+                "fix_value_pie_symbols": fix_value_pie_symbols  # Pie نمادهای همان صنعت روی بازه‌ی فعلی
             }
 
         # -------------------- mode = total --------------------
-        # فیلتر تاریخ پایه
         q = text(f"""
             SELECT
                 week_end::date AS week_end,
@@ -326,6 +442,19 @@ async def get_weekly_liquidity_pivot(
             "data": total_data
         })
 
+        # Pie صنایع روی «کل بازه»
+        if all_weeks:
+            min_w, max_w = date.fromisoformat(all_weeks[0]), date.fromisoformat(all_weeks[-1])
+        else:
+            min_w = max_w = None
+        fix_value_pie = await _build_fix_value_pie_range(db, min_w, max_w, all_weeks) if min_w and max_w else {
+            "week_end": None, "unit": "USD", "weeks": [], "items": []
+        }
+        # Pie نمادها (در حالت total، عمداً خالی)
+        fix_value_pie_symbols = await _build_fix_value_pie_symbols_range(db, min_w, max_w, all_weeks, None) if min_w and max_w else {
+            "week_end": None, "unit": "USD", "sector": None, "weeks": [], "items": []
+        }
+
         return {
             "unit": unit_label,
             "metric": metric,
@@ -335,7 +464,9 @@ async def get_weekly_liquidity_pivot(
             "total_timeseries": {              # سری زمانی کل بازار
                 "name": "Total",
                 "data": total_data
-            }
+            },
+            "fix_value_pie": fix_value_pie,                       # Pie صنایع روی بازه‌ی فعلی
+            "fix_value_pie_symbols": fix_value_pie_symbols        # Pie نمادها (در این mode خالی)
         }
 
     except HTTPException:
