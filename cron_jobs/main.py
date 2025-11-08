@@ -2,7 +2,7 @@
 """
 APScheduler Main Runner
 - Live jobs: every minute between 09:00 and 12:30 (Sat..Wed)
-- Nightly batch: exactly at 19:00 (Sat..Wed)
+- Nightly batch: exactly at 21:00 (Sat..Wed)
 - Logs to cron_jobs/logs/scheduler.log
 - Respects APP_TZ env (default: Asia/Tehran)
 
@@ -201,34 +201,24 @@ def schedule_live_minutely_window(sched: BlockingScheduler):
     for name, path in LIVE_TASKS:
         job_fn = _make_file_task(name, path)
 
-        # 09:00..11:59 (every minute)
+        # 08:00..13:00 (every 5 minute)
         sched.add_job(
             job_fn,
-            CronTrigger(minute="*", hour="9-11", day_of_week=DOW_STR, timezone=APP_TZ),
-            id=f"live_{name}_morning",
+            CronTrigger(minute="*/5", hour="8-13", day_of_week=DOW_STR, timezone=APP_TZ),
+            id=f"live_{name}_8to13_5min",
             replace_existing=True,
-            misfire_grace_time=10 * 60,
-            max_instances=1,
-            coalesce=True,
-        )
-        # 12:00..12:30 (minutes 0..30)
-        sched.add_job(
-            job_fn,
-            CronTrigger(minute="0-30", hour="12", day_of_week=DOW_STR, timezone=APP_TZ),
-            id=f"live_{name}_noon",
-            replace_existing=True,
-            misfire_grace_time=10 * 60,
-            max_instances=1,
-            coalesce=True,
+            misfire_grace_time=10 * 60, # در صورت تاخیر، تا ۱۰ دقیقه قبول
+            max_instances=1,            # جلو هم‌پوشانی را می‌گیرد
+            coalesce=True,               # اجرای‌های جامانده را یکی می‌کند
         )
         logger.info(f"⏰ [{name}] scheduled @ 09:00–12:30 ({DOW_STR})")
 
-def nightly_batch_1900():
+def nightly_batch_2100():
     """
-    Run the 4 nightly modules in sequence at exactly 19:00.
+    Run the 4 nightly modules in sequence at exactly 21:00.
     Continue even if one fails.
     """
-    logger.info("🌙 NIGHTLY(19:00) START")
+    logger.info("🌙 NIGHTLY(21:00) START")
     for n, m in NIGHTLY_MODULES:
         try:
             rc = run_python_module(m, name=n)
@@ -236,19 +226,19 @@ def nightly_batch_1900():
                 logger.error(f"[WARN] nightly step failed: {n} (rc={rc})")
         except Exception as e:
             logger.exception(f"❌ nightly step crashed: {n} ({e})")
-    logger.info("✅ NIGHTLY(19:00) END")
+    logger.info("✅ NIGHTLY(21:00) END")
 
 def schedule_nightly_batch(sched: BlockingScheduler):
     sched.add_job(
-        nightly_batch_1900,
-        CronTrigger(hour=19, minute=0, day_of_week=DOW_STR, timezone=APP_TZ),
-        id="nightly_batch_1900",
+        nightly_batch_2100,
+        CronTrigger(hour=21, minute=0, day_of_week=DOW_STR, timezone=APP_TZ),
+        id="nightly_batch_2100",
         replace_existing=True,
         misfire_grace_time=30 * 60,
         max_instances=1,
         coalesce=True,
     )
-    logger.info("⏰ [nightly_batch_1900] scheduled @ 19:00 ({})".format(DOW_STR))
+    logger.info("⏰ [nightly_batch_2100] scheduled @ 21:00 ({})".format(DOW_STR))
 
 # ======================================================================================
 # Main
@@ -277,7 +267,7 @@ def main():
     sched = BlockingScheduler(timezone=APP_TZ)
     # Live window 09:00–12:30
     schedule_live_minutely_window(sched)
-    # Nightly 19:00
+    # Nightly 21:00
     schedule_nightly_batch(sched)
 
     # 5) handle signals for graceful shutdown
