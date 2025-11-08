@@ -21,6 +21,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.utils.exceptions import AppException
 from backend.api import ceiling
 from backend.api import indicator_report
+from backend.api import signals_table
 
 load_dotenv(dotenv_path=".env")
 print("🧪 Loaded SECRET_KEY from middleware:", repr(os.getenv("SECRET_KEY")))
@@ -42,6 +43,7 @@ from backend.users.routes import (
 )
 
 print("🚀 [MAIN] FastAPI is loading main.py")
+
 
 app = FastAPI(
     title="Full Financial API",
@@ -101,6 +103,7 @@ app.include_router(candlestick.router, prefix="/api")
 
 app.include_router(liquidity_weekly.router, prefix="/api")  # ✅ درست
 
+app.include_router(signals_table.router)
 
 app.include_router(ceiling.router, prefix="/api")  # ✅
 
