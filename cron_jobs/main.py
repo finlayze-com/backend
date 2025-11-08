@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 APScheduler Main Runner
-- Live jobs: every minute between 09:00 and 12:30 (Sat..Wed)
+- Live jobs: every 5 minute between 08:00 and 13:00 (Sat..Wed)
 - Nightly batch: exactly at 21:00 (Sat..Wed)
 - Logs to cron_jobs/logs/scheduler.log
 - Respects APP_TZ env (default: Asia/Tehran)
@@ -211,7 +211,7 @@ def schedule_live_minutely_window(sched: BlockingScheduler):
             max_instances=1,            # جلو هم‌پوشانی را می‌گیرد
             coalesce=True,               # اجرای‌های جامانده را یکی می‌کند
         )
-        logger.info(f"⏰ [{name}] scheduled @ 09:00–12:30 ({DOW_STR})")
+        logger.info(f"⏰ [{name}] scheduled @*/5 08:00–13:00 ({DOW_STR})")
 
 def nightly_batch_2100():
     """
