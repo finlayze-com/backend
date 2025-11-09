@@ -19,6 +19,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Tuple, Optional, Callable
+from datetime import datetime
 
 # ---- Third-party (APScheduler) ----
 try:
@@ -340,11 +341,30 @@ def main():
 
     # 6) start
     try:
+        from datetime import datetime
+
         logger.info("🚀 Scheduler started.")
-        # 👇 اضافه کن قبل از sched.start()
+        # ✅ نسخه‌-ایمن: هم با APScheduler 3 کار می‌کند هم 4
         for job in sched.get_jobs():
-            logger.info("🗓️ job=%s next=%s", job.id, job.next_run_time)
+            try:
+                # APScheduler 3.x
+                nxt = getattr(job, "next_run_time")
+            except Exception:
+                nxt = None
+
+            if not nxt:
+                # APScheduler 4.x / روش عمومی: از Trigger زمان بعدی را بگیر
+                try:
+                    now = datetime.now(APP_TZ)
+                    # در APScheduler 3.x هم این متد موجود است
+                    nxt = job.trigger.get_next_fire_time(None, now)
+                except Exception:
+                    nxt = None
+
+            logger.info("🗓️ job=%s next=%s trigger=%s", job.id, nxt, job.trigger)
+
         sched.start()
+
     except (KeyboardInterrupt, SystemExit):
         logger.info("🛑 Scheduler stopped.")
     except Exception:
