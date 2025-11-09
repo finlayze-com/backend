@@ -70,12 +70,5 @@ def run_once():
     else:
         print("⚠️ هیچ داده‌ای دریافت نشد.")
 
-# اجرای تکراری هر دقیقه
-def run_forever():
-    while True:
-        print(f"\n⏰ اجرا در {datetime.datetime.now().strftime('%H:%M:%S')}")
-        run_once()
-        time.sleep(300)  # یک دقیقه صبر
-
 if __name__ == "__main__":
-    run_forever()
+    run_once()
