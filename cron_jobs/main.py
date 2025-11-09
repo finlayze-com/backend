@@ -72,12 +72,13 @@ LIVE_TASKS: List[Tuple[str, Path]] = [
     ("live_orderbool", PROJECT_ROOT / "cron_jobs" / "livedata" / "run_live_orderbool.py"),
 ]
 
-# Nightly modules to run with -m (without ".py")
+# ETL modules to run with -m (back-to-back after watcher OK)
 NIGHTLY_MODULES: List[Tuple[str, str]] = [
     ("dollar",                "cron_jobs.otherimportantFile.dollar"),
     ("run_saham",             "cron_jobs.daily.common.groups.run_saham"),
     ("update_daily_haghighi", "cron_jobs.daily.update_daily_haghighi"),
     ("run_saham_ind",         "cron_jobs.daily.common.groups.run_saham_ind"),
+    ("Safkharid", "cron_jobs.daily.Safkharid"),  # ← این خط جدید اضافه شد
 ]
 
 # Days of week: Sat..Wed  (Linux cron usually: 0/7=Sun, 6=Sat. APScheduler uses names)
@@ -213,32 +214,85 @@ def schedule_live_minutely_window(sched: BlockingScheduler):
         )
         logger.info(f"⏰ [{name}] scheduled @*/5 08:00–13:00 ({DOW_STR})")
 
-def nightly_batch_2100():
+def queue_batch_after_15():
     """
-    Run the 4 nightly modules in sequence at exactly 21:00.
-    Continue even if one fails.
+    15:00 → Run queue watcher (up to 12h). On first OK (rc=0), run ETL modules back-to-back.
     """
-    logger.info("🌙 NIGHTLY(21:00) START")
-    for n, m in NIGHTLY_MODULES:
-        try:
-            rc = run_python_module(m, name=n)
-            if rc != 0:
-                logger.error(f"[WARN] nightly step failed: {n} (rc={rc})")
-        except Exception as e:
-            logger.exception(f"❌ nightly step crashed: {n} ({e})")
-    logger.info("✅ NIGHTLY(21:00) END")
+    logger.info("🌇 QUEUE-FLOW(15:00) START")
 
-def schedule_nightly_batch(sched: BlockingScheduler):
+    # 1) run watcher
+    watcher_path = PROJECT_ROOT / "cron_jobs" / "otherImportantFile" / "main_queue_watcher.py"
+    if watcher_path.exists():
+        try:
+            rc_watch = run_python_file(watcher_path, name="queue_watcher")
+        except Exception as e:
+            logger.exception(f"❌ queue_watcher crashed: {e}")
+            rc_watch = 1
+    else:
+        logger.error(f"❌ queue_watcher not found: {watcher_path}")
+        rc_watch = 1
+
+    # 2) if watcher OK → run ETL modules (back-to-back)
+    if rc_watch == 0:
+        logger.info("✅ queue_watcher OK → running ETL pipeline (back-to-back)...")
+        for n, m in NIGHTLY_MODULES:
+            try:
+                rc = run_python_module(m, name=n)
+                if rc != 0:
+                    logger.error(f"[WARN] step failed: {n} (rc={rc})")
+            except Exception as e:
+                logger.exception(f"❌ step crashed: {n} ({e})")
+        logger.info("✅ QUEUE-FLOW ETL finished.")
+    elif rc_watch == 2:
+        logger.warning("⏳ queue_watcher timeout (12h). Skipping ETL today.")
+    else:
+        logger.error(f"❌ queue_watcher failed (rc={rc_watch}). Skipping ETL.")
+
+    logger.info("🏁 QUEUE-FLOW(15:00) END")
+
+# def nightly_batch_2100():
+#     """
+#     Run the 4 nightly modules in sequence at exactly 21:00.
+#     Continue even if one fails.
+#     """
+#     logger.info("🌙 NIGHTLY(21:00) START")
+#     for n, m in NIGHTLY_MODULES:
+#         try:
+#             rc = run_python_module(m, name=n)
+#             if rc != 0:
+#                 logger.error(f"[WARN] nightly step failed: {n} (rc={rc})")
+#         except Exception as e:
+#             logger.exception(f"❌ nightly step crashed: {n} ({e})")
+#     logger.info("✅ NIGHTLY(21:00) END")
+
+
+# def schedule_nightly_batch(sched: BlockingScheduler):
+#     sched.add_job(
+#         nightly_batch_2100,
+#         CronTrigger(hour=21, minute=0, day_of_week=DOW_STR, timezone=APP_TZ),
+#         id="nightly_batch_2100",
+#         replace_existing=True,
+#         misfire_grace_time=30 * 60,
+#         max_instances=1,
+#         coalesce=True,
+#     )
+#     logger.info("⏰ [nightly_batch_2100] scheduled @ 21:00 ({})".format(DOW_STR))
+
+
+def schedule_queue_flow_after_15(sched: BlockingScheduler):
+    """
+    Schedule the queue flow at 15:00 (Sat..Wed).
+    """
     sched.add_job(
-        nightly_batch_2100,
-        CronTrigger(hour=21, minute=0, day_of_week=DOW_STR, timezone=APP_TZ),
-        id="nightly_batch_2100",
+        queue_batch_after_15,
+        CronTrigger(hour=15, minute=0, day_of_week=DOW_STR, timezone=APP_TZ),
+        id="queue_flow_after_15",
         replace_existing=True,
         misfire_grace_time=30 * 60,
         max_instances=1,
         coalesce=True,
     )
-    logger.info("⏰ [nightly_batch_2100] scheduled @ 21:00 ({})".format(DOW_STR))
+    logger.info("⏰ [queue_flow_after_15] scheduled @ 15:00 ({})".format(DOW_STR))
 
 # ======================================================================================
 # Main
@@ -267,8 +321,8 @@ def main():
     sched = BlockingScheduler(timezone=APP_TZ)
     # Live window 09:00–12:30
     schedule_live_minutely_window(sched)
-    # Nightly 21:00
-    schedule_nightly_batch(sched)
+    # Queue flow from 15:00 (replaces old nightly 21:00)
+    schedule_queue_flow_after_15(sched)
 
     # 5) handle signals for graceful shutdown
     def _graceful(signum, frame):
