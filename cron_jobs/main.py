@@ -343,7 +343,7 @@ def main():
         logger.info("🚀 Scheduler started.")
         # 👇 اضافه کن قبل از sched.start()
         for job in sched.get_jobs():
-            logger.info(f"🗓️ job={job.id} next={job.next_run_time}")
+            logger.info("🗓️ job=%s next=%s", job.id, job.next_run_time)
         sched.start()
     except (KeyboardInterrupt, SystemExit):
         logger.info("🛑 Scheduler stopped.")
