@@ -5,6 +5,10 @@ from datetime import timedelta
 import jdatetime
 from sqlalchemy import create_engine, text
 from finpy_tse import Get_Queue_History
+from dotenv import load_dotenv
+import os
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import MetaData, Table
 
 # ---------------------- تنظیمات لاگ ---------------------- #
 logging.basicConfig(
@@ -19,25 +23,31 @@ def to_jalali_str(greg_date):
     return jdatetime.date.fromgregorian(date=greg_date).strftime('%Y-%m-%d')
 
 
-# ---------------------- اتصال به دیتابیس ---------------------- #
+# ---------------------- بارگذاری تنظیمات از .env ---------------------- #
+load_dotenv()  # فایل .env را می‌خواند
+
+DB_URL_SYNC = os.getenv("DB_URL_SYNC") or os.getenv("DB_URL")
+if not DB_URL_SYNC:
+    raise EnvironmentError("❌ متغیر DB_URL یا DB_URL_SYNC در فایل .env یافت نشد.")
+
+# اتصال به دیتابیس با try/except
 try:
-    conn = psycopg2.connect(
-        dbname="postgres1", user="postgres", password="Afiroozi12",
-        host="localhost", port="5432"
-    )
+    conn = psycopg2.connect(DB_URL_SYNC)
     cursor = conn.cursor()
+    logging.info("✅ اتصال به دیتابیس برقرار شد.")
 except Exception as e:
     logging.error(f"❌ خطا در اتصال به دیتابیس: {e}")
     raise
 
+
 # ---------------------- تعیین آخرین روز معاملاتی از daily_stock_data ---------------------- #
 try:
-    cursor.execute('SELECT MAX("date_miladi") FROM daily_stock_data;')
+    cursor.execute('SELECT MAX("Timestamp"::date) FROM orderbook_snapshot;')
     last_trading_date = cursor.fetchone()[0]
     if last_trading_date is None:
-        raise Exception("هیچ داده‌ای در جدول daily_stock_data وجود ندارد.")
-    start_date = to_jalali_str(last_trading_date)
-    end_date = to_jalali_str(last_trading_date + timedelta(days=1))
+        raise Exception("هیچ داده‌ای در جدول orderbook_snapshot وجود ندارد.")
+    start_date = to_jalali_str(last_trading_date- timedelta(days=1))
+    end_date = to_jalali_str(last_trading_date )
     logging.info(f"📅 دریافت صف خرید/فروش برای تاریخ: {start_date}")
 except Exception as e:
     logging.error(f"❌ خطا در گرفتن آخرین روز معاملاتی: {e}")
@@ -46,10 +56,18 @@ except Exception as e:
 
 # ---------------------- دریافت لیست نمادها ---------------------- #
 try:
-    cursor.execute('SELECT "stock_ticker" FROM symboldetail;')
+    cursor.execute(
+        '''
+                SELECT DISTINCT "stock_ticker"
+                FROM symboldetail
+                WHERE "stock_ticker" IS NOT NULL
+                  AND instrument_type = 'saham'
+                ORDER BY "stock_ticker"
+                '''
+        )
     rows = cursor.fetchall()
     tickers = [row[0] for row in rows]
-    logging.info(f"🔍 تعداد نمادها: {len(tickers)}")
+    logging.info(f"🔍 تعداد نمادهای سهام (instrument_type='saham'): {len(tickers)}")
 except Exception as e:
     logging.error(f"❌ خطا در گرفتن لیست نمادها: {e}")
     conn.close()
@@ -88,21 +106,40 @@ for ticker in tickers:
         logging.error(f"{ticker} - ❌ خطا در دریافت داده: {e}")
 
 # ---------------------- پاک کردن داده‌های قبلی + ذخیره‌سازی جدید ---------------------- #
+## ---------------------- UPSERT ---------------------- #
 if all_data:
-    final_df = pd.concat(all_data)
-    final_df = final_df.sort_values(by='BQ_Value', ascending=False)
-    logging.info(f"📊 {len(final_df)} ردیف برای ذخیره‌سازی آماده است.")
+    final_df = pd.concat(all_data, ignore_index=True).sort_values(by='BQ_Value', ascending=False)
+    final_df = final_df.where(pd.notnull(final_df), None)  # NaN -> None
+
+    logging.info(f"📊 {len(final_df)} ردیف برای UPSERT آماده است.")
 
     try:
-        engine = create_engine('postgresql://postgres:Afiroozi12@localhost:5432/postgres1')
-        with engine.begin() as connection:
-            connection.execute(text("DELETE FROM quote;"))
-            logging.info("🗑️ داده‌های قبلی جدول quote حذف شد.")
+        engine = create_engine(DB_URL_SYNC)
+        conflict_cols = ["stock_ticker", "date"]  # کلید یکتا
+        records = final_df.to_dict(orient="records")
 
-            final_df.to_sql("quote", con=connection, if_exists='append', index=False)
-            logging.info("✅ داده‌های جدید با موفقیت ذخیره شدند.")
+        with engine.begin() as connection:
+            md = MetaData()
+            quote = Table("quote", md, autoload_with=connection)  # reflect جدول
+
+            update_cols = [c.name for c in quote.columns if c.name not in conflict_cols]
+
+            chunk_size = 1000
+            for i in range(0, len(records), chunk_size):
+                chunk = records[i:i+chunk_size]
+
+                stmt = pg_insert(quote).values(chunk)
+                update_map = {c: getattr(stmt.excluded, c) for c in update_cols}
+
+                upsert_stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_cols,
+                    set_=update_map
+                )
+                connection.execute(upsert_stmt)
+
+        logging.info("✅ UPSERT با موفقیت انجام شد.")
     except Exception as e:
-        logging.error(f"❌ خطا در ذخیره در دیتابیس: {e}")
+        logging.error(f"❌ خطا در UPSERT در دیتابیس: {e}")
 else:
     logging.warning("⚠️ هیچ داده معتبری برای ذخیره وجود نداشت.")
 
