@@ -1,4 +1,3 @@
-# backend/api/ceiling.py
 # -*- coding: utf-8 -*-
 from typing import Optional, Literal, List
 import logging
@@ -12,16 +11,27 @@ from backend.utils.response import create_response
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/targets", tags=["🎯 Ceiling Targets"])
 
-DAILY_SRC = "daily_joined_data"  # اگر ویو نداری، "daily_joined_data"
+DAILY_SRC = "daily_joined_data"
 
-def _resolve_price_cols(adjusted: bool, currency: Literal["rial", "usd"]):
-    base_close = "adjust_close" if adjusted else "close"
-    base_final = "adjust_final_price" if adjusted else "final_price"
+
+# -------------------- Helpers --------------------
+
+def _resolve_close_col(adjusted: bool, currency: Literal["rial", "usd"]) -> str:
+    col = "adjust_close" if adjusted else "close"
     if currency == "usd":
-        base_close += "_usd"
-        base_final += "_usd"
-    return base_close, base_final
+        col += "_usd"
+    return col
 
+def _safe_num(col: str) -> str:
+    """NaN را به NULL تبدیل می‌کند"""
+    return f"CASE WHEN {col}::text = 'NaN' THEN NULL ELSE {col} END"
+
+def _not_nan(col: str) -> str:
+    """فقط سطرهای غیر NaN"""
+    return f"NOT ({col}::text = 'NaN')"
+
+
+# -------------------- Main Endpoint --------------------
 
 @router.get("/ceiling", summary="Gap-to-Ceiling (ATH یا بازه start/end)")
 async def ceiling_targets(
@@ -34,28 +44,24 @@ async def ceiling_targets(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    خروجی: [{ stock_ticker, price_now, ceiling_price, gap_abs, gap_pct, hit }]
-    قوانین تاریخ:
-      - هر دو تاریخ ⇒ rolling_high روی [start_date, end_date]
-      - فقط start_date ⇒ end_date = امروز (اگر امروز دیتا نبود، می‌شود آخرین تاریخ موجود)
-      - فقط end_date ⇒ 400
-      - هیچ‌کدام ⇒ ATH
+    خروجی: [{
+      stock_ticker, price_now, price_j_date,
+      ceiling_price, ceiling_j_date,
+      gap_abs, gap_pct, hit
+    }]
     """
     try:
-        price_col, final_col = _resolve_price_cols(adjusted, currency)
+        col = _resolve_close_col(adjusted, currency)
 
-        # اعتبارسنجی: فقط end_date ممنوع
-        if (end_date and not start_date):
+        if end_date and not start_date:
             return create_response(
                 status="error", status_code=400,
                 message="وقتی end_date می‌دهید باید start_date هم بدهید.",
                 data=[]
             )
 
-        # حالت Rolling: اگر start_date هست (چه end_date باشد چه نباشد)
+        # -------------------- حالت 1: بازه --------------------
         if start_date:
-            # end_anchor: اگر end_date ندادیم ⇒ امروز؛
-            # و برای جلوگیری از خروجی خالی، به آخرین تاریخ موجود clamp می‌کنیم.
             sql = f"""
             WITH params AS (
               SELECT
@@ -68,27 +74,47 @@ async def ceiling_targets(
               FROM params p
             ),
             base AS (
-              SELECT dj.stock_ticker, dj.date_miladi, dj.{final_col} AS price_now
+              SELECT
+                dj.stock_ticker,
+                dj.j_date AS price_j_date,
+                {_safe_num(f'dj.{col}')} AS price_now
               FROM {DAILY_SRC} dj, end_anchor ea
               WHERE dj.date_miladi = ea.end_date
             ),
-            wnd AS (
-              SELECT dj.stock_ticker,
-                     MAX(dj.{price_col}) AS ceiling_price
+            ranked AS (
+              SELECT
+                dj.stock_ticker,
+                dj.j_date,
+                dj.date_miladi,
+                {_safe_num(f'dj.{col}')} AS px,
+                ROW_NUMBER() OVER (
+                  PARTITION BY dj.stock_ticker
+                  ORDER BY dj.{col} DESC, dj.date_miladi DESC
+                ) AS rn
               FROM {DAILY_SRC} dj
               JOIN end_anchor ea ON TRUE
-              WHERE dj.date_miladi BETWEEN :start_date AND ea.end_date
-              GROUP BY dj.stock_ticker
+              WHERE dj.date_miladi BETWEEN :start_date::date AND ea.end_date
+                AND {_not_nan(f'dj.{col}')}
+            ),
+            wnd AS (
+              SELECT stock_ticker, px AS ceiling_price, j_date AS ceiling_j_date
+              FROM ranked
+              WHERE rn = 1
             )
             SELECT
               b.stock_ticker,
               b.price_now,
+              b.price_j_date,
               w.ceiling_price,
+              w.ceiling_j_date,
               (w.ceiling_price - b.price_now) AS gap_abs,
               CASE WHEN b.price_now > 0
                    THEN 100.0 * (w.ceiling_price - b.price_now)/b.price_now
                    ELSE NULL END AS gap_pct,
-              (b.price_now >= w.ceiling_price - 1e-9) AS hit
+              CASE
+                 WHEN w.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
+                 ELSE (b.price_now >= w.ceiling_price - 1e-9)
+              END AS hit
             FROM base b
             JOIN wnd  w USING (stock_ticker)
             { 'JOIN (SELECT stock_ticker FROM symboldetail WHERE sector = :sector) s USING (stock_ticker)' if sector else '' }
@@ -102,27 +128,51 @@ async def ceiling_targets(
             rows = (await db.execute(q)).mappings().all()
             return create_response(data=[dict(r) for r in rows])
 
-        # حالت ATH: هیچ تاریخی نیامده
+        # -------------------- حالت 2: ATH --------------------
         sql = f"""
-        WITH base AS (
-          SELECT stock_ticker, date_miladi, {final_col} AS price_now
-          FROM {DAILY_SRC}
-          WHERE date_miladi = (SELECT max(date_miladi) FROM {DAILY_SRC})
+        WITH lastday AS (
+          SELECT max(date_miladi) AS dmax FROM {DAILY_SRC}
+        ),
+        base AS (
+          SELECT
+            dj.stock_ticker,
+            dj.j_date AS price_j_date,
+            {_safe_num(f'dj.{col}')} AS price_now
+          FROM {DAILY_SRC} dj, lastday ld
+          WHERE dj.date_miladi = ld.dmax
+        ),
+        ranked AS (
+          SELECT
+            dj.stock_ticker,
+            dj.j_date,
+            dj.date_miladi,
+            {_safe_num(f'dj.{col}')} AS px,
+            ROW_NUMBER() OVER (
+              PARTITION BY dj.stock_ticker
+              ORDER BY dj.{col} DESC, dj.date_miladi DESC
+            ) AS rn
+          FROM {DAILY_SRC} dj
+          WHERE {_not_nan(f'dj.{col}')}
         ),
         ath AS (
-          SELECT stock_ticker, max({price_col}) AS ceiling_price
-          FROM {DAILY_SRC}
-          GROUP BY stock_ticker
+          SELECT stock_ticker, px AS ceiling_price, j_date AS ceiling_j_date
+          FROM ranked
+          WHERE rn = 1
         )
         SELECT
           b.stock_ticker,
           b.price_now,
+          b.price_j_date,
           a.ceiling_price,
+          a.ceiling_j_date,
           (a.ceiling_price - b.price_now) AS gap_abs,
           CASE WHEN b.price_now > 0
                THEN 100.0 * (a.ceiling_price - b.price_now)/b.price_now
                ELSE NULL END AS gap_pct,
-          (b.price_now >= a.ceiling_price - 1e-9) AS hit
+          CASE
+             WHEN a.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
+             ELSE (b.price_now >= a.ceiling_price - 1e-9)
+          END AS hit
         FROM base b
         JOIN ath a USING (stock_ticker)
         { 'JOIN (SELECT stock_ticker FROM symboldetail WHERE sector = :sector) s USING (stock_ticker)' if sector else '' }
@@ -139,6 +189,9 @@ async def ceiling_targets(
         raise HTTPException(status_code=500, detail="Internal error in /targets/ceiling: " + str(e))
 
 
+
+# -------------------- Funnel Endpoint --------------------
+
 @router.get("/ceiling/funnel", summary="Funnel buckets of gap-to-ceiling (range-based)")
 async def ceiling_funnel(
     start_date: Optional[str] = Query(None),
@@ -150,18 +203,10 @@ async def ceiling_funnel(
     _ = Depends(require_permissions("Report.Ceiling.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    خروجی: [{ name: '≤1%', value: N }, { name: '1–2%', value: N }, ... , { name: '>last', value: N }]
-    همان قواعد تاریخ:
-      - هر دو تاریخ ⇒ بازه
-      - فقط start_date ⇒ end = امروز (clamp به آخرین تاریخ موجود)
-      - فقط end_date ⇒ 400
-      - هیچ‌کدام ⇒ ATH
-    """
     try:
-        price_col, final_col = _resolve_price_cols(adjusted, currency)
+        col = _resolve_close_col(adjusted, currency)
 
-        if (end_date and not start_date):
+        if end_date and not start_date:
             return create_response(
                 status="error", status_code=400,
                 message="وقتی end_date می‌دهید باید start_date هم بدهید.",
@@ -181,17 +226,29 @@ async def ceiling_funnel(
               FROM params p
             ),
             base AS (
-              SELECT dj.stock_ticker, dj.date_miladi, dj.{final_col} AS price_now
+              SELECT
+                dj.stock_ticker,
+                {_safe_num(f'dj.{col}')} AS price_now
               FROM {DAILY_SRC} dj, end_anchor ea
               WHERE dj.date_miladi = ea.end_date
             ),
-            wnd AS (
-              SELECT dj.stock_ticker,
-                     MAX(dj.{price_col}) AS ceiling_price
+            ranked AS (
+              SELECT
+                dj.stock_ticker,
+                {_safe_num(f'dj.{col}')} AS px,
+                ROW_NUMBER() OVER (
+                  PARTITION BY dj.stock_ticker
+                  ORDER BY dj.{col} DESC, dj.date_miladi DESC
+                ) AS rn
               FROM {DAILY_SRC} dj
               JOIN end_anchor ea ON TRUE
-              WHERE dj.date_miladi BETWEEN :start_date AND ea.end_date
-              GROUP BY dj.stock_ticker
+              WHERE dj.date_miladi BETWEEN :start_date::date AND ea.end_date
+                AND {_not_nan(f'dj.{col}')}
+            ),
+            wnd AS (
+              SELECT stock_ticker, px AS ceiling_price
+              FROM ranked
+              WHERE rn = 1
             )
             SELECT
               b.stock_ticker,
@@ -208,17 +265,32 @@ async def ceiling_funnel(
                 **({"sector": sector} if sector else {})
             )
         else:
-            # ATH
             sql = f"""
-            WITH base AS (
-              SELECT stock_ticker, date_miladi, {final_col} AS price_now
-              FROM {DAILY_SRC}
-              WHERE date_miladi = (SELECT max(date_miladi) FROM {DAILY_SRC})
+            WITH lastday AS (
+              SELECT max(date_miladi) AS dmax FROM {DAILY_SRC}
+            ),
+            base AS (
+              SELECT
+                dj.stock_ticker,
+                {_safe_num(f'dj.{col}')} AS price_now
+              FROM {DAILY_SRC} dj, lastday ld
+              WHERE dj.date_miladi = ld.dmax
+            ),
+            ranked AS (
+              SELECT
+                dj.stock_ticker,
+                {_safe_num(f'dj.{col}')} AS px,
+                ROW_NUMBER() OVER (
+                  PARTITION BY dj.stock_ticker
+                  ORDER BY dj.{col} DESC, dj.date_miladi DESC
+                ) AS rn
+              FROM {DAILY_SRC} dj
+              WHERE {_not_nan(f'dj.{col}')}
             ),
             ath AS (
-              SELECT stock_ticker, max({price_col}) AS ceiling_price
-              FROM {DAILY_SRC}
-              GROUP BY stock_ticker
+              SELECT stock_ticker, px AS ceiling_price
+              FROM ranked
+              WHERE rn = 1
             )
             SELECT
               b.stock_ticker,

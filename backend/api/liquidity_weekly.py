@@ -56,11 +56,11 @@ async def _compute_window(
     if not weeks_all:
         return None, None, []
 
+    # حالت 1: date_from مشخص شده → ignore limit_weeks
     if "date_from" in params and params["date_from"]:
-        # بازه دقیقاً از date_from تا date_to
         weeks_eff = weeks_all
     else:
-        # بازه = آخرین limit_weeks هفته
+        # حالت 2: date_from خالی → فقط آخرین limit_weeks هفته
         if limit_weeks > 0 and len(weeks_all) > limit_weeks:
             weeks_eff = weeks_all[-limit_weeks:]
         else:
@@ -225,7 +225,6 @@ async def get_weekly_liquidity_pivot(
         # ===================== حالت: SECTOR =====================
         # اگر sector انتخاب نشده: مثل total
         if not sector:
-            # همان منطق total استفاده می‌شود
             q_ts = text(f"""
                 SELECT week_end::date AS week_end,
                        {metric_expr}  AS total_val
