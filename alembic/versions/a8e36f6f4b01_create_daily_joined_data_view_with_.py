@@ -69,6 +69,10 @@ def upgrade():
             di.atr_22, di.renko_22,
 
             -- 💵 نسخه دلاری سیگنال‌ها
+            di.tenkan_d,
+            di.kijun_d,
+            di.senkou_a_d,
+            di.senkou_b_d,
             di.signal_ichimoku_buy_d   AS signal_ichimoku_buy_usd,
             di.signal_ichimoku_sell_d  AS signal_ichimoku_sell_usd,
             di.signal_ema_cross_buy_d  AS signal_ema_cross_buy_usd,
