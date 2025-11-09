@@ -41,39 +41,68 @@ class IndiEnum(str, Enum):
 async def get_existing_cols(db: AsyncSession, table: str) -> set:
     """بررسی نام ستون‌های موجود در جدول (lower-case)"""
     q = text("""
-        SELECT column_name
+        SELECT lower(column_name)
         FROM information_schema.columns
-        WHERE table_name = :t
+        WHERE lower(table_name) = lower(:t)
     """)
     res = await db.execute(q, {"t": table})
     return {r[0] for r in res.fetchall()}
 
 
 def pick_first_exist(candidates: List[str], exists: set, *, required: bool = False) -> Optional[str]:
-    """اولین نام ستونی که در جدول هست را برمی‌گرداند"""
+    """اولین نام ستونی که در جدول هست را برمی‌گرداند (case-insensitive)"""
     for c in candidates:
-        if c in exists:
+        if c.lower() in exists:
             return c
     if required:
         raise KeyError(f"None of candidates exist: {candidates}")
     return None
 
 
-# ---------- SQL-safe helpers (بدون isfinite) ----------
+# ---------- SQL-safe helpers ----------
+# توجه: مشکل شما از mismatch نوع‌ها در CASE بود؛ در این نسخه هر دو شاخه را داخل CASE به float8 می‌بریم.
+
+_NUMERIC_REGEX = r"^\s*[+-]?(\d+(\.\d+)?|\.\d+)\s*$"
+
 def sql_is_bad(col_sql: str) -> str:
-    """
-    تشخیص مقادیر بد (NaN/Infinity/-Infinity) در PostgreSQL بدون isfinite:
-    با cast به text و مقایسه. توجه: برای عددی‌ها امن است.
-    """
+    """تشخیص NaN/±Inf با cast به text"""
     return f"(({col_sql})::text IN ('NaN','Infinity','-Infinity'))"
 
-def sql_safe_null(col_sql: str) -> str:
-    """اگر NaN/Inf/NULL بود → NULL ، در غیراینصورت مقدار اصلی"""
-    return f"(CASE WHEN {sql_is_bad(col_sql)} OR {col_sql} IS NULL THEN NULL ELSE {col_sql} END)"
+def sql_is_numeric_str(col_sql: str) -> str:
+    """چک می‌کند مقدار متنی شبیه عدد است (برای ستون‌های متنی)"""
+    return f"(({col_sql})::text ~ '{_NUMERIC_REGEX}')"
 
-def sql_safe_zero(col_sql: str) -> str:
-    """اگر NaN/Inf/NULL بود → 0 ، در غیراینصورت مقدار اصلی"""
-    return f"(CASE WHEN {sql_is_bad(col_sql)} OR {col_sql} IS NULL THEN 0 ELSE {col_sql} END)"
+def sql_safe_null_numeric(col_sql: str) -> str:
+    """
+    خروجی: float8
+    اگر NULL/NaN/Inf → NULL::float8
+    اگر متن عددی → ::float8
+    اگر متن غیرعددی/بولین/هرچیز دیگر → NULL::float8 (برای جلوگیری از خطای cast)
+    """
+    return (
+        f"(CASE "
+        f"  WHEN {col_sql} IS NULL OR {sql_is_bad(col_sql)} THEN NULL::float8 "
+        f"  WHEN {sql_is_numeric_str(col_sql)} THEN ({col_sql})::float8 "
+        f"  WHEN pg_typeof({col_sql})::text IN ('double precision','numeric','real','integer','bigint','smallint') THEN ({col_sql})::float8 "
+        f"  ELSE NULL::float8 "
+        f"END)"
+    )
+
+def sql_safe_zero_numeric(col_sql: str) -> str:
+    """
+    خروجی: float8
+    اگر NULL/NaN/Inf → 0::float8
+    اگر متن عددی → ::float8
+    اگر متن غیرعددی/بولین/هرچیز دیگر → 0::float8
+    """
+    return (
+        f"(CASE "
+        f"  WHEN {col_sql} IS NULL OR {sql_is_bad(col_sql)} THEN 0::float8 "
+        f"  WHEN {sql_is_numeric_str(col_sql)} THEN ({col_sql})::float8 "
+        f"  WHEN pg_typeof({col_sql})::text IN ('double precision','numeric','real','integer','bigint','smallint') THEN ({col_sql})::float8 "
+        f"  ELSE 0::float8 "
+        f"END)"
+    )
 
 
 # ---------- JSON sanitize ----------
@@ -130,13 +159,12 @@ async def signals_table(
 
     # 4) قیمت برای ابر (اول adjust_close(_usd)، در صورت نبود last_price(_usd))
     price_col = "adjust_close_usd" if currency == CurrencyEnum.usd else "adjust_close"
-    if price_col not in existing:
+    if price_col.lower() not in existing:
         price_col = "last_price_usd" if currency == CurrencyEnum.usd else "last_price"
-        if price_col not in existing:
+        if price_col.lower() not in existing:
             raise HTTPException(status_code=500, detail="❌ No suitable price column found for Ichimoku position")
 
     # 5) Senkou A/B
-    # weekly+usd → احتمالاً *_d
     try:
         if freq == PeriodEnum.weekly and currency == CurrencyEnum.usd:
             senkou_a_raw = pick_first_exist(["senkou_a_d", "senkou_a"], existing, required=True)
@@ -147,17 +175,17 @@ async def signals_table(
     except KeyError as e:
         raise HTTPException(status_code=500, detail=f"❌ Ichimoku columns missing: {e}")
 
-    # نسخه امن (بدون isfinite) + cast به float8 برای مقایسه
-    price_safe  = f"({sql_safe_null(f't.{price_col}')})::float8"
-    senkou_a    = f"({sql_safe_null(f't.{senkou_a_raw}')})::float8"
-    senkou_b    = f"({sql_safe_null(f't.{senkou_b_raw}')})::float8"
+    # نسخه ایمن عددی (داخل CASE به float8)
+    price_safe  = sql_safe_null_numeric(f"t.{price_col}")
+    senkou_a    = sql_safe_null_numeric(f"t.{senkou_a_raw}")
+    senkou_b    = sql_safe_null_numeric(f"t.{senkou_b_raw}")
 
-    # 6) نگاشت ستون‌های سیگنال (همه به 0 امن شوند و float8 شوند)
+    # 6) نگاشت ستون‌های سیگنال (ایمن و float8)
     def map_sig(src_candidates: List[str], alias: str) -> Optional[str]:
         col = pick_first_exist(src_candidates, existing, required=False)
         if not col:
             return None
-        return f"({sql_safe_zero(f't.{col}')})::float8 AS {alias}"
+        return f"{sql_safe_zero_numeric(f't.{col}')} AS {alias}"
 
     if freq == PeriodEnum.daily and currency == CurrencyEnum.usd:
         sig_defs = [
@@ -216,7 +244,8 @@ async def signals_table(
             map_sig(["renko_52_d"], "renko"),
         ]
 
-    sig_select = ",\n            ".join([s for s in sig_defs if s is not None])
+    sig_select_parts = [s for s in sig_defs if s is not None]
+    sig_select = ",\n            ".join(sig_select_parts)
     if not sig_select:
         raise HTTPException(status_code=500, detail="❌ No signal columns found for the selected mode.")
 
@@ -236,7 +265,7 @@ async def signals_table(
         logger.exception("❌ max(date) failed")
         raise HTTPException(status_code=500, detail=f"DB error (max date): {e}")
 
-    # 9) SELECT base + date (casting to float8)
+    # 9) SELECT base + date (همه به float8 ایمن شده‌اند)
     base_select = f"""
         t.{symbol_col} AS symbol,
         COALESCE(t.{name_col}, t.{name_col}) AS security_name,
