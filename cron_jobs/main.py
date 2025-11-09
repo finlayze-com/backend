@@ -78,6 +78,7 @@ NIGHTLY_MODULES: List[Tuple[str, str]] = [
     ("run_saham",             "cron_jobs.daily.common.groups.run_saham"),
     ("update_daily_haghighi", "cron_jobs.daily.update_daily_haghighi"),
     ("run_saham_ind",         "cron_jobs.daily.common.groups.run_saham_ind"),
+    ("Safkharid", "cron_jobs.daily.Safkharid"),  # ← این خط جدید اضافه شد
 ]
 
 # Days of week: Sat..Wed  (Linux cron usually: 0/7=Sun, 6=Sat. APScheduler uses names)
