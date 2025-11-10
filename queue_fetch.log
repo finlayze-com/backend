@@ -12721,3 +12721,874 @@
 2025-11-10 07:15:26,531 - WARNING - سدبير (54135748720267868) - خطا: Empty staticThreshold
 2025-11-10 07:15:40,607 - WARNING - سليم (13281899956206287) - خطا: Empty staticThreshold
 2025-11-10 07:20:51,499 - INFO - 📊 تعداد رکوردهای صف‌دار برای ذخیره: 386
+2025-11-10 09:41:09,142 - INFO - ✅ اتصال به دیتابیس برقرار شد.
+2025-11-10 09:41:09,163 - INFO - 📅 Target Date → Gregorian=2025-11-09 | Jalali=1404-08-18 | Compact=20251109
+2025-11-10 09:41:09,181 - INFO - 🔍 تعداد نمادهای سهام: 959
+2025-11-10 09:41:11,370 - WARNING - 17617474823279712 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17617474823279712/20251109
+2025-11-10 09:41:11,450 - WARNING - 17617474823279712 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:12,206 - WARNING - 59612098290740355 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59612098290740355/20251109
+2025-11-10 09:41:12,285 - WARNING - 59612098290740355 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:12,860 - WARNING - 37661500521100963 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37661500521100963/20251109
+2025-11-10 09:41:12,948 - WARNING - 37661500521100963 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:13,779 - WARNING - 655060129740445 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/655060129740445/20251109
+2025-11-10 09:41:13,863 - WARNING - 655060129740445 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:16,216 - WARNING - 22811176775480091 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22811176775480091/20251109
+2025-11-10 09:41:16,312 - WARNING - 22811176775480091 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:17,928 - WARNING - 35331248532537562 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35331248532537562/20251109
+2025-11-10 09:41:18,009 - WARNING - 35331248532537562 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:18,881 - WARNING - 38738476064699383 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/38738476064699383/20251109
+2025-11-10 09:41:18,957 - WARNING - 38738476064699383 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:19,501 - WARNING - 55127657985997520 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55127657985997520/20251109
+2025-11-10 09:41:19,564 - WARNING - 55127657985997520 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:20,970 - WARNING - 51106317433079213 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/51106317433079213/20251109
+2025-11-10 09:41:21,026 - WARNING - 51106317433079213 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:21,424 - WARNING - 14079693677610396 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/14079693677610396/20251109
+2025-11-10 09:41:21,494 - WARNING - 14079693677610396 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:22,350 - WARNING - 52792903131341205 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/52792903131341205/20251109
+2025-11-10 09:41:22,427 - WARNING - 52792903131341205 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:23,174 - WARNING - 383529400851043 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/383529400851043/20251109
+2025-11-10 09:41:23,255 - WARNING - 383529400851043 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:24,698 - WARNING - 49641108336531623 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49641108336531623/20251109
+2025-11-10 09:41:24,769 - WARNING - 49641108336531623 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:25,649 - WARNING - 69847139870135237 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69847139870135237/20251109
+2025-11-10 09:41:25,712 - WARNING - 69847139870135237 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:26,214 - WARNING - 17933573078185644 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17933573078185644/20251109
+2025-11-10 09:41:26,299 - WARNING - 17933573078185644 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:26,618 - WARNING - 26882843763780650 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/26882843763780650/20251109
+2025-11-10 09:41:26,697 - WARNING - 26882843763780650 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:27,057 - WARNING - 47797676603278665 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47797676603278665/20251109
+2025-11-10 09:41:27,135 - WARNING - 47797676603278665 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:28,026 - WARNING - 23891830829322971 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23891830829322971/20251109
+2025-11-10 09:41:28,110 - WARNING - 23891830829322971 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:28,981 - WARNING - 51971068201094874 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/51971068201094874/20251109
+2025-11-10 09:41:29,079 - WARNING - 51971068201094874 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:29,549 - WARNING - 48517714910707769 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48517714910707769/20251109
+2025-11-10 09:41:29,618 - WARNING - 48517714910707769 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:30,649 - WARNING - 46752599569017089 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/46752599569017089/20251109
+2025-11-10 09:41:30,708 - WARNING - 46752599569017089 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:31,063 - WARNING - 54369290104873523 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/54369290104873523/20251109
+2025-11-10 09:41:31,125 - WARNING - 54369290104873523 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:31,743 - WARNING - 33629260529503413 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33629260529503413/20251109
+2025-11-10 09:41:31,815 - WARNING - 33629260529503413 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:33,037 - WARNING - 34557241988629814 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/34557241988629814/20251109
+2025-11-10 09:41:33,115 - WARNING - 34557241988629814 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:33,608 - WARNING - 29882244560576007 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29882244560576007/20251109
+2025-11-10 09:41:33,688 - WARNING - 29882244560576007 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:35,024 - WARNING - 69454539056549106 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69454539056549106/20251109
+2025-11-10 09:41:35,095 - WARNING - 69454539056549106 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:36,090 - WARNING - 70219663893822560 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/70219663893822560/20251109
+2025-11-10 09:41:36,148 - WARNING - 70219663893822560 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:36,465 - WARNING - 62107151670661969 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62107151670661969/20251109
+2025-11-10 09:41:36,532 - WARNING - 62107151670661969 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:37,547 - WARNING - 39807886630843041 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/39807886630843041/20251109
+2025-11-10 09:41:37,626 - WARNING - 39807886630843041 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:39,461 - WARNING - 20453828618330936 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20453828618330936/20251109
+2025-11-10 09:41:39,537 - WARNING - 20453828618330936 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:40,302 - WARNING - 60289595205403229 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60289595205403229/20251109
+2025-11-10 09:41:40,382 - WARNING - 60289595205403229 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:41,096 - WARNING - 50247622569476338 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50247622569476338/20251109
+2025-11-10 09:41:41,147 - WARNING - 50247622569476338 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:42,323 - WARNING - 6110133418282108 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/6110133418282108/20251109
+2025-11-10 09:41:42,379 - WARNING - 6110133418282108 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:43,033 - WARNING - 23441366113375722 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23441366113375722/20251109
+2025-11-10 09:41:43,105 - WARNING - 23441366113375722 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:43,944 - WARNING - 63580313877463104 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63580313877463104/20251109
+2025-11-10 09:41:44,020 - WARNING - 63580313877463104 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:45,046 - WARNING - 41935584690956944 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/41935584690956944/20251109
+2025-11-10 09:41:45,111 - WARNING - 41935584690956944 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:46,321 - WARNING - 12638840758449459 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/12638840758449459/20251109
+2025-11-10 09:41:46,388 - WARNING - 12638840758449459 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:47,085 - WARNING - 24079409192818584 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/24079409192818584/20251109
+2025-11-10 09:41:47,137 - WARNING - 24079409192818584 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:47,755 - WARNING - 59607545337891226 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59607545337891226/20251109
+2025-11-10 09:41:47,836 - WARNING - 59607545337891226 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:48,789 - WARNING - 15039949673085566 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/15039949673085566/20251109
+2025-11-10 09:41:48,863 - WARNING - 15039949673085566 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:50,235 - WARNING - 23214828924506640 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23214828924506640/20251109
+2025-11-10 09:41:50,312 - WARNING - 23214828924506640 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:50,894 - WARNING - 7235435095059069 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7235435095059069/20251109
+2025-11-10 09:41:50,968 - WARNING - 7235435095059069 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:51,581 - WARNING - 34552750623263639 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/34552750623263639/20251109
+2025-11-10 09:41:51,662 - WARNING - 34552750623263639 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:53,158 - WARNING - 32784604551756178 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/32784604551756178/20251109
+2025-11-10 09:41:53,238 - WARNING - 32784604551756178 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:54,048 - WARNING - 50002340308486819 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50002340308486819/20251109
+2025-11-10 09:41:54,130 - WARNING - 50002340308486819 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:54,759 - WARNING - 22560050433388046 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22560050433388046/20251109
+2025-11-10 09:41:54,835 - WARNING - 22560050433388046 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:55,584 - WARNING - 23293437377896568 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23293437377896568/20251109
+2025-11-10 09:41:55,670 - WARNING - 23293437377896568 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:56,586 - WARNING - 19298748452450329 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/19298748452450329/20251109
+2025-11-10 09:41:56,667 - WARNING - 19298748452450329 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:57,340 - WARNING - 53204330224889981 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/53204330224889981/20251109
+2025-11-10 09:41:57,414 - WARNING - 53204330224889981 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:58,256 - WARNING - 54509759694064219 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/54509759694064219/20251109
+2025-11-10 09:41:58,325 - WARNING - 54509759694064219 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:41:58,987 - WARNING - 22308305646551497 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22308305646551497/20251109
+2025-11-10 09:41:59,064 - WARNING - 22308305646551497 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:00,063 - WARNING - 31400839654504249 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/31400839654504249/20251109
+2025-11-10 09:42:00,127 - WARNING - 31400839654504249 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:00,415 - WARNING - 45062188442385800 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45062188442385800/20251109
+2025-11-10 09:42:00,502 - WARNING - 45062188442385800 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:01,465 - WARNING - 62258804563636993 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62258804563636993/20251109
+2025-11-10 09:42:01,539 - WARNING - 62258804563636993 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:03,383 - WARNING - 60162288821230099 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60162288821230099/20251109
+2025-11-10 09:42:03,459 - WARNING - 60162288821230099 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:03,987 - WARNING - 22427604495160869 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22427604495160869/20251109
+2025-11-10 09:42:04,043 - WARNING - 22427604495160869 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:05,128 - WARNING - 37389789764168256 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37389789764168256/20251109
+2025-11-10 09:42:05,215 - WARNING - 37389789764168256 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:06,823 - WARNING - 7503669593172728 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7503669593172728/20251109
+2025-11-10 09:42:06,901 - WARNING - 7503669593172728 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:07,448 - WARNING - 16693610252404739 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/16693610252404739/20251109
+2025-11-10 09:42:07,502 - WARNING - 16693610252404739 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:08,269 - WARNING - 66456062140680461 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66456062140680461/20251109
+2025-11-10 09:42:08,346 - WARNING - 66456062140680461 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:08,781 - WARNING - 18568733593280948 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/18568733593280948/20251109
+2025-11-10 09:42:08,883 - WARNING - 18568733593280948 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:09,480 - WARNING - 14744445176220774 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/14744445176220774/20251109
+2025-11-10 09:42:09,560 - WARNING - 14744445176220774 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:10,551 - WARNING - 20926459161497908 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20926459161497908/20251109
+2025-11-10 09:42:10,636 - WARNING - 20926459161497908 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:11,118 - WARNING - 47702059190622416 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47702059190622416/20251109
+2025-11-10 09:42:11,195 - WARNING - 47702059190622416 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:11,757 - WARNING - 30507152381699953 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/30507152381699953/20251109
+2025-11-10 09:42:11,840 - WARNING - 30507152381699953 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:12,405 - WARNING - 18883380772506226 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/18883380772506226/20251109
+2025-11-10 09:42:12,459 - WARNING - 18883380772506226 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:13,344 - WARNING - 63481599728522324 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63481599728522324/20251109
+2025-11-10 09:42:13,388 - WARNING - 63481599728522324 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:14,755 - WARNING - 17939384202383793 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17939384202383793/20251109
+2025-11-10 09:42:14,815 - WARNING - 17939384202383793 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:15,350 - WARNING - 12965822877128721 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/12965822877128721/20251109
+2025-11-10 09:42:15,430 - WARNING - 12965822877128721 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:16,310 - WARNING - 3863538898378476 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/3863538898378476/20251109
+2025-11-10 09:42:16,391 - WARNING - 3863538898378476 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:17,527 - WARNING - 63315013743060811 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63315013743060811/20251109
+2025-11-10 09:42:17,583 - WARNING - 63315013743060811 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:18,531 - WARNING - 32845891587040106 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/32845891587040106/20251109
+2025-11-10 09:42:18,616 - WARNING - 32845891587040106 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:19,868 - WARNING - 23269285154135003 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23269285154135003/20251109
+2025-11-10 09:42:19,938 - WARNING - 23269285154135003 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:20,554 - WARNING - 41122066907413786 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/41122066907413786/20251109
+2025-11-10 09:42:20,636 - WARNING - 41122066907413786 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:21,128 - WARNING - 12329519546621752 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/12329519546621752/20251109
+2025-11-10 09:42:21,210 - WARNING - 12329519546621752 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:22,038 - WARNING - 28957320033282870 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28957320033282870/20251109
+2025-11-10 09:42:22,091 - WARNING - 28957320033282870 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:23,626 - WARNING - 56798822689379375 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56798822689379375/20251109
+2025-11-10 09:42:23,689 - WARNING - 56798822689379375 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:24,597 - WARNING - 63704201144621295 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63704201144621295/20251109
+2025-11-10 09:42:24,671 - WARNING - 63704201144621295 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:25,155 - WARNING - 917857106093847 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/917857106093847/20251109
+2025-11-10 09:42:25,235 - WARNING - 917857106093847 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:25,768 - WARNING - 4885314541377431 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4885314541377431/20251109
+2025-11-10 09:42:25,844 - WARNING - 4885314541377431 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:26,689 - WARNING - 3722699128879020 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/3722699128879020/20251109
+2025-11-10 09:42:26,784 - WARNING - 3722699128879020 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:27,699 - WARNING - 22260326095996531 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22260326095996531/20251109
+2025-11-10 09:42:27,785 - WARNING - 22260326095996531 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:28,346 - WARNING - 28253678449273505 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28253678449273505/20251109
+2025-11-10 09:42:28,417 - WARNING - 28253678449273505 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:29,730 - WARNING - 13281937213456378 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/13281937213456378/20251109
+2025-11-10 09:42:29,811 - WARNING - 13281937213456378 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:30,117 - WARNING - 1625149423498289 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/1625149423498289/20251109
+2025-11-10 09:42:30,198 - WARNING - 1625149423498289 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:30,564 - WARNING - 50587892784913370 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50587892784913370/20251109
+2025-11-10 09:42:30,650 - WARNING - 50587892784913370 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:31,238 - WARNING - 35424116338766901 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35424116338766901/20251109
+2025-11-10 09:42:31,322 - WARNING - 35424116338766901 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:32,026 - WARNING - 28809886765682162 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28809886765682162/20251109
+2025-11-10 09:42:32,114 - WARNING - 28809886765682162 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:32,807 - WARNING - 60610861509165508 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60610861509165508/20251109
+2025-11-10 09:42:32,880 - WARNING - 60610861509165508 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:33,262 - WARNING - 53334304751609770 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/53334304751609770/20251109
+2025-11-10 09:42:33,344 - WARNING - 53334304751609770 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:33,726 - WARNING - 47756003257788498 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47756003257788498/20251109
+2025-11-10 09:42:33,810 - WARNING - 47756003257788498 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:34,720 - WARNING - 42075223783409640 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/42075223783409640/20251109
+2025-11-10 09:42:34,805 - WARNING - 42075223783409640 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:35,566 - WARNING - 49270349234092953 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49270349234092953/20251109
+2025-11-10 09:42:35,637 - WARNING - 49270349234092953 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:36,114 - WARNING - 25079426576214829 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25079426576214829/20251109
+2025-11-10 09:42:36,200 - WARNING - 25079426576214829 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:36,613 - WARNING - 37089148943784077 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37089148943784077/20251109
+2025-11-10 09:42:36,690 - WARNING - 37089148943784077 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:37,644 - WARNING - 26824673819862694 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/26824673819862694/20251109
+2025-11-10 09:42:37,727 - WARNING - 26824673819862694 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:38,964 - WARNING - 22903901709044823 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22903901709044823/20251109
+2025-11-10 09:42:39,032 - WARNING - 22903901709044823 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:39,698 - WARNING - 50185721305191887 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50185721305191887/20251109
+2025-11-10 09:42:39,764 - WARNING - 50185721305191887 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:40,658 - WARNING - 70289374539527245 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/70289374539527245/20251109
+2025-11-10 09:42:40,740 - WARNING - 70289374539527245 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:41,419 - WARNING - 33783140337377394 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33783140337377394/20251109
+2025-11-10 09:42:41,501 - WARNING - 33783140337377394 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:42,937 - WARNING - 12752224677923341 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/12752224677923341/20251109
+2025-11-10 09:42:42,993 - WARNING - 12752224677923341 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:43,834 - WARNING - 45895339414786358 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45895339414786358/20251109
+2025-11-10 09:42:43,890 - WARNING - 45895339414786358 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:44,818 - WARNING - 2589887561569709 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2589887561569709/20251109
+2025-11-10 09:42:44,895 - WARNING - 2589887561569709 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:45,561 - WARNING - 32821908911812078 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/32821908911812078/20251109
+2025-11-10 09:42:45,619 - WARNING - 32821908911812078 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:46,670 - WARNING - 44891482026867833 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/44891482026867833/20251109
+2025-11-10 09:42:46,755 - WARNING - 44891482026867833 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:47,602 - WARNING - 63915926161403347 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63915926161403347/20251109
+2025-11-10 09:42:47,662 - WARNING - 63915926161403347 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:48,276 - WARNING - 2318736941376687 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2318736941376687/20251109
+2025-11-10 09:42:48,354 - WARNING - 2318736941376687 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:49,494 - WARNING - 6433335428452486 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/6433335428452486/20251109
+2025-11-10 09:42:49,587 - WARNING - 6433335428452486 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:50,672 - WARNING - 28033133021443774 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28033133021443774/20251109
+2025-11-10 09:42:50,749 - WARNING - 28033133021443774 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:51,152 - WARNING - 23049019886587905 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23049019886587905/20251109
+2025-11-10 09:42:51,226 - WARNING - 23049019886587905 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:52,028 - WARNING - 59217041815333317 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59217041815333317/20251109
+2025-11-10 09:42:52,113 - WARNING - 59217041815333317 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:52,682 - WARNING - 64842837716888827 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/64842837716888827/20251109
+2025-11-10 09:42:52,743 - WARNING - 64842837716888827 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:53,920 - WARNING - 19257295292088310 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/19257295292088310/20251109
+2025-11-10 09:42:53,996 - WARNING - 19257295292088310 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:54,671 - WARNING - 48990026850202503 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48990026850202503/20251109
+2025-11-10 09:42:54,747 - WARNING - 48990026850202503 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:55,400 - WARNING - 14957056743925737 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/14957056743925737/20251109
+2025-11-10 09:42:55,464 - WARNING - 14957056743925737 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:55,807 - WARNING - 50117925085549635 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50117925085549635/20251109
+2025-11-10 09:42:55,855 - WARNING - 50117925085549635 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:56,756 - WARNING - 39436183727126211 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/39436183727126211/20251109
+2025-11-10 09:42:56,810 - WARNING - 39436183727126211 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:57,795 - WARNING - 17330546482145553 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17330546482145553/20251109
+2025-11-10 09:42:57,856 - WARNING - 17330546482145553 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:58,710 - WARNING - 17834623106317041 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17834623106317041/20251109
+2025-11-10 09:42:58,790 - WARNING - 17834623106317041 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:42:59,125 - WARNING - 33716211077781594 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33716211077781594/20251109
+2025-11-10 09:42:59,174 - WARNING - 33716211077781594 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:00,265 - WARNING - 65883838195688438 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/65883838195688438/20251109
+2025-11-10 09:43:00,346 - WARNING - 65883838195688438 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:01,031 - WARNING - 22645269567765904 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22645269567765904/20251109
+2025-11-10 09:43:01,104 - WARNING - 22645269567765904 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:01,804 - WARNING - 61332057061846617 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/61332057061846617/20251109
+2025-11-10 09:43:01,882 - WARNING - 61332057061846617 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:02,151 - WARNING - 68863997659126807 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/68863997659126807/20251109
+2025-11-10 09:43:02,224 - WARNING - 68863997659126807 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:02,278 - WARNING - داراب (27299841173245405) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/27299841173245405/20251109
+2025-11-10 09:43:02,358 - WARNING - دارو (67988012428906654) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/67988012428906654/20251109
+2025-11-10 09:43:02,435 - WARNING - داسوه (12387472624849835) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/12387472624849835/20251109
+2025-11-10 09:43:02,517 - WARNING - دالبر (60451823714332895) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/60451823714332895/20251109
+2025-11-10 09:43:02,601 - WARNING - دامين (50100062518826135) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/50100062518826135/20251109
+2025-11-10 09:43:02,670 - WARNING - دانا (48511238766369097) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/48511238766369097/20251109
+2025-11-10 09:43:02,719 - WARNING - داوه (5305844922895340) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/5305844922895340/20251109
+2025-11-10 09:43:02,794 - WARNING - دبالك (71510396252618330) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/71510396252618330/20251109
+2025-11-10 09:43:02,872 - WARNING - دپارس (70474983732269112) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/70474983732269112/20251109
+2025-11-10 09:43:02,955 - WARNING - دتماد (34641719089573667) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/34641719089573667/20251109
+2025-11-10 09:43:03,003 - WARNING - دتهران (26114418513020265) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/26114418513020265/20251109
+2025-11-10 09:43:03,062 - WARNING - دتهران‌ (14985138705106402) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/14985138705106402/20251109
+2025-11-10 09:43:03,120 - WARNING - دتوزيع (66726992874614788) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/66726992874614788/20251109
+2025-11-10 09:43:03,177 - WARNING - دتوليد (18093681647131179) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/18093681647131179/20251109
+2025-11-10 09:43:03,227 - WARNING - دجابر (33406621820337161) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33406621820337161/20251109
+2025-11-10 09:43:03,690 - WARNING - 43374709930371268 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43374709930371268/20251109
+2025-11-10 09:43:03,755 - WARNING - 43374709930371268 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:05,034 - WARNING - 69540585676934415 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69540585676934415/20251109
+2025-11-10 09:43:05,111 - WARNING - 69540585676934415 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:05,735 - WARNING - 16567465928886309 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/16567465928886309/20251109
+2025-11-10 09:43:05,810 - WARNING - 16567465928886309 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:06,289 - WARNING - 13243992182070788 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/13243992182070788/20251109
+2025-11-10 09:43:06,376 - WARNING - 13243992182070788 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:06,860 - WARNING - 43450146028916610 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43450146028916610/20251109
+2025-11-10 09:43:06,945 - WARNING - 43450146028916610 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:07,727 - WARNING - 8915450910866216 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/8915450910866216/20251109
+2025-11-10 09:43:07,801 - WARNING - 8915450910866216 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:08,914 - WARNING - 43622578471330344 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43622578471330344/20251109
+2025-11-10 09:43:09,008 - WARNING - 43622578471330344 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:09,583 - WARNING - 5866848234665627 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/5866848234665627/20251109
+2025-11-10 09:43:09,661 - WARNING - 5866848234665627 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:11,353 - WARNING - 49054891736433700 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49054891736433700/20251109
+2025-11-10 09:43:11,424 - WARNING - 49054891736433700 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:12,201 - WARNING - 56550776668133562 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56550776668133562/20251109
+2025-11-10 09:43:12,271 - WARNING - 56550776668133562 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:13,706 - WARNING - 52382684379473036 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/52382684379473036/20251109
+2025-11-10 09:43:13,783 - WARNING - 52382684379473036 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:14,670 - WARNING - 23353689102956991 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23353689102956991/20251109
+2025-11-10 09:43:14,754 - WARNING - 23353689102956991 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:16,024 - WARNING - 29247915161590165 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29247915161590165/20251109
+2025-11-10 09:43:16,103 - WARNING - 29247915161590165 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:16,848 - WARNING - 66142616039907394 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66142616039907394/20251109
+2025-11-10 09:43:16,909 - WARNING - 66142616039907394 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:17,892 - WARNING - 69090868458637360 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69090868458637360/20251109
+2025-11-10 09:43:17,949 - WARNING - 69090868458637360 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:18,562 - WARNING - 71483646978964608 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/71483646978964608/20251109
+2025-11-10 09:43:18,639 - WARNING - 71483646978964608 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:19,890 - WARNING - 49854144784855542 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49854144784855542/20251109
+2025-11-10 09:43:19,969 - WARNING - 49854144784855542 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:20,776 - WARNING - 27952969918967492 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/27952969918967492/20251109
+2025-11-10 09:43:20,860 - WARNING - 27952969918967492 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:21,794 - WARNING - 6478064539164167 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/6478064539164167/20251109
+2025-11-10 09:43:21,888 - WARNING - 6478064539164167 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:22,616 - WARNING - 13235547361447092 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/13235547361447092/20251109
+2025-11-10 09:43:22,700 - WARNING - 13235547361447092 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:23,113 - WARNING - 54482686501491508 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/54482686501491508/20251109
+2025-11-10 09:43:23,179 - WARNING - 54482686501491508 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:23,610 - WARNING - 33420285433308219 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33420285433308219/20251109
+2025-11-10 09:43:23,669 - WARNING - 33420285433308219 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:24,278 - WARNING - 26547785441834730 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/26547785441834730/20251109
+2025-11-10 09:43:24,355 - WARNING - 26547785441834730 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:25,946 - WARNING - 42599305106713939 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/42599305106713939/20251109
+2025-11-10 09:43:26,009 - WARNING - 42599305106713939 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:26,696 - WARNING - 4507558419857064 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4507558419857064/20251109
+2025-11-10 09:43:26,771 - WARNING - 4507558419857064 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:27,632 - WARNING - زنگان (13151967913317961) - خطا: Empty staticThreshold
+2025-11-10 09:43:31,217 - WARNING - 64298008532791199 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/64298008532791199/20251109
+2025-11-10 09:43:31,292 - WARNING - 64298008532791199 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:33,485 - WARNING - 35669480110084448 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35669480110084448/20251109
+2025-11-10 09:43:33,564 - WARNING - 35669480110084448 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:34,487 - WARNING - 29590002988360984 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29590002988360984/20251109
+2025-11-10 09:43:34,565 - WARNING - 29590002988360984 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:35,280 - WARNING - 28328083629154916 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28328083629154916/20251109
+2025-11-10 09:43:35,338 - WARNING - 28328083629154916 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:36,278 - WARNING - 67327029014085707 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/67327029014085707/20251109
+2025-11-10 09:43:36,363 - WARNING - 67327029014085707 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:36,942 - WARNING - 55959112038778737 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55959112038778737/20251109
+2025-11-10 09:43:37,012 - WARNING - 55959112038778737 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:37,323 - WARNING - سدبير (54135748720267868) - خطا: Empty staticThreshold
+2025-11-10 09:43:37,918 - WARNING - 64341992373049080 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/64341992373049080/20251109
+2025-11-10 09:43:37,996 - WARNING - 64341992373049080 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:39,629 - WARNING - 11964419322927535 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/11964419322927535/20251109
+2025-11-10 09:43:39,708 - WARNING - 11964419322927535 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:40,676 - WARNING - 10568944722570445 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/10568944722570445/20251109
+2025-11-10 09:43:40,750 - WARNING - 10568944722570445 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:41,521 - WARNING - 13227300125161435 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/13227300125161435/20251109
+2025-11-10 09:43:41,578 - WARNING - 13227300125161435 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:42,692 - WARNING - 52220424531578944 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/52220424531578944/20251109
+2025-11-10 09:43:42,764 - WARNING - 52220424531578944 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:43,900 - WARNING - 15521712617204216 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/15521712617204216/20251109
+2025-11-10 09:43:43,992 - WARNING - 15521712617204216 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:45,414 - WARNING - 60654872678917533 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60654872678917533/20251109
+2025-11-10 09:43:45,509 - WARNING - 60654872678917533 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:45,947 - WARNING - 15930821245168534 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/15930821245168534/20251109
+2025-11-10 09:43:46,031 - WARNING - 15930821245168534 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:47,079 - WARNING - 65321970913593427 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/65321970913593427/20251109
+2025-11-10 09:43:47,150 - WARNING - 65321970913593427 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:47,772 - WARNING - 61664227282090067 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/61664227282090067/20251109
+2025-11-10 09:43:47,845 - WARNING - 61664227282090067 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:47,907 - WARNING - سليم (13281899956206287) - خطا: Empty staticThreshold
+2025-11-10 09:43:48,450 - WARNING - 51390991364277477 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/51390991364277477/20251109
+2025-11-10 09:43:48,527 - WARNING - 51390991364277477 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:49,155 - WARNING - 33808206014018431 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33808206014018431/20251109
+2025-11-10 09:43:49,217 - WARNING - 33808206014018431 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:49,705 - WARNING - 43913530989262989 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43913530989262989/20251109
+2025-11-10 09:43:49,726 - WARNING - 43913530989262989 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:50,433 - WARNING - 46741025610365786 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/46741025610365786/20251109
+2025-11-10 09:43:50,540 - WARNING - 46741025610365786 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:51,078 - WARNING - 36995197800118822 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/36995197800118822/20251109
+2025-11-10 09:43:51,191 - WARNING - 36995197800118822 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:53,666 - WARNING - 47749661205825616 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47749661205825616/20251109
+2025-11-10 09:43:53,700 - WARNING - 47749661205825616 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:54,571 - WARNING - 14617104402836487 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/14617104402836487/20251109
+2025-11-10 09:43:54,616 - WARNING - 14617104402836487 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:55,915 - WARNING - 7711282667602555 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7711282667602555/20251109
+2025-11-10 09:43:55,938 - WARNING - 7711282667602555 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:56,270 - WARNING - 3407806799514469 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/3407806799514469/20251109
+2025-11-10 09:43:56,292 - WARNING - 3407806799514469 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:56,946 - WARNING - 60247433951600827 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60247433951600827/20251109
+2025-11-10 09:43:56,993 - WARNING - 60247433951600827 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:57,697 - WARNING - 68517032834363488 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/68517032834363488/20251109
+2025-11-10 09:43:57,748 - WARNING - 68517032834363488 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:43:59,828 - WARNING - 20562694899904339 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20562694899904339/20251109
+2025-11-10 09:43:59,844 - WARNING - 20562694899904339 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:00,189 - WARNING - 28845264556937486 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28845264556937486/20251109
+2025-11-10 09:44:00,207 - WARNING - 28845264556937486 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:00,609 - WARNING - 7745894403636165 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7745894403636165/20251109
+2025-11-10 09:44:00,657 - WARNING - 7745894403636165 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:01,348 - WARNING - 51617145873056483 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/51617145873056483/20251109
+2025-11-10 09:44:01,370 - WARNING - 51617145873056483 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:02,212 - WARNING - 66210395067138534 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66210395067138534/20251109
+2025-11-10 09:44:02,275 - WARNING - 66210395067138534 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:03,739 - WARNING - 6116572045021585 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/6116572045021585/20251109
+2025-11-10 09:44:03,854 - WARNING - 6116572045021585 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:05,085 - WARNING - 44013656953678055 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/44013656953678055/20251109
+2025-11-10 09:44:05,147 - WARNING - 44013656953678055 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:05,695 - WARNING - 57157873359416943 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57157873359416943/20251109
+2025-11-10 09:44:05,730 - WARNING - 57157873359416943 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:06,628 - WARNING - 49188729526980541 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49188729526980541/20251109
+2025-11-10 09:44:06,672 - WARNING - 49188729526980541 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:07,210 - WARNING - 2400322364771558 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2400322364771558/20251109
+2025-11-10 09:44:07,259 - WARNING - 2400322364771558 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:08,575 - WARNING - 18346219759153870 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/18346219759153870/20251109
+2025-11-10 09:44:08,626 - WARNING - 18346219759153870 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:09,152 - WARNING - 21772258644715569 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/21772258644715569/20251109
+2025-11-10 09:44:09,220 - WARNING - 21772258644715569 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:10,290 - WARNING - 43781018754867729 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43781018754867729/20251109
+2025-11-10 09:44:10,308 - WARNING - 43781018754867729 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:10,495 - WARNING - 11427387039523955 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/11427387039523955/20251109
+2025-11-10 09:44:10,544 - WARNING - 11427387039523955 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:10,975 - WARNING - 69446612239102459 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69446612239102459/20251109
+2025-11-10 09:44:11,006 - WARNING - 69446612239102459 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:11,490 - WARNING - 56574323121551263 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56574323121551263/20251109
+2025-11-10 09:44:11,541 - WARNING - 56574323121551263 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:12,324 - WARNING - 27308217070238237 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/27308217070238237/20251109
+2025-11-10 09:44:12,364 - WARNING - 27308217070238237 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:13,206 - WARNING - 62177651435283872 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62177651435283872/20251109
+2025-11-10 09:44:13,266 - WARNING - 62177651435283872 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:14,317 - WARNING - 44153164692325703 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/44153164692325703/20251109
+2025-11-10 09:44:14,345 - WARNING - 44153164692325703 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:15,036 - WARNING - 56429431740318486 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56429431740318486/20251109
+2025-11-10 09:44:15,075 - WARNING - 56429431740318486 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:15,778 - WARNING - 39116664428676213 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/39116664428676213/20251109
+2025-11-10 09:44:15,825 - WARNING - 39116664428676213 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:16,724 - WARNING - 55862580907068610 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55862580907068610/20251109
+2025-11-10 09:44:16,757 - WARNING - 55862580907068610 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:18,122 - WARNING - 38568786927478796 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/38568786927478796/20251109
+2025-11-10 09:44:18,159 - WARNING - 38568786927478796 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:18,811 - WARNING - 35796086458096255 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35796086458096255/20251109
+2025-11-10 09:44:18,867 - WARNING - 35796086458096255 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:19,078 - WARNING - 33938004134399485 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33938004134399485/20251109
+2025-11-10 09:44:19,120 - WARNING - 33938004134399485 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:19,639 - WARNING - 34213522001938649 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/34213522001938649/20251109
+2025-11-10 09:44:19,691 - WARNING - 34213522001938649 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:20,731 - WARNING - 71666521540545716 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/71666521540545716/20251109
+2025-11-10 09:44:20,788 - WARNING - 71666521540545716 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:22,135 - WARNING - 34032872653290886 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/34032872653290886/20251109
+2025-11-10 09:44:22,158 - WARNING - 34032872653290886 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:22,669 - WARNING - 61978776664766359 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/61978776664766359/20251109
+2025-11-10 09:44:22,739 - WARNING - 61978776664766359 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:23,389 - WARNING - 18401147983387689 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/18401147983387689/20251109
+2025-11-10 09:44:23,453 - WARNING - 18401147983387689 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:23,930 - WARNING - 44850033148208596 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/44850033148208596/20251109
+2025-11-10 09:44:23,990 - WARNING - 44850033148208596 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:24,452 - WARNING - 2254054929817435 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2254054929817435/20251109
+2025-11-10 09:44:24,513 - WARNING - 2254054929817435 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:24,775 - WARNING - 8234855558996646 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/8234855558996646/20251109
+2025-11-10 09:44:24,831 - WARNING - 8234855558996646 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:25,382 - WARNING - 2434703913394836 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2434703913394836/20251109
+2025-11-10 09:44:25,420 - WARNING - 2434703913394836 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:25,916 - WARNING - 4369934250728330 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4369934250728330/20251109
+2025-11-10 09:44:25,965 - WARNING - 4369934250728330 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:27,130 - WARNING - 20487994977117557 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20487994977117557/20251109
+2025-11-10 09:44:27,193 - WARNING - 20487994977117557 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:28,626 - WARNING - 16410724132711490 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/16410724132711490/20251109
+2025-11-10 09:44:28,655 - WARNING - 16410724132711490 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:29,085 - WARNING - 62404730109947970 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62404730109947970/20251109
+2025-11-10 09:44:29,147 - WARNING - 62404730109947970 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:29,547 - WARNING - 57551382352708199 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57551382352708199/20251109
+2025-11-10 09:44:29,586 - WARNING - 57551382352708199 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:30,324 - WARNING - 64843936383937546 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/64843936383937546/20251109
+2025-11-10 09:44:30,373 - WARNING - 64843936383937546 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:30,771 - WARNING - 57300230097485720 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57300230097485720/20251109
+2025-11-10 09:44:30,795 - WARNING - 57300230097485720 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:32,453 - WARNING - 42470251469508137 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/42470251469508137/20251109
+2025-11-10 09:44:32,507 - WARNING - 42470251469508137 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:33,029 - WARNING - 48619517949257749 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48619517949257749/20251109
+2025-11-10 09:44:33,089 - WARNING - 48619517949257749 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:33,392 - WARNING - 21426277483799140 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/21426277483799140/20251109
+2025-11-10 09:44:33,452 - WARNING - 21426277483799140 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:34,262 - WARNING - 37842793167868642 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37842793167868642/20251109
+2025-11-10 09:44:34,334 - WARNING - 37842793167868642 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:35,477 - WARNING - 38547060135156069 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/38547060135156069/20251109
+2025-11-10 09:44:35,523 - WARNING - 38547060135156069 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:36,191 - WARNING - 20865316761157979 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20865316761157979/20251109
+2025-11-10 09:44:36,244 - WARNING - 20865316761157979 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:36,764 - WARNING - 25244329144808274 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25244329144808274/20251109
+2025-11-10 09:44:36,804 - WARNING - 25244329144808274 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:37,478 - WARNING - 66701874099226162 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66701874099226162/20251109
+2025-11-10 09:44:37,502 - WARNING - 66701874099226162 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:39,449 - WARNING - 66772024744156373 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66772024744156373/20251109
+2025-11-10 09:44:39,522 - WARNING - 66772024744156373 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:39,836 - WARNING - 4159532151694984 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4159532151694984/20251109
+2025-11-10 09:44:39,871 - WARNING - 4159532151694984 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:40,649 - WARNING - 49399017998386087 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49399017998386087/20251109
+2025-11-10 09:44:40,693 - WARNING - 49399017998386087 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:41,133 - WARNING - 55373808401388162 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55373808401388162/20251109
+2025-11-10 09:44:41,208 - WARNING - 55373808401388162 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:41,966 - WARNING - 41302553376174581 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/41302553376174581/20251109
+2025-11-10 09:44:42,004 - WARNING - 41302553376174581 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:42,294 - WARNING - 45507655586782998 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45507655586782998/20251109
+2025-11-10 09:44:42,341 - WARNING - 45507655586782998 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:43,266 - WARNING - 4733285133017464 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4733285133017464/20251109
+2025-11-10 09:44:43,316 - WARNING - 4733285133017464 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:44,038 - WARNING - 28864540805361867 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28864540805361867/20251109
+2025-11-10 09:44:44,082 - WARNING - 28864540805361867 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:44,591 - WARNING - 58741071099161284 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/58741071099161284/20251109
+2025-11-10 09:44:44,642 - WARNING - 58741071099161284 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:45,897 - WARNING - 29974853866926823 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29974853866926823/20251109
+2025-11-10 09:44:45,947 - WARNING - 29974853866926823 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:46,970 - WARNING - 43716452378323683 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43716452378323683/20251109
+2025-11-10 09:44:47,027 - WARNING - 43716452378323683 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:47,505 - WARNING - 12874072841236826 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/12874072841236826/20251109
+2025-11-10 09:44:47,560 - WARNING - 12874072841236826 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:47,907 - WARNING - 37284308569715577 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37284308569715577/20251109
+2025-11-10 09:44:47,963 - WARNING - 37284308569715577 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:48,524 - WARNING - 8977441217024425 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/8977441217024425/20251109
+2025-11-10 09:44:48,579 - WARNING - 8977441217024425 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:50,141 - WARNING - 54277068923045214 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/54277068923045214/20251109
+2025-11-10 09:44:50,212 - WARNING - 54277068923045214 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:50,485 - WARNING - 56375665074210467 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56375665074210467/20251109
+2025-11-10 09:44:50,516 - WARNING - 56375665074210467 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:50,792 - WARNING - 23557166059925779 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23557166059925779/20251109
+2025-11-10 09:44:50,850 - WARNING - 23557166059925779 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:51,286 - WARNING - 70309338813767186 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/70309338813767186/20251109
+2025-11-10 09:44:51,341 - WARNING - 70309338813767186 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:51,727 - WARNING - 8725363201030474 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/8725363201030474/20251109
+2025-11-10 09:44:51,791 - WARNING - 8725363201030474 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:52,786 - WARNING - 48623320733330408 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48623320733330408/20251109
+2025-11-10 09:44:52,839 - WARNING - 48623320733330408 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:53,802 - WARNING - 35425587644337450 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35425587644337450/20251109
+2025-11-10 09:44:53,854 - WARNING - 35425587644337450 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:54,127 - WARNING - 69171897374421261 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69171897374421261/20251109
+2025-11-10 09:44:54,179 - WARNING - 69171897374421261 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:55,479 - WARNING - 27276541005386425 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/27276541005386425/20251109
+2025-11-10 09:44:55,523 - WARNING - 27276541005386425 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:56,829 - WARNING - 57875847776839336 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57875847776839336/20251109
+2025-11-10 09:44:56,893 - WARNING - 57875847776839336 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:57,660 - WARNING - 66514709341259550 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/66514709341259550/20251109
+2025-11-10 09:44:57,736 - WARNING - 66514709341259550 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:58,000 - WARNING - 46348559193224090 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/46348559193224090/20251109
+2025-11-10 09:44:58,056 - WARNING - 46348559193224090 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:58,609 - WARNING - 10831074117626896 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/10831074117626896/20251109
+2025-11-10 09:44:58,656 - WARNING - 10831074117626896 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:44:59,102 - WARNING - 34540569618314880 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/34540569618314880/20251109
+2025-11-10 09:44:59,136 - WARNING - 34540569618314880 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:00,243 - WARNING - 44967158778304588 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/44967158778304588/20251109
+2025-11-10 09:45:00,311 - WARNING - 44967158778304588 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:00,731 - WARNING - 28230238564334914 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28230238564334914/20251109
+2025-11-10 09:45:00,782 - WARNING - 28230238564334914 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:01,540 - WARNING - 23600798892801694 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23600798892801694/20251109
+2025-11-10 09:45:01,571 - WARNING - 23600798892801694 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:02,927 - WARNING - 35964395659427029 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35964395659427029/20251109
+2025-11-10 09:45:02,976 - WARNING - 35964395659427029 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:04,087 - WARNING - 71523986304961239 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/71523986304961239/20251109
+2025-11-10 09:45:04,126 - WARNING - 71523986304961239 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:05,262 - WARNING - 3050342257199174 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/3050342257199174/20251109
+2025-11-10 09:45:05,292 - WARNING - 3050342257199174 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:06,134 - WARNING - 63380098535169030 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63380098535169030/20251109
+2025-11-10 09:45:06,182 - WARNING - 63380098535169030 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:06,647 - WARNING - 4267564158935326 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4267564158935326/20251109
+2025-11-10 09:45:06,697 - WARNING - 4267564158935326 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:07,416 - WARNING - 69904617508102874 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/69904617508102874/20251109
+2025-11-10 09:45:07,441 - WARNING - 69904617508102874 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:09,017 - WARNING - 28431095903407567 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28431095903407567/20251109
+2025-11-10 09:45:09,057 - WARNING - 28431095903407567 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:10,001 - WARNING - 4942127026063388 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4942127026063388/20251109
+2025-11-10 09:45:10,051 - WARNING - 4942127026063388 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:10,589 - WARNING - 60350996279289099 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60350996279289099/20251109
+2025-11-10 09:45:10,616 - WARNING - 60350996279289099 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:11,346 - WARNING - 58810336532668771 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/58810336532668771/20251109
+2025-11-10 09:45:11,397 - WARNING - 58810336532668771 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:11,752 - WARNING - 55979741213594029 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55979741213594029/20251109
+2025-11-10 09:45:11,793 - WARNING - 55979741213594029 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:12,383 - WARNING - 43256212620530446 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43256212620530446/20251109
+2025-11-10 09:45:12,443 - WARNING - 43256212620530446 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:13,086 - WARNING - 22941065011246116 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22941065011246116/20251109
+2025-11-10 09:45:13,135 - WARNING - 22941065011246116 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:13,966 - WARNING - 24085906177899789 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/24085906177899789/20251109
+2025-11-10 09:45:14,008 - WARNING - 24085906177899789 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:14,642 - WARNING - 65671173927025645 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/65671173927025645/20251109
+2025-11-10 09:45:14,781 - WARNING - 65671173927025645 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:15,575 - WARNING - 18027801615184692 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/18027801615184692/20251109
+2025-11-10 09:45:15,617 - WARNING - 18027801615184692 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:16,406 - WARNING - 57086055330734195 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57086055330734195/20251109
+2025-11-10 09:45:16,483 - WARNING - 57086055330734195 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:16,907 - WARNING - 11326461864120062 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/11326461864120062/20251109
+2025-11-10 09:45:16,932 - WARNING - 11326461864120062 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:17,558 - WARNING - 38437201078089290 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/38437201078089290/20251109
+2025-11-10 09:45:17,578 - WARNING - 38437201078089290 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:18,165 - WARNING - 50792786683910016 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50792786683910016/20251109
+2025-11-10 09:45:18,213 - WARNING - 50792786683910016 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:18,473 - WARNING - 49632601495766480 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49632601495766480/20251109
+2025-11-10 09:45:18,523 - WARNING - 49632601495766480 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:19,569 - WARNING - 28325731560106431 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28325731560106431/20251109
+2025-11-10 09:45:19,609 - WARNING - 28325731560106431 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:20,237 - WARNING - 25001509088465005 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25001509088465005/20251109
+2025-11-10 09:45:20,302 - WARNING - 25001509088465005 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:20,876 - WARNING - 4614779520007780 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4614779520007780/20251109
+2025-11-10 09:45:20,898 - WARNING - 4614779520007780 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:21,516 - WARNING - 20560887114747719 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20560887114747719/20251109
+2025-11-10 09:45:21,548 - WARNING - 20560887114747719 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:22,881 - WARNING - 29122854902865456 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29122854902865456/20251109
+2025-11-10 09:45:22,948 - WARNING - 29122854902865456 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:24,082 - WARNING - 23837844039713715 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23837844039713715/20251109
+2025-11-10 09:45:24,118 - WARNING - 23837844039713715 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:24,837 - WARNING - 63499217872110599 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63499217872110599/20251109
+2025-11-10 09:45:24,889 - WARNING - 63499217872110599 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:26,054 - WARNING - 32678431934327184 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/32678431934327184/20251109
+2025-11-10 09:45:26,083 - WARNING - 32678431934327184 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:26,616 - WARNING - 67690708346979840 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/67690708346979840/20251109
+2025-11-10 09:45:26,650 - WARNING - 67690708346979840 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:28,012 - WARNING - 25631699615003698 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25631699615003698/20251109
+2025-11-10 09:45:28,094 - WARNING - 25631699615003698 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:28,762 - WARNING - 67206358287598044 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/67206358287598044/20251109
+2025-11-10 09:45:28,827 - WARNING - 67206358287598044 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:29,337 - WARNING - 42049553761321495 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/42049553761321495/20251109
+2025-11-10 09:45:29,391 - WARNING - 42049553761321495 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:29,954 - WARNING - 43545527030854340 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43545527030854340/20251109
+2025-11-10 09:45:30,049 - WARNING - 43545527030854340 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:30,605 - WARNING - 62977319271289925 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62977319271289925/20251109
+2025-11-10 09:45:30,653 - WARNING - 62977319271289925 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:30,980 - WARNING - 45353845483523901 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45353845483523901/20251109
+2025-11-10 09:45:31,036 - WARNING - 45353845483523901 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:32,415 - WARNING - 10114441830266109 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/10114441830266109/20251109
+2025-11-10 09:45:32,441 - WARNING - 10114441830266109 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:32,753 - WARNING - 70391097626818082 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/70391097626818082/20251109
+2025-11-10 09:45:32,813 - WARNING - 70391097626818082 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:33,362 - WARNING - 59470107928175959 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59470107928175959/20251109
+2025-11-10 09:45:33,397 - WARNING - 59470107928175959 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:35,199 - WARNING - 5187018329202415 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/5187018329202415/20251109
+2025-11-10 09:45:35,262 - WARNING - 5187018329202415 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:35,916 - WARNING - 56006915451245411 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56006915451245411/20251109
+2025-11-10 09:45:35,981 - WARNING - 56006915451245411 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:36,619 - WARNING - 65414507129586385 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/65414507129586385/20251109
+2025-11-10 09:45:36,669 - WARNING - 65414507129586385 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:37,457 - WARNING - 55897939403232751 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/55897939403232751/20251109
+2025-11-10 09:45:37,489 - WARNING - 55897939403232751 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:38,366 - WARNING - 29860265627578401 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/29860265627578401/20251109
+2025-11-10 09:45:38,413 - WARNING - 29860265627578401 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:38,762 - WARNING - 15917865009187760 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/15917865009187760/20251109
+2025-11-10 09:45:38,796 - WARNING - 15917865009187760 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:39,653 - WARNING - 53449700212786324 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/53449700212786324/20251109
+2025-11-10 09:45:39,712 - WARNING - 53449700212786324 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:40,183 - WARNING - 27922860956133067 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/27922860956133067/20251109
+2025-11-10 09:45:40,241 - WARNING - 27922860956133067 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:41,020 - WARNING - 25020657188512139 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25020657188512139/20251109
+2025-11-10 09:45:41,063 - WARNING - 25020657188512139 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:41,409 - WARNING - 50580753680043015 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50580753680043015/20251109
+2025-11-10 09:45:41,433 - WARNING - 50580753680043015 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:42,010 - WARNING - 4247709727327181 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/4247709727327181/20251109
+2025-11-10 09:45:42,052 - WARNING - 4247709727327181 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:42,581 - WARNING - 13611044044646901 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/13611044044646901/20251109
+2025-11-10 09:45:42,604 - WARNING - 13611044044646901 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:43,087 - WARNING - 7505990056227818 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7505990056227818/20251109
+2025-11-10 09:45:43,133 - WARNING - 7505990056227818 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:44,464 - WARNING - 33441514568901717 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33441514568901717/20251109
+2025-11-10 09:45:44,511 - WARNING - 33441514568901717 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:45,170 - WARNING - 26543014712914772 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/26543014712914772/20251109
+2025-11-10 09:45:45,254 - WARNING - 26543014712914772 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:45,875 - WARNING - 8000351713789858 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/8000351713789858/20251109
+2025-11-10 09:45:45,931 - WARNING - 8000351713789858 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:46,560 - WARNING - 65378630011538741 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/65378630011538741/20251109
+2025-11-10 09:45:46,595 - WARNING - 65378630011538741 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:47,075 - WARNING - 22950683624908253 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22950683624908253/20251109
+2025-11-10 09:45:47,109 - WARNING - 22950683624908253 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:47,640 - WARNING - 49129081625829210 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/49129081625829210/20251109
+2025-11-10 09:45:47,690 - WARNING - 49129081625829210 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:48,172 - WARNING - 64699417405634265 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/64699417405634265/20251109
+2025-11-10 09:45:48,209 - WARNING - 64699417405634265 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:48,706 - WARNING - 30231789123900526 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/30231789123900526/20251109
+2025-11-10 09:45:48,726 - WARNING - 30231789123900526 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:49,157 - WARNING - 19040514831923530 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/19040514831923530/20251109
+2025-11-10 09:45:49,202 - WARNING - 19040514831923530 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:50,055 - WARNING - 20652241232631918 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/20652241232631918/20251109
+2025-11-10 09:45:50,137 - WARNING - 20652241232631918 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:50,604 - WARNING - 39481233087768672 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/39481233087768672/20251109
+2025-11-10 09:45:50,652 - WARNING - 39481233087768672 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:51,226 - WARNING - 5317427172344706 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/5317427172344706/20251109
+2025-11-10 09:45:51,315 - WARNING - 5317427172344706 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:52,113 - WARNING - 70498485598181604 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/70498485598181604/20251109
+2025-11-10 09:45:52,198 - WARNING - 70498485598181604 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:52,920 - WARNING - 68635710163497089 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/68635710163497089/20251109
+2025-11-10 09:45:52,961 - WARNING - 68635710163497089 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:54,604 - WARNING - 33541897671561960 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33541897671561960/20251109
+2025-11-10 09:45:54,709 - WARNING - 33541897671561960 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:55,380 - WARNING - 17284166795866794 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17284166795866794/20251109
+2025-11-10 09:45:55,404 - WARNING - 17284166795866794 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:56,813 - WARNING - 45991797190214892 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45991797190214892/20251109
+2025-11-10 09:45:56,879 - WARNING - 45991797190214892 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:57,931 - WARNING - 57944184894703821 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/57944184894703821/20251109
+2025-11-10 09:45:57,969 - WARNING - 57944184894703821 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:59,000 - WARNING - 52232388263291380 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/52232388263291380/20251109
+2025-11-10 09:45:59,062 - WARNING - 52232388263291380 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:45:59,874 - WARNING - 67213778593531096 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/67213778593531096/20251109
+2025-11-10 09:45:59,962 - WARNING - 67213778593531096 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:01,079 - WARNING - 3149396562827132 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/3149396562827132/20251109
+2025-11-10 09:46:01,100 - WARNING - 3149396562827132 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:02,031 - WARNING - 28320293733348826 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/28320293733348826/20251109
+2025-11-10 09:46:02,063 - WARNING - 28320293733348826 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:02,823 - WARNING - 778253364357513 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/778253364357513/20251109
+2025-11-10 09:46:02,845 - WARNING - 778253364357513 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:03,990 - WARNING - 33293588228706998 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33293588228706998/20251109
+2025-11-10 09:46:04,058 - WARNING - 33293588228706998 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:05,194 - WARNING - 59486059679335017 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59486059679335017/20251109
+2025-11-10 09:46:05,224 - WARNING - 59486059679335017 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:06,258 - WARNING - 63917421733088077 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/63917421733088077/20251109
+2025-11-10 09:46:06,294 - WARNING - 63917421733088077 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:07,166 - WARNING - 68117765376081366 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/68117765376081366/20251109
+2025-11-10 09:46:07,188 - WARNING - 68117765376081366 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:07,378 - WARNING - 48457557221009333 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48457557221009333/20251109
+2025-11-10 09:46:07,405 - WARNING - 48457557221009333 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:08,120 - WARNING - 17528249960294496 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/17528249960294496/20251109
+2025-11-10 09:46:08,152 - WARNING - 17528249960294496 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:08,956 - WARNING - 54676885047867737 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/54676885047867737/20251109
+2025-11-10 09:46:08,978 - WARNING - 54676885047867737 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:09,839 - WARNING - 2944500421562364 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2944500421562364/20251109
+2025-11-10 09:46:09,883 - WARNING - 2944500421562364 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:10,766 - WARNING - 47232550823972469 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47232550823972469/20251109
+2025-11-10 09:46:10,978 - WARNING - 47232550823972469 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:11,344 - WARNING - 22501232035732859 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/22501232035732859/20251109
+2025-11-10 09:46:11,397 - WARNING - 22501232035732859 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:12,486 - WARNING - 59839275647597021 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/59839275647597021/20251109
+2025-11-10 09:46:12,506 - WARNING - 59839275647597021 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:13,378 - WARNING - 7395271748414592 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7395271748414592/20251109
+2025-11-10 09:46:13,436 - WARNING - 7395271748414592 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:14,132 - WARNING - 47333458678352378 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/47333458678352378/20251109
+2025-11-10 09:46:14,165 - WARNING - 47333458678352378 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:15,153 - WARNING - 43966385447049549 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43966385447049549/20251109
+2025-11-10 09:46:15,187 - WARNING - 43966385447049549 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:15,777 - WARNING - 60079434631497942 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60079434631497942/20251109
+2025-11-10 09:46:15,887 - WARNING - 60079434631497942 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:16,703 - WARNING - 7385624172574740 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/7385624172574740/20251109
+2025-11-10 09:46:16,726 - WARNING - 7385624172574740 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:17,858 - WARNING - 37614886280396031 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37614886280396031/20251109
+2025-11-10 09:46:17,897 - WARNING - 37614886280396031 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:18,724 - WARNING - 25514780181345713 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25514780181345713/20251109
+2025-11-10 09:46:18,762 - WARNING - 25514780181345713 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:19,034 - WARNING - 23175320865252772 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/23175320865252772/20251109
+2025-11-10 09:46:19,065 - WARNING - 23175320865252772 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:19,492 - WARNING - 43283802997035462 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43283802997035462/20251109
+2025-11-10 09:46:19,527 - WARNING - 43283802997035462 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:20,442 - WARNING - 2328862017676109 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/2328862017676109/20251109
+2025-11-10 09:46:20,485 - WARNING - 2328862017676109 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:20,796 - WARNING - 114312662654155 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/114312662654155/20251109
+2025-11-10 09:46:20,849 - WARNING - 114312662654155 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:21,214 - WARNING - 41713045190742691 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/41713045190742691/20251109
+2025-11-10 09:46:21,243 - WARNING - 41713045190742691 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:22,280 - WARNING - 11258722998911897 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/11258722998911897/20251109
+2025-11-10 09:46:22,328 - WARNING - 11258722998911897 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:22,689 - WARNING - 24662567615903665 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/24662567615903665/20251109
+2025-11-10 09:46:22,751 - WARNING - 24662567615903665 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:23,557 - WARNING - 45050389997905274 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45050389997905274/20251109
+2025-11-10 09:46:23,590 - WARNING - 45050389997905274 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:24,183 - WARNING - 9761381741308262 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/9761381741308262/20251109
+2025-11-10 09:46:24,225 - WARNING - 9761381741308262 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:25,421 - WARNING - 37204371816016200 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/37204371816016200/20251109
+2025-11-10 09:46:25,492 - WARNING - 37204371816016200 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:26,055 - WARNING - 26014913469567886 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/26014913469567886/20251109
+2025-11-10 09:46:26,090 - WARNING - 26014913469567886 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:27,555 - WARNING - 43951910415124966 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/43951910415124966/20251109
+2025-11-10 09:46:27,605 - WARNING - 43951910415124966 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:28,161 - WARNING - 48287670503317419 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48287670503317419/20251109
+2025-11-10 09:46:28,222 - WARNING - 48287670503317419 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:28,552 - WARNING - 48241092863917835 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/48241092863917835/20251109
+2025-11-10 09:46:28,584 - WARNING - 48241092863917835 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:29,045 - WARNING - 50011948410571353 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/50011948410571353/20251109
+2025-11-10 09:46:29,118 - WARNING - 50011948410571353 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:29,994 - WARNING - 45174198424472334 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/45174198424472334/20251109
+2025-11-10 09:46:30,050 - WARNING - 45174198424472334 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:30,497 - WARNING - 31078457170311964 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/31078457170311964/20251109
+2025-11-10 09:46:30,563 - WARNING - 31078457170311964 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:31,293 - WARNING - 71744682148776880 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/71744682148776880/20251109
+2025-11-10 09:46:31,326 - WARNING - 71744682148776880 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:32,473 - WARNING - 56802926348928053 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/56802926348928053/20251109
+2025-11-10 09:46:32,519 - WARNING - 56802926348928053 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:33,068 - WARNING - 35369183060321179 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/35369183060321179/20251109
+2025-11-10 09:46:33,106 - WARNING - 35369183060321179 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:33,888 - WARNING - 58931793851445922 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/58931793851445922/20251109
+2025-11-10 09:46:33,915 - WARNING - 58931793851445922 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:34,275 - WARNING - 6847536925606808 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/6847536925606808/20251109
+2025-11-10 09:46:34,302 - WARNING - 6847536925606808 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:35,562 - WARNING - 41796741644273824 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/41796741644273824/20251109
+2025-11-10 09:46:35,604 - WARNING - 41796741644273824 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:36,640 - WARNING - 33931218652865616 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/33931218652865616/20251109
+2025-11-10 09:46:36,680 - WARNING - 33931218652865616 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:37,475 - WARNING - 62603302940123327 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/62603302940123327/20251109
+2025-11-10 09:46:37,513 - WARNING - 62603302940123327 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:38,422 - WARNING - 25336820825905643 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25336820825905643/20251109
+2025-11-10 09:46:38,468 - WARNING - 25336820825905643 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:38,783 - WARNING - 19348717261145458 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/19348717261145458/20251109
+2025-11-10 09:46:38,827 - WARNING - 19348717261145458 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:39,126 - WARNING - 60783654574662426 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/60783654574662426/20251109
+2025-11-10 09:46:39,165 - WARNING - 60783654574662426 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:39,587 - WARNING - 25215182208950217 - InstrumentState fail: 404 Client Error: Not Found for url: https://cdn.tsetmc.com/api/Instrument/GetInstrumentState/25215182208950217/20251109
+2025-11-10 09:46:39,613 - WARNING - 25215182208950217 - InstrumentHistory fail: If using all scalar values, you must pass an index
+2025-11-10 09:46:39,743 - INFO - 📊 تعداد رکوردهای صف‌دار برای ذخیره: 378
+2025-11-10 10:00:42,399 - INFO - ✅ اتصال به دیتابیس برقرار شد.
+2025-11-10 10:00:42,401 - INFO - 📅 Target Date → Gregorian=2025-11-09 | Jalali=1404-08-18 | Compact=20251109
+2025-11-10 10:00:42,407 - INFO - 🔍 تعداد نمادهای سهام: 959
+2025-11-10 10:02:40,221 - WARNING - داتام (68863997659126807) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/BestLimits/68863997659126807/20251109
+2025-11-10 10:02:40,262 - WARNING - داراب (27299841173245405) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/BestLimits/27299841173245405/20251109
+2025-11-10 10:02:40,328 - WARNING - دارو (67988012428906654) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/BestLimits/67988012428906654/20251109
+2025-11-10 10:02:40,360 - WARNING - داسوه (12387472624849835) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/12387472624849835/20251109
+2025-11-10 10:02:40,393 - WARNING - دالبر (60451823714332895) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/60451823714332895/20251109
+2025-11-10 10:02:40,435 - WARNING - دامين (50100062518826135) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/50100062518826135/20251109
+2025-11-10 10:02:40,465 - WARNING - دانا (48511238766369097) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/48511238766369097/20251109
+2025-11-10 10:02:40,497 - WARNING - داوه (5305844922895340) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/5305844922895340/20251109
+2025-11-10 10:02:40,518 - WARNING - دبالك (71510396252618330) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/71510396252618330/20251109
+2025-11-10 10:02:40,558 - WARNING - دپارس (70474983732269112) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/70474983732269112/20251109
+2025-11-10 10:02:40,593 - WARNING - دتماد (34641719089573667) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/34641719089573667/20251109
+2025-11-10 10:02:40,610 - WARNING - دتهران (26114418513020265) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/26114418513020265/20251109
+2025-11-10 10:02:40,631 - WARNING - دتهران‌ (14985138705106402) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/14985138705106402/20251109
+2025-11-10 10:02:40,673 - WARNING - دتوزيع (66726992874614788) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/66726992874614788/20251109
+2025-11-10 10:02:40,690 - WARNING - دتوليد (18093681647131179) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/18093681647131179/20251109
+2025-11-10 10:02:40,707 - WARNING - دجابر (33406621820337161) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33406621820337161/20251109
+2025-11-10 10:02:40,737 - WARNING - دحاوي (43374709930371268) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/43374709930371268/20251109
+2025-11-10 10:02:40,763 - WARNING - ددام (66450490505950110) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/66450490505950110/20251109
+2025-11-10 10:02:40,797 - WARNING - ددانا (69540585676934415) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/69540585676934415/20251109
+2025-11-10 10:02:40,841 - WARNING - درازك (22255783119783047) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/22255783119783047/20251109
+2025-11-10 10:02:40,866 - WARNING - درازي (16567465928886309) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/16567465928886309/20251109
+2025-11-10 10:02:40,919 - WARNING - درهآور (13243992182070788) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/13243992182070788/20251109
+2025-11-10 10:02:40,949 - WARNING - دروز (40262275031537922) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/40262275031537922/20251109
+2025-11-10 10:02:40,979 - WARNING - دزاگرس (43450146028916610) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/43450146028916610/20251109
+2025-11-10 10:02:41,002 - WARNING - دزهراوي (8915450910866216) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/8915450910866216/20251109
+2025-11-10 10:02:41,046 - WARNING - دسانكو (47348197320716810) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/47348197320716810/20251109
+2025-11-10 10:02:41,093 - WARNING - دسبحا (43622578471330344) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/43622578471330344/20251109
+2025-11-10 10:02:41,115 - WARNING - دسبحان (5866848234665627) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/5866848234665627/20251109
+2025-11-10 10:02:41,155 - WARNING - دسينا (11432067920374603) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/11432067920374603/20251109
+2025-11-10 10:02:41,176 - WARNING - دشيري (29966743195510975) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/29966743195510975/20251109
+2025-11-10 10:02:41,216 - WARNING - دشيري (63084741752814852) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/63084741752814852/20251109
+2025-11-10 10:02:41,251 - WARNING - دشيمي (33603212156438463) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33603212156438463/20251109
+2025-11-10 10:02:41,300 - WARNING - دعبيد (49054891736433700) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/49054891736433700/20251109
+2025-11-10 10:02:41,342 - WARNING - دفارا (56550776668133562) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/56550776668133562/20251109
+2025-11-10 10:02:41,358 - WARNING - دفرا (18303237082155264) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/18303237082155264/20251109
+2025-11-10 10:02:41,389 - WARNING - دقاضي (16762873668858938) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/16762873668858938/20251109
+2025-11-10 10:02:41,435 - WARNING - دقاضي (46801030346547943) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/46801030346547943/20251109
+2025-11-10 10:02:41,467 - WARNING - دقاضي (64289770858657141) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/64289770858657141/20251109
+2025-11-10 10:02:41,502 - WARNING - دكپسول (52382684379473036) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/52382684379473036/20251109
+2025-11-10 10:02:41,544 - WARNING - دكوثر (23353689102956991) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/23353689102956991/20251109
+2025-11-10 10:02:41,566 - WARNING - دكيمي (20024911381434086) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/20024911381434086/20251109
+2025-11-10 10:02:41,607 - WARNING - دلر (4384288570322406) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/4384288570322406/20251109
+2025-11-10 10:02:41,650 - WARNING - دلقما (29247915161590165) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/29247915161590165/20251109
+2025-11-10 10:02:41,696 - WARNING - دماوند (11282920140235578) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/11282920140235578/20251109
+2025-11-10 10:02:41,740 - WARNING - دماوند (66142616039907394) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/66142616039907394/20251109
+2025-11-10 10:02:41,760 - WARNING - دهدشت (15374483986949695) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/15374483986949695/20251109
+2025-11-10 10:02:41,783 - WARNING - دي (66416853783916493) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/66416853783916493/20251109
+2025-11-10 10:02:41,822 - WARNING - ديران (69090868458637360) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/69090868458637360/20251109
+2025-11-10 10:02:41,866 - WARNING - ذوب (9211775239375291) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/9211775239375291/20251109
+2025-11-10 10:02:41,915 - WARNING - ذوب (71483646978964608) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/71483646978964608/20251109
+2025-11-10 10:02:41,963 - WARNING - رافزا (68941822863885255) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/68941822863885255/20251109
+2025-11-10 10:02:41,989 - WARNING - رانفور (40505767672724777) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/40505767672724777/20251109
+2025-11-10 10:02:42,015 - WARNING - رپويا (6905737326614124) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/6905737326614124/20251109
+2025-11-10 10:02:42,051 - WARNING - رتاپ (41048299027409941) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/41048299027409941/20251109
+2025-11-10 10:02:42,083 - WARNING - رتكو (3823243780502959) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/3823243780502959/20251109
+2025-11-10 10:02:42,120 - WARNING - رتكو (49854144784855542) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/49854144784855542/20251109
+2025-11-10 10:02:42,141 - WARNING - رفاه (33410001534682920) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33410001534682920/20251109
+2025-11-10 10:02:42,178 - WARNING - ركيش (27952969918967492) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/27952969918967492/20251109
+2025-11-10 10:02:42,224 - WARNING - رمپنا (67126881188552864) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/67126881188552864/20251109
+2025-11-10 10:02:42,245 - WARNING - رنيك (33854964748757477) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33854964748757477/20251109
+2025-11-10 10:02:42,289 - WARNING - ريشمك (6478064539164167) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/6478064539164167/20251109
+2025-11-10 10:02:42,334 - WARNING - زاگرس (13235547361447092) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/13235547361447092/20251109
+2025-11-10 10:02:42,379 - WARNING - زبينا (54482686501491508) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/54482686501491508/20251109
+2025-11-10 10:02:42,423 - WARNING - زپارس (33420285433308219) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/33420285433308219/20251109
+2025-11-10 10:02:42,441 - WARNING - زدشت (25180702353416009) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/25180702353416009/20251109
+2025-11-10 10:02:42,481 - WARNING - زشريف (26547785441834730) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/26547785441834730/20251109
+2025-11-10 10:02:42,530 - WARNING - زشگزا (26259366519412975) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/26259366519412975/20251109
+2025-11-10 10:02:42,575 - WARNING - زفجر (36844527173896115) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/36844527173896115/20251109
+2025-11-10 10:02:42,600 - WARNING - زفكا (5427792638736934) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/5427792638736934/20251109
+2025-11-10 10:02:42,644 - WARNING - زقيام (71290297158948749) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/71290297158948749/20251109
+2025-11-10 10:02:42,673 - WARNING - زكشت (7300125658580126) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/7300125658580126/20251109
+2025-11-10 10:02:42,697 - WARNING - زكوثر (42599305106713939) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/42599305106713939/20251109
+2025-11-10 10:02:42,738 - WARNING - زگلدشت (10024128313803797) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/10024128313803797/20251109
+2025-11-10 10:02:42,782 - WARNING - زماهان (4507558419857064) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/4507558419857064/20251109
+2025-11-10 10:02:42,816 - WARNING - زمگسا (5054819322815158) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/5054819322815158/20251109
+2025-11-10 10:02:42,840 - WARNING - زملارد (14916489896692147) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/14916489896692147/20251109
+2025-11-10 10:02:42,875 - WARNING - زنجان (12303918642491681) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/12303918642491681/20251109
+2025-11-10 10:02:42,900 - WARNING - زنجان (15582754946564355) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/15582754946564355/20251109
+2025-11-10 10:02:42,939 - WARNING - زنگان (13151967913317961) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/13151967913317961/20251109
+2025-11-10 10:02:42,962 - WARNING - زنگان (67170215467608124) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/67170215467608124/20251109
+2025-11-10 10:02:43,001 - WARNING - سآبيك (70883594945615893) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/70883594945615893/20251109
+2025-11-10 10:02:43,050 - WARNING - ساذري (28987829009893424) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/28987829009893424/20251109
+2025-11-10 10:02:43,095 - WARNING - ساذري (64155926828410021) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/64155926828410021/20251109
+2025-11-10 10:02:43,124 - WARNING - ساراب (4563413583000719) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/4563413583000719/20251109
+2025-11-10 10:02:43,151 - WARNING - ساربيل (34890845654517313) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/34890845654517313/20251109
+2025-11-10 10:02:43,173 - WARNING - ساروج (25417476013479486) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/25417476013479486/20251109
+2025-11-10 10:02:43,200 - WARNING - ساروج (44802346787824971) - خطا: 502 Server Error: Bad Gateway for url: https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/44802346787824971/20251109
+2025-11-10 10:02:51,724 - WARNING - سدبير (54135748720267868) - خطا: Empty staticThreshold
+2025-11-10 10:03:04,215 - WARNING - سليم (13281899956206287) - خطا: Empty staticThreshold
+2025-11-10 10:07:20,936 - INFO - 📊 تعداد رکوردهای صف‌دار برای ذخیره: 352
