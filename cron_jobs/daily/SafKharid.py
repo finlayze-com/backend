@@ -4,6 +4,7 @@
 - بدون استفاده از finpy_tse
 - ذخیره در جدول قبلی (quote) با کلید (inscode, date)
 - شامل Value روزانه از InstTradeHistory
+- اضافه شدن base_value = adjust_high * baseVol
 """
 
 import os
@@ -107,14 +108,13 @@ def get_thresholds(inscode: str, yyyymmdd: str):
     خروجی: (day_ub, day_ll) به int
     """
     url = f"https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/{inscode}/{yyyymmdd}"
-    # print(f"      → GET Thresholds: {url}")
     r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
     r.raise_for_status()
     js = r.json()
     df = pd.DataFrame(js.get("staticThreshold", []))
     if df.empty:
         raise RuntimeError("Empty staticThreshold")
-    row = df.iloc[-1]  # آخرین رکورد
+    row = df.iloc[-1]
     day_ub = int(row["psGelStaMax"])
     day_ll = int(row["psGelStaMin"])
     return day_ub, day_ll
@@ -126,7 +126,6 @@ def get_bestlimits_snapshot(inscode: str, yyyymmdd: str):
     خروجی: dict یک ردیف (top level) یا None
     """
     url = f"https://cdn.tsetmc.com/api/BestLimits/{inscode}/{yyyymmdd}"
-    # print(f"      → GET BestLimits: {url}")
     r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
     r.raise_for_status()
     js = r.json()
@@ -169,9 +168,7 @@ def get_value_from_old_endpoint(inscode: str, yyyymmdd: str):
     if not txt:
         return 0
 
-    # هر سطر با ; جداست، هر ستون با @
     # columns=['Date','High','Low','Final','Close','Open','Y-Final','Value','Volume','No']
-    # Date در فرمت YYYYMMDD است
     last_value = 0
     for row in txt.split(";"):
         parts = row.split("@")
@@ -226,6 +223,46 @@ def compute_queues_from_snapshot(snap: dict, day_ub: int, day_ll: int):
     time_close = h_even_to_timestr(int(snap.get("hEven", CLOSE_HEVEN)))
     return bq_value, sq_value, bqpc, sqpc, time_close
 
+# ---------------------- دریافت adjust_high و baseVol برای همان روز ---------------------- #
+def get_base_parts(inscode: str, yyyymmdd: str):
+    """
+    استخراج adjust_high و baseVol برای همان تاریخ:
+      - adjust_high از InstTradeHistory (A=1 → تعدیل‌شده)
+      - baseVol از GetInstrumentInfo (جدید)
+    خروجی: (adjust_high, base_vol)
+    """
+    adjust_high = None
+    base_vol = None
+
+    # --- Adjusted High ---
+    try:
+        url = f"https://old.tsetmc.com/tsev2/data/InstTradeHistory.aspx?i={inscode}&Top=999999&A=1"
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        txt = r.text.strip()
+        for row in txt.split(";"):
+            parts = row.split("@")
+            if len(parts) < 2:
+                continue
+            if parts[0] == yyyymmdd:
+                adjust_high = float(parts[1])  # ستون High
+                break
+    except Exception as e:
+        logging.warning(f"{inscode} - AdjustHigh fail: {e}")
+
+    # --- BaseVol ---
+    try:
+        url = f"https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{inscode}"
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        if r.ok:
+            js = r.json()
+            info = js.get("instrumentInfo", {})
+            base_vol = int(float(info.get("baseVol", 0) or 0))
+    except Exception as e:
+        logging.warning(f"{inscode} - BaseVol fail: {e}")
+
+    return adjust_high, base_vol
+
 # ---------------------- پردازش فقط صف‌دارها ---------------------- #
 engine = create_engine(DB_URL_SYNC)
 records = []
@@ -249,6 +286,16 @@ for idx, (stock_ticker, ins) in enumerate(tickers, start=1):
 
         day_value = get_value_from_old_endpoint(ins, date_g_compact)  # ارزش معاملات روز
 
+        # 🔹 گرفتن adjust_high و baseVol و محاسبه base_value
+        adj_high, base_vol = get_base_parts(ins, date_g_compact)
+        if adj_high is not None and base_vol is not None:
+            try:
+                base_value = float(adj_high) * int(base_vol)
+            except:
+                base_value = 0
+        else:
+            base_value = 0
+
         rec = {
             # کلید یکتا
             "inscode": ins,
@@ -264,7 +311,8 @@ for idx, (stock_ticker, ins) in enumerate(tickers, start=1):
             "SQ_Value": sq_value,
             "BQPC": bqpc,
             "SQPC": sqpc,
-            "Value": day_value,  # ← اضافه شد
+            "Value": day_value,       # ارزش معاملات روز
+            "base_value": base_value  # مقدار جدید
         }
         records.append(rec)
 

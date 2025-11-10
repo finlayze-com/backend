@@ -22,8 +22,10 @@ from backend.utils.exceptions import AppException
 from backend.api import ceiling
 from backend.api import indicator_report
 from backend.api import signals_table
+from backend.api import queues_visual
 
 load_dotenv(dotenv_path=".env")
+
 print("🧪 Loaded SECRET_KEY from middleware:", repr(os.getenv("SECRET_KEY")))
 
 
@@ -112,6 +114,9 @@ app.include_router(indicator_report.router, prefix="/api")
 
 
 app.include_router(inscodeid.router, prefix="/inscodeid")
+
+app.include_router(queues_visual.router, prefix="/Safkharid")
+
 
 # 🔍 health check
 @app.get("/ping")
