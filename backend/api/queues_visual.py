@@ -197,143 +197,243 @@ async def queues_treemap(
 # خروجی مینیمال: بدون ranges و داده‌های اضافی
 # marker: فقط یکی از base یا value (گزینه both حذف شد)
 
-@router.get("/bullet", summary="Bullet data: top stocks, sector stocks, or single stock (minimal)")
+@router.get("/bullet", summary="Bullet chart data: single stock, sector stocks, or Top-N stocks")
 async def queues_bullet(
     date: Optional[str] = Query(None, description="YYYY-MM-DD؛ اگر خالی باشد آخرین تاریخ quote"),
-    scope: Literal["top", "sector", "stock"] = Query("top", description="دامنه گزارش"),
-    side: Literal["buy", "sell", "both"] = Query("buy", description="سمت صف"),
-    marker: Literal["none", "base", "value"] = Query("none", description="مارکر: none|base|value"),
-    top_n: int = Query(10, ge=1, le=100, description="تعداد آیتم‌ها در حالت top"),
-    sector: Optional[str] = Query(None, description="نام صنعت (برای scope=sector الزامی)"),
-    stock: Optional[str] = Query(None, description="نماد (برای scope=stock الزامی)"),
+    scope: Literal["stock", "sector", "top"] = Query("stock", description="دامنه محاسبه: stock | sector | top"),
+    key: Optional[str] = Query(None, description="اگر scope=stock ⇒ stock_ticker ؛ اگر scope=sector ⇒ نام صنعت ؛ اگر scope=top ⇒ نادیده"),
+    side: Literal["buy", "sell", "both"] = Query("buy"),
+    compare: Literal["base", "value", "both"] = Query("both", description="مقایسه با base_value یا day_value یا هر دو"),
+    top_n: int = Query(10, ge=1, le=100, description="وقتی scope=top فعال است، تعداد نمادها"),
     _ = Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    خروجی مینیمال و واضح:
-
-    اگر side = buy یا sell:
-      {
-        "mode": "...",
-        "date": "...",
-        "side": "buy|sell",
-        "marker": "none|base|value",
-        "count": N,
-        "items": [
-          { "title": "نماد", "measure": <ارزش صف سمت انتخابی>, "marker": <درصورت درخواست> },
-          ...
-        ]
-      }
-
-    اگر side = both:
-      {
-        "mode": "...",
-        "date": "...",
-        "side": "both",
-        "marker": "none|base|value",
-        "count": N,
-        "items": [
-          { "title": "نماد", "buy": <BQ_Value>, "sell": <SQ_Value>, "marker": <درصورت درخواست> },
-          ...
-        ]
-      }
-    """
     if date is None:
         date = await _latest_quote_date(db)
 
-    # فیلد مارکر انتخابی
-    marker_expr = _marker_field(marker)
+    # عبارت ارزش صف طبق پارامتر side
+    qexpr = _queue_value_case(side)
 
-    # پایه SELECT مشترک
-    base_select = f"""
-        SELECT
-            q."stock_ticker"                           AS stock,
-            SUM(COALESCE(q."BQ_Value",0))              AS buy,
-            SUM(COALESCE(q."SQ_Value",0))              AS sell,
-            {marker_expr}                              AS marker_val
-        FROM quote q
-    """
+    # ---------- حالت STOCK (تک‌نماد) ----------
+    if scope == "stock":
+        if not key:
+            raise HTTPException(status_code=400, detail="key (stock_ticker) is required for scope=stock")
 
-    where_and_group = """
-        WHERE q."date" = :date
-        GROUP BY q."stock_ticker"
-        HAVING SUM(COALESCE(q."BQ_Value",0)) > 0 OR SUM(COALESCE(q."SQ_Value",0)) > 0
-    """
+        sql = f"""
+            SELECT
+                q."stock_ticker" AS title,
+                SUM({qexpr})                      AS queue_value_total,
+                SUM(COALESCE(q."base_value", 0)) AS base_value_total,
+                SUM(COALESCE(q."Value", 0))      AS day_value_total,
+                SUM(COALESCE(q."BQ_Value", 0))   AS buy_value_total,
+                SUM(COALESCE(q."SQ_Value", 0))   AS sell_value_total
+            FROM quote q
+            WHERE q."date" = :date
+              AND q."stock_ticker" = :key
+        """
+        params = {"date": date, "key": key}
+        res = await db.execute(text(sql), params)
+        row = res.mappings().first()
+        if not row:
+            raise HTTPException(status_code=404, detail="no data for given key/date")
 
-    params: Dict[str, Any] = {"date": date}
+        title = row["title"] or key
+        queue_value_total = int(row["queue_value_total"] or 0)
+        base_value_total  = int(row["base_value_total"]  or 0)
+        day_value_total   = int(row["day_value_total"]   or 0)
+        buy_value_total   = int(row["buy_value_total"]   or 0)
+        sell_value_total  = int(row["sell_value_total"]  or 0)
 
-    # ترتیب بر اساس سمت
-    order_expr = _order_expr_for_side(side)
+        range_vs_base  = [0, max(queue_value_total, base_value_total, 1)]
+        range_vs_value = [0, max(queue_value_total, day_value_total,  1)]
 
-    # --- حالت‌های دامنه ---
-    if scope == "top":
-        sql = base_select + where_and_group + f"\nORDER BY {order_expr}\nLIMIT :top_n"
-        params["top_n"] = top_n
+        markers = []
+        if compare in ("base", "both"):
+            markers.append(base_value_total)
+        if compare in ("value", "both"):
+            markers.append(day_value_total)
 
-    elif scope == "sector":
-        if not sector:
-            raise HTTPException(status_code=400, detail="sector is required for scope=sector")
-        sql = base_select + """
+        queue_type = (
+            "both" if (buy_value_total > 0 and sell_value_total > 0)
+            else "buy" if (buy_value_total > 0)
+            else "sell" if (sell_value_total > 0)
+            else "none"
+        )
+
+        return {
+            "mode": "stock",
+            "title": title,
+            "date": date,
+            "side": side,
+            "scope": scope,
+            "compare": compare,
+            "measure": queue_value_total,
+            "markers": markers,
+            "ranges": {"vs_base": range_vs_base, "vs_value": range_vs_value},
+            "raw": {
+                "queue_value_total": queue_value_total,
+                "base_value_total":  base_value_total,
+                "day_value_total":   day_value_total,
+                "buy_value_total":   buy_value_total,
+                "sell_value_total":  sell_value_total,
+                "queue_type":        queue_type
+            }
+        }
+
+    # ---------- حالت SECTOR (لیست نمادهای صف‌دار در یک صنعت) ----------
+    if scope == "sector":
+        if not key:
+            raise HTTPException(status_code=400, detail="key (sector) is required for scope=sector")
+
+        # فقط نمادهای صف‌دار را بیاور و همزمان buy/sell را هم جدا بده
+        sql = f"""
+            SELECT
+                q."stock_ticker"                                 AS stock,
+                SUM(COALESCE(q."BQ_Value", 0))                   AS buy_value_total,
+                SUM(COALESCE(q."SQ_Value", 0))                   AS sell_value_total,
+                SUM({qexpr})                                     AS queue_value_total,
+                SUM(COALESCE(q."base_value", 0))                 AS base_value_total,
+                SUM(COALESCE(q."Value", 0))                      AS day_value_total
+            FROM quote q
             JOIN symboldetail sd
               ON sd."insCode"::text = q."inscode"::text
             WHERE q."date" = :date
               AND sd."sector" = :sector
             GROUP BY q."stock_ticker"
-            HAVING SUM(COALESCE(q."BQ_Value",0)) > 0 OR SUM(COALESCE(q."SQ_Value",0)) > 0
-        """ + f"\nORDER BY {order_expr}"
-        params["sector"] = sector
-
-    else:  # scope == "stock"
-        if not stock:
-            raise HTTPException(status_code=400, detail="stock is required for scope=stock")
-        sql = base_select + """
-            WHERE q."date" = :date
-              AND q."stock_ticker" = :stock
-            GROUP BY q."stock_ticker"
-            HAVING SUM(COALESCE(q."BQ_Value",0)) > 0 OR SUM(COALESCE(q."SQ_Value",0)) > 0
+            HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
+            ORDER BY queue_value_total DESC
         """
-        params["stock"] = stock
+        params = {"date": date, "sector": key}
+        res = await db.execute(text(sql), params)
+        rows = res.mappings().all()
 
+        items = []
+        for r in rows:
+            stock            = r["stock"]
+            buy_value_total  = int(r["buy_value_total"]  or 0)
+            sell_value_total = int(r["sell_value_total"] or 0)
+            queue_value_tot  = int(r["queue_value_total"] or 0)
+            base_value_total = int(r["base_value_total"]  or 0)
+            day_value_total  = int(r["day_value_total"]   or 0)
+
+            # برای بولت‌چارت: رنج‌ها بر اساس بیشینه‌ی هر مقایسه
+            range_vs_base  = [0, max(queue_value_tot, base_value_total, 1)]
+            range_vs_value = [0, max(queue_value_tot, day_value_total,  1)]
+
+            markers = []
+            if compare in ("base", "both"):
+                markers.append(base_value_total)
+            if compare in ("value", "both"):
+                markers.append(day_value_total)
+
+            queue_type = (
+                "both" if (buy_value_total > 0 and sell_value_total > 0)
+                else "buy" if (buy_value_total > 0)
+                else "sell" if (sell_value_total > 0)
+                else "none"
+            )
+
+            items.append({
+                "title": stock,
+                "date": date,
+                "side": side,
+                "scope": "stock",
+                "compare": compare,
+                "measure": queue_value_tot,          # مقدار اصلی برای نمایش بولت
+                "markers": markers,                  # مارکرهای مقایسه‌ای
+                "ranges": {"vs_base": range_vs_base, "vs_value": range_vs_value},
+                "raw": {
+                    "queue_value_total": queue_value_tot,
+                    "base_value_total":  base_value_total,
+                    "day_value_total":   day_value_total,
+                    "buy_value_total":   buy_value_total,   # 👈 تفکیک صف خرید
+                    "sell_value_total":  sell_value_total,  # 👈 تفکیک صف فروش
+                    "queue_type":        queue_type         # buy | sell | both | none
+                }
+            })
+
+        return {
+            "mode": "sector_stocks",
+            "date": date,
+            "side": side,
+            "scope": "sector",
+            "sector": key,
+            "compare": compare,
+            "count": len(items),
+            "items": items
+        }
+
+    # ---------- حالت TOP (برترین نمادهای صف‌دار کل بازار) ----------
+    # (مثل قبل، با فیلدهای buy/sell اضافه)
+    sql = f"""
+        SELECT
+            q."stock_ticker"               AS stock,
+            SUM({qexpr})                   AS queue_value_total,
+            SUM(COALESCE(q."base_value",0)) AS base_value_total,
+            SUM(COALESCE(q."Value",0))      AS day_value_total,
+            SUM(COALESCE(q."BQ_Value",0))   AS buy_value_total,
+            SUM(COALESCE(q."SQ_Value",0))   AS sell_value_total
+        FROM quote q
+        WHERE q."date" = :date
+        GROUP BY q."stock_ticker"
+        HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
+        ORDER BY queue_value_total DESC
+        LIMIT :topn
+    """
+    params = {"date": date, "topn": top_n}
     res = await db.execute(text(sql), params)
     rows = res.mappings().all()
 
-    # ساخت خروجی مینیمال
-    items: List[Dict[str, Any]] = []
+    items = []
     for r in rows:
-        title = r["stock"]
-        buy_v = int(r["buy"] or 0)
-        sell_v = int(r["sell"] or 0)
-        mark_v = (int(r["marker_val"]) if r["marker_val"] is not None else None)
+        stock            = r["stock"]
+        queue_value_tot  = int(r["queue_value_total"] or 0)
+        base_value_total = int(r["base_value_total"]  or 0)
+        day_value_total  = int(r["day_value_total"]   or 0)
+        buy_value_total  = int(r["buy_value_total"]   or 0)
+        sell_value_total = int(r["sell_value_total"]  or 0)
 
-        if side in ("buy", "sell"):
-            measure = buy_v if side == "buy" else sell_v
-            # فقط موارد واقعاً صف‌دارِ همان سمت را نگه داریم
-            if measure <= 0:
-                continue
-            out: Dict[str, Any] = {"title": title, "measure": measure}
-            if marker != "none":
-                out["marker"] = mark_v or 0
-            items.append(out)
-        else:
-            # both → خرید و فروش جداگانه
-            if (buy_v <= 0 and sell_v <= 0):
-                continue
-            out = {"title": title, "buy": buy_v, "sell": sell_v}
-            if marker != "none":
-                out["marker"] = mark_v or 0
-            items.append(out)
+        range_vs_base  = [0, max(queue_value_tot, base_value_total, 1)]
+        range_vs_value = [0, max(queue_value_tot, day_value_total,  1)]
 
-    mode = (
-        "top_stocks" if scope == "top"
-        else "sector_stocks" if scope == "sector"
-        else "single_stock"
-    )
+        markers = []
+        if compare in ("base", "both"):
+            markers.append(base_value_total)
+        if compare in ("value", "both"):
+            markers.append(day_value_total)
+
+        queue_type = (
+            "both" if (buy_value_total > 0 and sell_value_total > 0)
+            else "buy" if (buy_value_total > 0)
+            else "sell" if (sell_value_total > 0)
+            else "none"
+        )
+
+        items.append({
+            "title": stock,
+            "date": date,
+            "side": side,
+            "scope": "stock",
+            "compare": compare,
+            "measure": queue_value_tot,
+            "markers": markers,
+            "ranges": {"vs_base": range_vs_base, "vs_value": range_vs_value},
+            "raw": {
+                "queue_value_total": queue_value_tot,
+                "base_value_total":  base_value_total,
+                "day_value_total":   day_value_total,
+                "buy_value_total":   buy_value_total,
+                "sell_value_total":  sell_value_total,
+                "queue_type":        queue_type
+            }
+        })
 
     return {
-        "mode": mode,
+        "mode": "top_stocks",
         "date": date,
         "side": side,
-        "marker": marker,
+        "scope": "top",
+        "compare": compare,
         "count": len(items),
         "items": items
     }
