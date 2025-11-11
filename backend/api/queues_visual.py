@@ -197,95 +197,34 @@ async def queues_treemap(
 # خروجی مینیمال: بدون ranges و داده‌های اضافی
 # marker: فقط یکی از base یا value (گزینه both حذف شد)
 
-@router.get("/bullet", summary="Bullet chart data: single stock, sector stocks, or Top-N stocks")
+
+@router.get("/bullet", summary="Bullet chart data: sector stocks or Top-N stocks (buy/sell only)")
 async def queues_bullet(
     date: Optional[str] = Query(None, description="YYYY-MM-DD؛ اگر خالی باشد آخرین تاریخ quote"),
-    scope: Literal["stock", "sector", "top"] = Query("stock", description="دامنه محاسبه: stock | sector | top"),
-    key: Optional[str] = Query(None, description="اگر scope=stock ⇒ stock_ticker ؛ اگر scope=sector ⇒ نام صنعت ؛ اگر scope=top ⇒ نادیده"),
-    side: Literal["buy", "sell", "both"] = Query("buy"),
-    compare: Literal["base", "value", "both"] = Query("both", description="مقایسه با base_value یا day_value یا هر دو"),
+    scope: Literal["sector", "top"] = Query("sector", description="دامنه محاسبه: sector | top"),
+    sector: Optional[str] = Query(None, description="وقتی scope=sector فعال است، نام صنعت (symboldetail.sector)"),
+    side: Literal["buy", "sell"] = Query("buy", description="سمت صف برای اندازه measure (فقط buy یا sell)"),
+    compare: Literal["base", "value", "both"] = Query("both", description="مقایسه با base_value و/یا day_value"),
     top_n: int = Query(10, ge=1, le=100, description="وقتی scope=top فعال است، تعداد نمادها"),
     _ = Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    حالت‌ها:
+      - scope=sector  → لیست بولت‌چارت نمادهای صف‌دار یک صنعت (پارامتر sector اجباری)
+      - scope=top     → لیست بولت‌چارت Top-N نمادهای صف‌دار کل بازار (top_n)
+    """
     if date is None:
         date = await _latest_quote_date(db)
 
-    # عبارت ارزش صف طبق پارامتر side
+    # عبارت ارزش صف طبق پارام side (برای measure و sort)
     qexpr = _queue_value_case(side)
 
-    # ---------- حالت STOCK (تک‌نماد) ----------
-    if scope == "stock":
-        if not key:
-            raise HTTPException(status_code=400, detail="key (stock_ticker) is required for scope=stock")
-
-        sql = f"""
-            SELECT
-                q."stock_ticker" AS title,
-                SUM({qexpr})                      AS queue_value_total,
-                SUM(COALESCE(q."base_value", 0)) AS base_value_total,
-                SUM(COALESCE(q."Value", 0))      AS day_value_total,
-                SUM(COALESCE(q."BQ_Value", 0))   AS buy_value_total,
-                SUM(COALESCE(q."SQ_Value", 0))   AS sell_value_total
-            FROM quote q
-            WHERE q."date" = :date
-              AND q."stock_ticker" = :key
-        """
-        params = {"date": date, "key": key}
-        res = await db.execute(text(sql), params)
-        row = res.mappings().first()
-        if not row:
-            raise HTTPException(status_code=404, detail="no data for given key/date")
-
-        title = row["title"] or key
-        queue_value_total = int(row["queue_value_total"] or 0)
-        base_value_total  = int(row["base_value_total"]  or 0)
-        day_value_total   = int(row["day_value_total"]   or 0)
-        buy_value_total   = int(row["buy_value_total"]   or 0)
-        sell_value_total  = int(row["sell_value_total"]  or 0)
-
-        range_vs_base  = [0, max(queue_value_total, base_value_total, 1)]
-        range_vs_value = [0, max(queue_value_total, day_value_total,  1)]
-
-        markers = []
-        if compare in ("base", "both"):
-            markers.append(base_value_total)
-        if compare in ("value", "both"):
-            markers.append(day_value_total)
-
-        queue_type = (
-            "both" if (buy_value_total > 0 and sell_value_total > 0)
-            else "buy" if (buy_value_total > 0)
-            else "sell" if (sell_value_total > 0)
-            else "none"
-        )
-
-        return {
-            "mode": "stock",
-            "title": title,
-            "date": date,
-            "side": side,
-            "scope": scope,
-            "compare": compare,
-            "measure": queue_value_total,
-            "markers": markers,
-            "ranges": {"vs_base": range_vs_base, "vs_value": range_vs_value},
-            "raw": {
-                "queue_value_total": queue_value_total,
-                "base_value_total":  base_value_total,
-                "day_value_total":   day_value_total,
-                "buy_value_total":   buy_value_total,
-                "sell_value_total":  sell_value_total,
-                "queue_type":        queue_type
-            }
-        }
-
-    # ---------- حالت SECTOR (لیست نمادهای صف‌دار در یک صنعت) ----------
+    # ---------- حالت SECTOR ----------
     if scope == "sector":
-        if not key:
-            raise HTTPException(status_code=400, detail="key (sector) is required for scope=sector")
+        if not sector:
+            raise HTTPException(status_code=400, detail="sector is required when scope=sector")
 
-        # فقط نمادهای صف‌دار را بیاور و همزمان buy/sell را هم جدا بده
         sql = f"""
             SELECT
                 q."stock_ticker"                                 AS stock,
@@ -303,7 +242,7 @@ async def queues_bullet(
             HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
             ORDER BY queue_value_total DESC
         """
-        params = {"date": date, "sector": key}
+        params = {"date": date, "sector": sector}
         res = await db.execute(text(sql), params)
         rows = res.mappings().all()
 
@@ -316,20 +255,21 @@ async def queues_bullet(
             base_value_total = int(r["base_value_total"]  or 0)
             day_value_total  = int(r["day_value_total"]   or 0)
 
-            # برای بولت‌چارت: رنج‌ها بر اساس بیشینه‌ی هر مقایسه
+            # محدوده برای مقیاس بولت‌چارت
             range_vs_base  = [0, max(queue_value_tot, base_value_total, 1)]
             range_vs_value = [0, max(queue_value_tot, day_value_total,  1)]
 
+            # مارکرها برای مقایسه
             markers = []
             if compare in ("base", "both"):
                 markers.append(base_value_total)
             if compare in ("value", "both"):
                 markers.append(day_value_total)
 
+            # نوع صف (buy یا sell)
             queue_type = (
-                "both" if (buy_value_total > 0 and sell_value_total > 0)
-                else "buy" if (buy_value_total > 0)
-                else "sell" if (sell_value_total > 0)
+                "buy" if buy_value_total > 0
+                else "sell" if sell_value_total > 0
                 else "none"
             )
 
@@ -339,16 +279,16 @@ async def queues_bullet(
                 "side": side,
                 "scope": "stock",
                 "compare": compare,
-                "measure": queue_value_tot,          # مقدار اصلی برای نمایش بولت
-                "markers": markers,                  # مارکرهای مقایسه‌ای
+                "measure": queue_value_tot,
+                "markers": markers,
                 "ranges": {"vs_base": range_vs_base, "vs_value": range_vs_value},
                 "raw": {
                     "queue_value_total": queue_value_tot,
                     "base_value_total":  base_value_total,
                     "day_value_total":   day_value_total,
-                    "buy_value_total":   buy_value_total,   # 👈 تفکیک صف خرید
-                    "sell_value_total":  sell_value_total,  # 👈 تفکیک صف فروش
-                    "queue_type":        queue_type         # buy | sell | both | none
+                    "buy_value_total":   buy_value_total,
+                    "sell_value_total":  sell_value_total,
+                    "queue_type":        queue_type
                 }
             })
 
@@ -357,18 +297,17 @@ async def queues_bullet(
             "date": date,
             "side": side,
             "scope": "sector",
-            "sector": key,
+            "sector": sector,
             "compare": compare,
             "count": len(items),
             "items": items
         }
 
-    # ---------- حالت TOP (برترین نمادهای صف‌دار کل بازار) ----------
-    # (مثل قبل، با فیلدهای buy/sell اضافه)
+    # ---------- حالت TOP ----------
     sql = f"""
         SELECT
-            q."stock_ticker"               AS stock,
-            SUM({qexpr})                   AS queue_value_total,
+            q."stock_ticker"                AS stock,
+            SUM({qexpr})                    AS queue_value_total,
             SUM(COALESCE(q."base_value",0)) AS base_value_total,
             SUM(COALESCE(q."Value",0))      AS day_value_total,
             SUM(COALESCE(q."BQ_Value",0))   AS buy_value_total,
@@ -403,9 +342,8 @@ async def queues_bullet(
             markers.append(day_value_total)
 
         queue_type = (
-            "both" if (buy_value_total > 0 and sell_value_total > 0)
-            else "buy" if (buy_value_total > 0)
-            else "sell" if (sell_value_total > 0)
+            "buy" if buy_value_total > 0
+            else "sell" if sell_value_total > 0
             else "none"
         )
 
