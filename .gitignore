@@ -9,3 +9,7 @@ __pycache__/
 logs/
 *.log
 "@ | Out-File -FilePath .gitignore -Encoding UTF8 -Append
+
+# ====== Project specific: exclude text lists ======
+# (Document folder with stock and fund lists)
+Document/*.txt
