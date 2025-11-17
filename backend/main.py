@@ -23,6 +23,8 @@ from backend.api import ceiling
 from backend.api import indicator_report
 from backend.api import signals_table
 from backend.api import queues_visual
+from cron_jobs.daily import capital_increase
+
 
 load_dotenv(dotenv_path=".env")
 
@@ -117,6 +119,7 @@ app.include_router(inscodeid.router, prefix="/inscodeid")
 
 app.include_router(queues_visual.router, prefix="/Safkharid")
 
+app.include_router(capital_increase.router)
 
 # 🔍 health check
 @app.get("/ping")
