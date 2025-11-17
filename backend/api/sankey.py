@@ -148,7 +148,21 @@ async def get_sankey_combined(
                         WHERE "Vol_Buy_R" IS NOT NULL
                           AND "Vol_Sell_R" IS NOT NULL
                           AND "Close"     IS NOT NULL
-                          AND trim(both FROM lower("Sector")) = trim(both FROM lower(:sector))
+                          AND REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(trim(both FROM lower("Sector")), 'ي','ی'),
+                                    'ك','ک'),
+                                '‌',''),
+                            'ـ','')
+                          =
+                            REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(trim(both FROM lower(:sector)), 'ي','ی'),
+                                    'ك','ک'),
+                                '‌',''),
+                            'ـ','')
                     ),
                     latest_rows AS (
                         SELECT DISTINCT ON ("Ticker")
@@ -161,7 +175,21 @@ async def get_sankey_combined(
                         WHERE "Vol_Buy_R" IS NOT NULL
                           AND "Vol_Sell_R" IS NOT NULL
                           AND "Close"     IS NOT NULL
-                          AND trim(both FROM lower("Sector")) = trim(both FROM lower(:sector))
+                          AND REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(trim(both FROM lower("Sector")), 'ي','ی'),
+                                    'ك','ک'),
+                                '‌',''),
+                            'ـ','')
+                          =
+                            REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(trim(both FROM lower(:sector)), 'ي','ی'),
+                                    'ك','ک'),
+                                '‌',''),
+                            'ـ','')
                           AND "updated_at"::date = last_day.d
                         ORDER BY "Ticker", "updated_at" DESC
                     )
