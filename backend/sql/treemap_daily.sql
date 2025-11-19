@@ -3,8 +3,8 @@ SELECT
     "Sector" AS sector,
     "Market Cap" AS marketcap,
     "Value" AS value,
-    ("Vol_Buy_I" - "Vol_Sell_I") AS net_haghighi,
     "Final" AS adjust_close,
+    ("Vol_Buy_I" - "Vol_Sell_I")* "Final" AS net_haghighi,
     "Close(%)" AS price_change
 FROM live_market_data
 WHERE "Sector" IS NOT NULL
