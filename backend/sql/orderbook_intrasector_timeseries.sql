@@ -17,8 +17,23 @@ SELECT
         COALESCE("SellPrice5", 0) * COALESCE("SellVolume5", 0)
     ), 0) AS total_sell
 FROM orderbook_snapshot
-WHERE "Timestamp"::date >= CURRENT_DATE - INTERVAL
-  AND "Sector" = :sector
+WHERE
+    -- نرمال‌سازی sector در سطح SQL (ی/ي، ک/ك، نیم‌فاصله، کشیده)
+    REPLACE(
+      REPLACE(
+        REPLACE(
+          REPLACE(trim(both FROM lower("Sector")), 'ي','ی'),
+        'ك','ک'),
+      '‌',''),
+    'ـ','')
+    =
+    REPLACE(
+      REPLACE(
+        REPLACE(
+          REPLACE(trim(both FROM lower(:sector)), 'ي','ی'),
+        'ك','ک'),
+      '‌',''),
+    'ـ','')
   AND "Symbol" IS NOT NULL
 GROUP BY "Sector", "Symbol", minute
 ORDER BY minute;
