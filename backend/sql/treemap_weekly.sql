@@ -9,7 +9,7 @@ SELECT
     sector,
     marketcap,
     value,
-    (buy_i_value - sell_i_value) AS net_haghighi,
+    (buy_i_value - sell_i_value)*adjust_close AS net_haghighi,
     adjust_close,
     prev_close,
     ROUND(100.0 * (adjust_close - prev_close) / NULLIF(prev_close, 0), 2) AS price_change
