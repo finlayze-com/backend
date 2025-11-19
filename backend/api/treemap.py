@@ -11,7 +11,30 @@ from backend.utils.sql_loader import load_sql
 from backend.utils.logger import logger
 from backend.utils.response import create_response  # ساختار پاسخ واحد
 
+
 router = APIRouter(prefix="", tags=["📊 Treemap"])
+
+
+def normalize_persian(text: str | None):
+    """
+    نرمال‌سازی حروف عربی/فارسی + حذف نیم‌فاصله و کشیدگی
+    """
+    if text is None:
+        return None
+    if not isinstance(text, str):
+        text = str(text)
+
+    text = text.strip().lower()
+    replacements = [
+        ("ي", "ی"),   # ya عربی → ya فارسی
+        ("ك", "ک"),   # kaf عربی → kaf فارسی
+        ("\u200c", ""),  # نیم‌فاصله (ZWNJ) → حذف
+        ("ـ", ""),    # کشیدگی → حذف
+    ]
+    for src, dst in replacements:
+        text = text.replace(src, dst)
+    return text
+
 
 class Timeframe(str, Enum):
     daily = "daily"
@@ -45,11 +68,17 @@ async def get_treemap_data(
 
         df = pd.DataFrame(rows)
 
+        # ستون نرمال‌شده سکتور برای مقایسه‌ی امن
+        df["sector_norm"] = df["sector"].astype(str).apply(normalize_persian)
+
         if sector:
-            df = df[df["sector"] == sector]
+            norm_sector = normalize_persian(sector)
+            df = df[df["sector_norm"] == norm_sector]
 
         if not include_etf:
-            df = df[df["sector"] != "صندوق سرمایه گذاری قابل معامله"]
+            etf_norm = normalize_persian("صندوق سرمایه گذاری قابل معامله")
+            df = df[df["sector_norm"] != etf_norm]
+
 
         # پاک‌سازی NaN/Inf
         df = df.replace([float("inf"), float("-inf")], 0).fillna(0)
