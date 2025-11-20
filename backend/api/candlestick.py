@@ -34,7 +34,11 @@ async def get_rawdata_for_echarts(
             # همان ستون‌های ریالی
             sql = text(f"""
                 SELECT {date_col} AS date,
-                       open, close, low, high, volume
+                       adjust_open AS open,
+                       adjust_close AS close,
+                       adjust_low AS low,
+                       adjust_high AS high,
+                       value AS volume
                 FROM {table}
                 WHERE stock_ticker = :stock
                 ORDER BY {date_col}
