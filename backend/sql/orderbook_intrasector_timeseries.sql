@@ -23,22 +23,6 @@ FROM orderbook_snapshot ob
 JOIN symboldetail sd
     ON sd."Ticker" = ob."Symbol"   -- 👈 اگر ستون اسمش چیز دیگه‌ست، اینو تغییر بده
 WHERE
-    -- نرمال‌سازی sector با پارامتر :sector (مثل نسخه قبلی خودت)
-    REPLACE(
-      REPLACE(
-        REPLACE(
-          REPLACE(trim(both FROM lower(ob."Sector")), 'ي','ی'),
-        'ك','ک'),
-      '‌',''),
-    'ـ','')
-    =
-    REPLACE(
-      REPLACE(
-        REPLACE(
-          REPLACE(trim(both FROM lower(:sector)), 'ي','ی'),
-        'ك','ک'),
-      '‌',''),
-    'ـ','')
-  AND ob."Symbol" IS NOT NULL
+   ob."Symbol" IS NOT NULL
 GROUP BY sector, "Symbol", instrument_type, minute
 ORDER BY minute;

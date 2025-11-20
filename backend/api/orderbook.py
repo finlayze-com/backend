@@ -90,9 +90,7 @@ async def get_orderbook_bumpchart_data(
     """
 
     params = {"start": start_naive, "end": end_naive}
-    if mode == Mode.intra:
-        # sector خام را به SQL پاس می‌دهیم؛ نرمالایز در SQL یا روی df انجام می‌شود
-        params["sector"] = sector
+    # 👈 دیگه sector را به SQL پاس نمی‌دهیم، چون در SQL پارامتری نداریم
 
     # 5) اجرای کوئری
     res = await db.execute(text(sql), params)
@@ -106,27 +104,7 @@ async def get_orderbook_bumpchart_data(
 
     df = pd.DataFrame(rows)
 
-    # 6) در حالت intrasector: فیلتر instrument_type روی saham/rtail/Block/right_issue
-    if mode == Mode.intra:
-        allowed_types = {"saham", "retail", "block","rights_issue"}
-        if "instrument_type" in df.columns:
-            df["instrument_type"] = df["instrument_type"].astype(str).str.lower()
-            df = df[df["instrument_type"].isin(allowed_types)]
-            if df.empty:
-                return create_response(
-                    data=[],
-                    message="هیچ نمادی با instrument_type معتبر (saham/Block/ratail) در آخرین روز معاملاتی یافت نشد.",
-                    status_code=200,
-                )
-        else:
-            # اگر این پیام را دیدی یعنی باید در SQL ستون instrument_type را اضافه کنی
-            return create_response(
-                data=[],
-                message="ستون instrument_type در خروجی orderbook_intrasector_timeseries وجود ندارد.",
-                status_code=200,
-            )
-
-    # 7) نرمال‌سازی نام سکتور روی df (برای مشکل ي/ی و ... در حالت intra)
+    # 6) در حالت intrasector: فیلتر نرم روی sector (نرمال‌سازی ي/ی و ...)
     if mode == Mode.intra and norm_sector:
         if "sector" in df.columns:
             df["sector_norm"] = df["sector"].astype(str).apply(normalize_persian)
@@ -134,9 +112,34 @@ async def get_orderbook_bumpchart_data(
             if df.empty:
                 return create_response(
                     data=[],
-                    message=f"بعد از نرمال‌سازی هیچ داده‌ای برای «{sector}» در آخرین روز معاملاتی یافت نشد.",
+                    message=f"بعد از نرمال‌سازی، هیچ داده‌ای برای «{sector}» در آخرین روز معاملاتی یافت نشد.",
                     status_code=200,
                 )
+        else:
+            return create_response(
+                data=[],
+                message="ستون sector در خروجی SQL وجود ندارد.",
+                status_code=200,
+            )
+
+    # 7) در حالت intrasector: فیلتر instrument_type روی saham / retail / block / rights_issue
+    if mode == Mode.intra:
+        allowed_types = {"saham", "retail", "block", "rights_issue"}
+        if "instrument_type" in df.columns:
+            df["instrument_type"] = df["instrument_type"].astype(str).str.lower()
+            df = df[df["instrument_type"].isin(allowed_types)]
+            if df.empty:
+                return create_response(
+                    data=[],
+                    message="هیچ نمادی با instrument_type معتبر (saham / retail / block / rights_issue) در آخرین روز معاملاتی یافت نشد.",
+                    status_code=200,
+                )
+        else:
+            return create_response(
+                data=[],
+                message="ستون instrument_type در خروجی orderbook_intrasector_timeseries وجود ندارد.",
+                status_code=200,
+            )
 
     # 8) چک کردن ستون‌های ضروری
     need = {"total_buy", "total_sell", "minute", group_col}
