@@ -108,7 +108,7 @@ async def get_orderbook_bumpchart_data(
 
     # 6) در حالت intrasector: فیلتر instrument_type روی saham/rtail/Block/right_issue
     if mode == Mode.intra:
-        allowed_types = {"saham", "retail", "Block","rights_issue"}
+        allowed_types = {"saham", "retail", "block","rights_issue"}
         if "instrument_type" in df.columns:
             df["instrument_type"] = df["instrument_type"].astype(str).str.lower()
             df = df[df["instrument_type"].isin(allowed_types)]
