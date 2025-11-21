@@ -35,7 +35,12 @@ def weekly_haghighi_data():
         'sell_i_value': 'sum',
         'sell_n_value': 'sum',
         'sell_n_count': 'sum',
-        'sell_i_count': 'sum'
+        'sell_i_count': 'sum',
+        # 👇 این‌ها را اضافه کن
+        'buy_i_value_usd': 'sum',
+        'buy_n_value_usd': 'sum',
+        'sell_i_value_usd': 'sum',
+        'sell_n_value_usd': 'sum',
     }).reset_index()
 
     grouped.rename(columns={'recdate': 'week_start'}, inplace=True)
@@ -58,9 +63,10 @@ def weekly_haghighi_data():
             buy_i_volume, buy_n_volume,
             buy_i_value, buy_n_value, buy_n_count,
             sell_i_volume, buy_i_count, sell_n_volume,
-            sell_i_value, sell_n_value, sell_n_count, sell_i_count
+            sell_i_value, sell_n_value, sell_n_count, sell_i_count,
+            buy_i_value_usd, buy_n_value_usd, sell_i_value_usd, sell_n_value_usd
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (symbol, week_end) DO NOTHING;
         """
 
@@ -70,7 +76,8 @@ def weekly_haghighi_data():
                 'buy_i_volume', 'buy_n_volume',
                 'buy_i_value', 'buy_n_value', 'buy_n_count',
                 'sell_i_volume', 'buy_i_count', 'sell_n_volume',
-                'sell_i_value', 'sell_n_value', 'sell_n_count', 'sell_i_count'
+                'sell_i_value', 'sell_n_value', 'sell_n_count', 'sell_i_count',
+                'buy_i_value_usd', 'buy_n_value_usd', 'sell_i_value_usd', 'sell_n_value_usd'
             ]].values.tolist())
             conn.commit()
 
