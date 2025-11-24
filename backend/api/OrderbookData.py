@@ -29,12 +29,12 @@ async def get_orderbook_timeseries(
 
     # انتخاب کوئری
     if mode == Mode.sector:
-        sql = load_sql("orderbook_sector_timeseries")
+        sql = load_sql("orderbook_timeseries_sector")
         params = {}
         group_col = "sector"
         success_msg = "✅ Orderbook timeseries (sector)"
     else:
-        sql = load_sql("orderbook_intrasector_timeseries")
+        sql = load_sql("orderbook_timeseries_intrasector")
         params = {"sector": sector}
         group_col = "Symbol"
         success_msg = f"✅ Orderbook timeseries (intra-sector: {sector})"

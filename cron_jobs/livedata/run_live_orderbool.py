@@ -12,8 +12,21 @@ engine = create_engine(DB_URL)
 
 # گرفتن لیست نمادها و اطلاعات آنها از جدول symboldetail
 def get_inscodes():
-    query = 'SELECT "insCode", "stock_ticker", "sector" FROM "symboldetail"'
+    query = """
+        SELECT
+            sd."insCode",
+            sd."stock_ticker",
+            sd."sector"
+        FROM "symboldetail" sd
+        JOIN (
+            SELECT DISTINCT "Ticker"
+            FROM live_market_data
+            WHERE "Download"::date = CURRENT_DATE 
+        ) lm
+        ON lm."Ticker" = sd."stock_ticker"
+    """
     return pd.read_sql(query, engine)
+
 
 # گرفتن داده اردربوک برای یک نماد
 async def fetch_orderbook(session, inscode, symbol, sector):
