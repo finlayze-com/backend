@@ -60,16 +60,9 @@ async def get_orderbook_bumpchart_data(
 
     group_col = "sector" if mode == Mode.sector else "Symbol"
 
-    # # --- Prepare time range (09:00 - 13:00 Tehran) ---
-    #now = datetime.now(ZoneInfo("Asia/Tehran"))
-    #today = now.date()
-
-    # ✔ پیدا کردن آخرین روز معاملاتی واقعی در orderbook_snapshot
-    last_day_res = await db.execute(
-        text('SELECT MAX("Timestamp"::date) AS d FROM orderbook_snapshot')
-    )
-    today = last_day_res.scalar()
-
+    # --- Prepare time range (09:00 - 13:00 Tehran) ---
+    now = datetime.now(ZoneInfo("Asia/Tehran"))
+    today = now.date()
     start_naive = datetime.combine(today, time(9, 0), tzinfo=ZoneInfo("Asia/Tehran")).replace(tzinfo=None)
     end_naive   = datetime.combine(today, time(13, 0), tzinfo=ZoneInfo("Asia/Tehran")).replace(tzinfo=None)
 
