@@ -37,16 +37,19 @@ def to_jalali_str(greg_date):
     """تبدیل تاریخ میلادیِ date به رشته جلالی YYYY-MM-DD"""
     return jdatetime.date.fromgregorian(date=greg_date).strftime('%Y-%m-%d')
 
+
 def j2g_yyyymmdd(jdate_str: str) -> str:
     """تبدیل رشته جلالی YYYY-MM-DD به میلادی فشرده YYYYMMDD (برای API)"""
     y, m, d = map(int, jdate_str.split('-'))
     g = jdatetime.date(y, m, d).togregorian()
     return f"{g.year:04}{g.month:02}{g.day:02}"
 
+
 def h_even_to_timestr(h: int) -> str:
     """تبدیل hEven مثل 123000 به HH:MM:SS"""
     s = str(int(h)).zfill(6)
     return f"{s[:2]}:{s[2:4]}:{s[4:]}"
+
 
 # ---------------------- بارگذاری .env ---------------------- #
 load_dotenv()
@@ -78,7 +81,8 @@ try:
 except Exception as e:
     logging.exception("❌ خطا در تعیین تاریخ هدف: %s", e)
     print("   ❌ Error determining target date:", e)
-    cursor.close(); conn.close()
+    cursor.close()
+    conn.close()
     raise
 
 # ---------------------- دریافت لیست نمادها و inscode ---------------------- #
@@ -98,8 +102,10 @@ try:
 except Exception as e:
     logging.exception("❌ خطا در گرفتن لیست نمادها: %s", e)
     print("   ❌ Error fetching tickers:", e)
-    cursor.close(); conn.close()
+    cursor.close()
+    conn.close()
     raise
+
 
 # ---------------------- فراخوانی APIهای TSETMC ---------------------- #
 def get_thresholds(inscode: str, yyyymmdd: str):
@@ -118,6 +124,7 @@ def get_thresholds(inscode: str, yyyymmdd: str):
     day_ub = int(row["psGelStaMax"])
     day_ll = int(row["psGelStaMin"])
     return day_ub, day_ll
+
 
 def get_bestlimits_snapshot(inscode: str, yyyymmdd: str):
     """
@@ -156,6 +163,7 @@ def get_bestlimits_snapshot(inscode: str, yyyymmdd: str):
     snap = df[df["hEven"] == tmax_all].sort_values("number").head(1).iloc[0].to_dict()
     return snap
 
+
 def get_value_from_old_endpoint(inscode: str, yyyymmdd: str):
     """
     ارزش معاملات روزانه (Value) را از endpoint قدیمی می‌خواند و فقط همان تاریخ را برمی‌گرداند.
@@ -178,10 +186,11 @@ def get_value_from_old_endpoint(inscode: str, yyyymmdd: str):
         if d == yyyymmdd:
             try:
                 last_value = int(float(parts[7]))
-            except:
+            except Exception:
                 last_value = 0
             break
     return last_value
+
 
 def compute_queues_from_snapshot(snap: dict, day_ub: int, day_ll: int):
     """
@@ -189,21 +198,21 @@ def compute_queues_from_snapshot(snap: dict, day_ub: int, day_ll: int):
     - صف خرید: قیمت خرید سطح 1 == سقف روز
     - صف فروش: قیمت فروش سطح 1 == کف روز
     """
-    p_buy  = snap.get("pMeDem",  snap.get("Price_Buy"))
-    q_buy  = snap.get("qTitMeDem", snap.get("Vol_Buy"))
-    n_buy  = snap.get("zOrdMeDem", snap.get("No_Buy"))
+    p_buy = snap.get("pMeDem", snap.get("Price_Buy"))
+    q_buy = snap.get("qTitMeDem", snap.get("Vol_Buy"))
+    n_buy = snap.get("zOrdMeDem", snap.get("No_Buy"))
 
-    p_sell = snap.get("pMeOf",   snap.get("Price_Sell"))
-    q_sell = snap.get("qTitMeOf",  snap.get("Vol_Sell"))
-    n_sell = snap.get("zOrdMeOf",  snap.get("No_Sell"))
+    p_sell = snap.get("pMeOf", snap.get("Price_Sell"))
+    q_sell = snap.get("qTitMeOf", snap.get("Vol_Sell"))
+    n_sell = snap.get("zOrdMeOf", snap.get("No_Sell"))
 
-    p_buy  = float(p_buy)  if p_buy  is not None else 0.0
-    q_buy  = int(q_buy)    if q_buy  is not None else 0
-    n_buy  = int(n_buy)    if n_buy  is not None else 0
+    p_buy = float(p_buy) if p_buy is not None else 0.0
+    q_buy = int(q_buy) if q_buy is not None else 0
+    n_buy = int(n_buy) if n_buy is not None else 0
 
     p_sell = float(p_sell) if p_sell is not None else 0.0
-    q_sell = int(q_sell)   if q_sell is not None else 0
-    n_sell = int(n_sell)   if n_sell is not None else 0
+    q_sell = int(q_sell) if q_sell is not None else 0
+    n_sell = int(n_sell) if n_sell is not None else 0
 
     bq_value = 0
     sq_value = 0
@@ -222,6 +231,7 @@ def compute_queues_from_snapshot(snap: dict, day_ub: int, day_ll: int):
 
     time_close = h_even_to_timestr(int(snap.get("hEven", CLOSE_HEVEN)))
     return bq_value, sq_value, bqpc, sqpc, time_close
+
 
 # ---------------------- دریافت adjust_high و baseVol برای همان روز ---------------------- #
 def get_base_parts(inscode: str, yyyymmdd: str):
@@ -263,35 +273,81 @@ def get_base_parts(inscode: str, yyyymmdd: str):
 
     return adjust_high, base_vol
 
+
 # ---------------------- پردازش فقط صف‌دارها ---------------------- #
 engine = create_engine(DB_URL_SYNC)
 records = []
 downloaded_at = datetime.now(timezone.utc)
 
 print(f"🔸 Processing {len(tickers)} tickers for date {date_g} (J:{date_j}) ...")
+
 for idx, (stock_ticker, ins) in enumerate(tickers, start=1):
     if idx % 50 == 1 or idx == len(tickers):
         print(f"   … {idx}/{len(tickers)}")
+
+    # لاگ اینکه الان کدام نماد در حال پردازش است
+    print(f"→ Processing: {stock_ticker} ({ins})")
+    logging.info(f"Processing: {stock_ticker} ({ins})")
+
+    # --- مرحله ۱: Threshold ---
     try:
         day_ub, day_ll = get_thresholds(ins, date_g_compact)
+    except Exception as e:
+        logging.warning(f"{stock_ticker} ({ins}) - Threshold error: {e}")
+        print(f"❌ Threshold error for {stock_ticker} ({ins}): {e}")
+        continue
+
+    # --- مرحله ۲: BestLimits snapshot ---
+    try:
         snap = get_bestlimits_snapshot(ins, date_g_compact)
-        if not snap:
-            continue
+    except Exception as e:
+        logging.warning(f"{stock_ticker} ({ins}) - BestLimits error: {e}")
+        print(f"❌ BestLimits error for {stock_ticker} ({ins}): {e}")
+        continue
 
-        bq_value, sq_value, bqpc, sqpc, time_close = compute_queues_from_snapshot(snap, day_ub, day_ll)
+    if not snap:
+        logging.info(f"{stock_ticker} ({ins}) - No BestLimits snapshot, skipping.")
+        print(f"⚠️ No BestLimits snapshot for {stock_ticker} ({ins}), skipping.")
+        continue
 
-        # ✅ فقط اگر صف خرید یا صف فروش وجود داشت، ذخیره کن
-        if bq_value <= 0 and sq_value <= 0:
-            continue
+    # --- مرحله ۳: محاسبه صف ---
+    try:
+        bq_value, sq_value, bqpc, sqpc, time_close = compute_queues_from_snapshot(
+            snap, day_ub, day_ll
+        )
 
+        # دیباگ ویژه برای وسپه
+        if stock_ticker == 'وسپه' or ins == '2328862017676109':
+            print(f"   [DEBUG وسپه] day_ub={day_ub}, day_ll={day_ll}")
+            print(
+                f"   [DEBUG وسپه] bq_value={bq_value}, sq_value={sq_value}, "
+                f"bqpc={bqpc}, sqpc={sqpc}, time_close={time_close}"
+            )
+            print(
+                "   [DEBUG وسپه] snap fields: "
+                f"pMeDem={snap.get('pMeDem')}, qTitMeDem={snap.get('qTitMeDem')}, "
+                f"pMeOf={snap.get('pMeOf')}, qTitMeOf={snap.get('qTitMeOf')}, "
+                f"hEven={snap.get('hEven')}"
+            )
+    except Exception as e:
+        logging.warning(f"{stock_ticker} ({ins}) - Queue compute error: {e}")
+        print(f"❌ Queue compute error for {stock_ticker} ({ins}): {e}")
+        continue
+
+    # فقط اگر صف خرید یا فروش باشد
+    if bq_value <= 0 and sq_value <= 0:
+        continue
+
+    # --- مرحله ۴: سایر اطلاعات (Value, base_value) و ساخت رکورد ---
+    try:
         day_value = get_value_from_old_endpoint(ins, date_g_compact)  # ارزش معاملات روز
 
-        # 🔹 گرفتن adjust_high و baseVol و محاسبه base_value
+        # گرفتن adjust_high و baseVol و محاسبه base_value
         adj_high, base_vol = get_base_parts(ins, date_g_compact)
         if adj_high is not None and base_vol is not None:
             try:
                 base_value = float(adj_high) * int(base_vol)
-            except:
+            except Exception:
                 base_value = 0
         else:
             base_value = 0
@@ -317,7 +373,9 @@ for idx, (stock_ticker, ins) in enumerate(tickers, start=1):
         records.append(rec)
 
     except Exception as e:
-        logging.warning(f"{stock_ticker} ({ins}) - خطا: {e}")
+        logging.warning(f"{stock_ticker} ({ins}) - After-queue error: {e}")
+        print(f"❌ After-queue error for {stock_ticker} ({ins}): {e}")
+        continue
 
 if not records:
     logging.warning("⚠️ هیچ رکورد صف‌داری برای ذخیره وجود ندارد.")
@@ -333,7 +391,10 @@ else:
             quote = Table("quote", md, autoload_with=connection)
 
             table_cols = {c.name for c in quote.columns}
-            filtered_records = [{k: v for k, v in rec.items() if k in table_cols} for rec in records]
+            filtered_records = [
+                {k: v for k, v in rec.items() if k in table_cols}
+                for rec in records
+            ]
 
             if not filtered_records:
                 logging.warning("⚠️ بعد از فیلتر کردن ستون‌ها، چیزی برای نوشتن باقی نماند.")
