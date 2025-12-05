@@ -18,6 +18,10 @@ import jdatetime
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from dotenv import load_dotenv
+import urllib3
+
+# غیرفعال کردن هشدار SSL برای verify=False (فقط برای محیط دیباگ)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ---------------------- تنظیمات عمومی ---------------------- #
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -114,7 +118,7 @@ def get_thresholds(inscode: str, yyyymmdd: str):
     خروجی: (day_ub, day_ll) به int
     """
     url = f"https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/{inscode}/{yyyymmdd}"
-    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
     r.raise_for_status()
     js = r.json()
     df = pd.DataFrame(js.get("staticThreshold", []))
@@ -133,7 +137,7 @@ def get_bestlimits_snapshot(inscode: str, yyyymmdd: str):
     خروجی: dict یک ردیف (top level) یا None
     """
     url = f"https://cdn.tsetmc.com/api/BestLimits/{inscode}/{yyyymmdd}"
-    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
     r.raise_for_status()
     js = r.json()
 
@@ -170,7 +174,7 @@ def get_value_from_old_endpoint(inscode: str, yyyymmdd: str):
     اگر پیدا نشد → 0
     """
     url = f"https://old.tsetmc.com/tsev2/data/InstTradeHistory.aspx?i={inscode}&Top=999999&A=0"
-    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
     r.raise_for_status()
     txt = r.text.strip()
     if not txt:
@@ -247,7 +251,7 @@ def get_base_parts(inscode: str, yyyymmdd: str):
     # --- Adjusted High ---
     try:
         url = f"https://old.tsetmc.com/tsev2/data/InstTradeHistory.aspx?i={inscode}&Top=999999&A=1"
-        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
         r.raise_for_status()
         txt = r.text.strip()
         for row in txt.split(";"):
@@ -263,7 +267,7 @@ def get_base_parts(inscode: str, yyyymmdd: str):
     # --- BaseVol ---
     try:
         url = f"https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{inscode}"
-        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
         if r.ok:
             js = r.json()
             info = js.get("instrumentInfo", {})
@@ -285,7 +289,6 @@ for idx, (stock_ticker, ins) in enumerate(tickers, start=1):
     if idx % 50 == 1 or idx == len(tickers):
         print(f"   … {idx}/{len(tickers)}")
 
-    # لاگ اینکه الان کدام نماد در حال پردازش است
     print(f"→ Processing: {stock_ticker} ({ins})")
     logging.info(f"Processing: {stock_ticker} ({ins})")
 
