@@ -110,9 +110,23 @@ def build_weekly_from_daily(
                     # pick last non-null value over the window
                     weekly[c] = g[c].ffill().iloc[-1]
 
-        # write only new weeks (strictly greater than last_week_end, if last_week_end not None)
-        if last_week_end is not None:
-            weekly = weekly[weekly["week_end"] > last_week_end]
+        # # write only new weeks (strictly greater than last_week_end, if last_week_end not None)
+        # if last_week_end is not None:
+        #     weekly = weekly[weekly["week_end"] > last_week_end]
+
+
+        # ✅ Insert only NEW completed weeks, but always include the latest week for UPDATE
+        if not weekly.empty:
+            max_week_end = weekly["week_end"].max()
+
+            if last_week_end is not None:
+                weekly = weekly[
+                    (weekly["week_end"] > last_week_end) |  # weeks not in DB yet
+                    (weekly["week_end"] == max_week_end)  # always update last week
+                    ]
+
+                # (اختیاری ولی تمیز): اگر max_week_end خیلی عقب‌تر از last_week_end بود، چیزی ننویس
+                weekly = weekly[weekly["week_end"] >= last_week_end]
 
         if not weekly.empty:
             all_weekly.append(weekly)
