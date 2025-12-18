@@ -123,7 +123,7 @@ def build_symboldetail_select(engine: Engine) -> str:
         raise RuntimeError("Could not find insCode-like column in symboldetail/symbolDetail.")
 
     # symbol candidates
-    symbol_col = pick_first_existing(cols, ["ticker", "symbol", "lVal18AFC", "lval18afc", "lVal30", "lval30"])
+    symbol_col = pick_first_existing(cols, ["stock_ticker", "symbol", "lVal18AFC", "lval18afc", "lVal30", "lval30"])
 
     # market candidates (فارسی بازار)
     market_col = pick_first_existing(cols, ["market", "marketTitle", "market_title", "cGrValCotTitle", "marketNameFa"])
