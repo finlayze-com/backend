@@ -51,10 +51,10 @@ DB_URL_SYNCED = get_sync_db_url()
 BASE_URL = "https://cdn.tsetmc.com/api/Trade/GetTradeHistory"
 TIMEOUT = 20
 MAX_RETRIES = 3
-SLEEP_BETWEEN_REQUESTS = 0.12
+SLEEP_BETWEEN_REQUESTS = 0.25
 BATCH_INSERT_SIZE = 2000
 VERIFY_SSL = True
-MONTHS_BACK_DEFAULT = 6
+MONTHS_BACK_DEFAULT = 1
 
 logging.basicConfig(
     level=logging.INFO,
