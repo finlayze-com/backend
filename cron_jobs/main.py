@@ -75,7 +75,7 @@ LIVE_TASKS: List[Tuple[str, Path]] = [
 
 # ETL modules to run with -m (back-to-back after watcher OK)
 NIGHTLY_MODULES: List[Tuple[str, str]] = [
-    ("dollar",                "cron_jobs.otherimportantFile.dollar"),
+    ("dollar",                "cron_jobs.otherImportantFile.dollar"),
     ("run_saham",             "cron_jobs.daily.common.groups.run_saham"),
     ("update_daily_haghighi", "cron_jobs.daily.update_daily_haghighi"),
     ("run_saham_ind",         "cron_jobs.daily.common.groups.run_saham_ind"),
