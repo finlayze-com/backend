@@ -3,7 +3,7 @@ import os
 import time
 import logging
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set, Tuple
 
 import requests
 from sqlalchemy import create_engine, text
@@ -15,6 +15,7 @@ try:
     load_dotenv()
 except Exception:
     pass
+
 
 # ---------------------------
 # Settings
@@ -54,12 +55,27 @@ MAX_RETRIES = 3
 SLEEP_BETWEEN_REQUESTS = 0.25
 BATCH_INSERT_SIZE = 2000
 VERIFY_SSL = True
-MONTHS_BACK_DEFAULT = 1
+MONTHS_BACK_DEFAULT = 6
+
+# MarketWatchPlus (منطق Get_MarketWatch)
+MARKETWATCH_PLUS_URL = "http://old.tsetmc.com/tsev2/data/MarketWatchPlus.aspx"
+MARKETWATCH_MKT_IDS = {"300", "303", "305", "309", "400", "403", "404"}  # مثل کد شما
+# در MarketWatchPlus:
+# columns 0..22 (23 تا) => 0=WEB-ID, 10=Value, 22=Mkt-ID
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
+
+DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+}
+
 
 # ---------------------------
 # DB helpers
@@ -90,9 +106,6 @@ def pick_first_existing(cols: List[str], candidates: List[str]) -> Optional[str]
 
 
 def find_existing_table_name(engine: Engine, candidates: List[str], schema: str = "public") -> str:
-    """
-    Find the real table name in Postgres (case-sensitive safe).
-    """
     q = text("""
         SELECT table_name
         FROM information_schema.tables
@@ -108,13 +121,6 @@ def find_existing_table_name(engine: Engine, candidates: List[str], schema: str 
 
 
 def build_symboldetail_select(engine: Engine) -> str:
-    """
-    ✅ Fix:
-      - table could be symboldetail (lowercase) or "symbolDetail"
-      - column could be inscode (lowercase) or insCode
-      - aliases MUST be quoted so result keys are exactly:
-        insCode, symbol, market, instrument_type, sector
-    """
     table_name = find_existing_table_name(engine, candidates=["symboldetail", "symbolDetail"], schema="public")
     cols = fetch_table_columns(engine, table_name, "public")
 
@@ -122,16 +128,11 @@ def build_symboldetail_select(engine: Engine) -> str:
     if not ins_col:
         raise RuntimeError("Could not find insCode-like column in symboldetail/symbolDetail.")
 
-    # symbol candidates
+    # ✅ طبق گفته شما
     symbol_col = pick_first_existing(cols, ["stock_ticker", "symbol", "lVal18AFC", "lval18afc", "lVal30", "lval30"])
 
-    # market candidates (فارسی بازار)
     market_col = pick_first_existing(cols, ["market", "marketTitle", "market_title", "cGrValCotTitle", "marketNameFa"])
-
-    # instrument type candidates (فارسی نوع ابزار)
     inst_type_col = pick_first_existing(cols, ["instrument_type", "instrumentTypeTitle", "cComValTitle", "typeTitle"])
-
-    # sector candidates (فارسی صنعت)
     sector_col = pick_first_existing(cols, ["sector", "industry", "industryTitle", "cSecValTitle", "sectorTitle"])
 
     def col_or_null(c: Optional[str]) -> str:
@@ -139,7 +140,6 @@ def build_symboldetail_select(engine: Engine) -> str:
 
     symbol_expr = f"COALESCE(NULLIF(TRIM({col_or_null(symbol_col)}), ''), 'UNKNOWN')"
 
-    # ✅ quoted aliases to force exact mapping keys
     sql = f"""
         SELECT
             "{ins_col}"::bigint AS "insCode",
@@ -168,6 +168,88 @@ def get_max_deven(engine: Engine, inscode: int) -> Optional[int]:
         return int(r["max_deven"])
     return None
 
+
+# ---------------------------
+# MarketWatchPlus -> traded inscodes
+# ---------------------------
+
+def fetch_traded_inscodes_from_marketwatchplus(
+    timeout: int = 30,
+    verify_ssl: bool = True,
+) -> Set[int]:
+    """
+    - از MarketWatchPlus.aspx بخش @2
+    - 0=WEB-ID (insCode)
+    - 10=Value
+    - 22=Mkt-ID
+    خروجی: insCode هایی که Value>0 دارند.
+    """
+    r = requests.get(
+        MARKETWATCH_PLUS_URL,
+        headers=DEFAULT_HEADERS,
+        timeout=timeout,
+        verify=verify_ssl,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f"MarketWatchPlus fetch failed: status={r.status_code}")
+
+    txt = r.text or ""
+    parts = txt.split("@")
+    if len(parts) < 4:
+        raise RuntimeError("MarketWatchPlus unexpected format: not enough '@' parts")
+
+    table_part = parts[2]
+    rows = table_part.split(";")
+
+    out: Set[int] = set()
+
+    for row in rows:
+        if not row:
+            continue
+        cols = row.split(",")
+        if len(cols) < 23:
+            continue
+
+        web_id = cols[0].strip()
+        value_str = cols[10].strip()
+        mkt_id = cols[22].strip()
+
+        if not web_id.isdigit():
+            continue
+        if mkt_id not in MARKETWATCH_MKT_IDS:
+            continue
+
+        try:
+            value_num = int(float(value_str))
+        except Exception:
+            continue
+
+        if value_num > 0:
+            out.add(int(web_id))
+
+    return out
+
+
+def filter_symbols_by_ids(symbols: List[Dict[str, Any]], allowed_ids: Set[int]) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    برمی‌گردونه:
+      - symbols_filtered
+      - missing_count (idهایی که در MarketWatch بودن ولی در symboldetail نبودن)
+    """
+    sym_map = {int(m["insCode"]): m for m in symbols if m.get("insCode") is not None}
+    missing = 0
+    filtered = []
+
+    for ins in allowed_ids:
+        m = sym_map.get(int(ins))
+        if m is None:
+            missing += 1
+            continue
+        filtered.append(m)
+
+    return filtered, missing
+
+
 # ---------------------------
 # Date helpers
 # ---------------------------
@@ -182,6 +264,17 @@ def daterange_inclusive(start: date, end: date):
         yield cur
         cur += timedelta(days=1)
 
+
+def int_to_date_yyyymmdd(x: int) -> Optional[date]:
+    try:
+        s = str(x)
+        if len(s) != 8:
+            return None
+        return date(int(s[0:4]), int(s[4:6]), int(s[6:8]))
+    except Exception:
+        return None
+
+
 # ---------------------------
 # API helpers
 # ---------------------------
@@ -191,7 +284,7 @@ def request_trade_history(inscode: int, deven: int) -> List[Dict[str, Any]]:
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            resp = requests.get(url, timeout=TIMEOUT, verify=VERIFY_SSL)
+            resp = requests.get(url, timeout=TIMEOUT, verify=VERIFY_SSL, headers=DEFAULT_HEADERS)
             if resp.status_code == 200:
                 js = resp.json()
                 return js.get("tradeHistory", []) or []
@@ -268,44 +361,76 @@ def upsert_batch(engine: Engine, rows: List[Dict[str, Any]]) -> int:
 # ---------------------------
 
 def run(months_back: int = MONTHS_BACK_DEFAULT, only_today: bool = False):
+    t0 = time.time()
     engine = get_engine()
     with engine.begin() as conn:
         conn.execute(text("SELECT 1"))
 
-    symbols = fetch_symbols(engine)
-    logging.info(f"Loaded {len(symbols)} symbols from symboldetail/symbolDetail.")
+    # 1) load all symbols
+    symbols_all = fetch_symbols(engine)
+    logging.info(f"Loaded {len(symbols_all)} symbols from symboldetail/symbolDetail.")
+    if symbols_all:
+        logging.info(f"Meta keys sample: {list(symbols_all[0].keys())}")
 
-    # debug: فقط یک بار اولین meta رو ببین (اگر خواستی کامنت کن)
-    if symbols:
-        logging.info(f"Meta keys sample: {list(symbols[0].keys())}")
+    # 2) traded ids from MarketWatchPlus
+    traded_ids = fetch_traded_inscodes_from_marketwatchplus(timeout=30, verify_ssl=VERIFY_SSL)
+    logging.info(f"MarketWatchPlus: traded_ids(Value>0) = {len(traded_ids)}")
 
+    # 3) filter by symboldetail (show missing)
+    symbols, missing = filter_symbols_by_ids(symbols_all, traded_ids)
+    logging.info(f"Matched traded_ids with symboldetail: {len(symbols)} symbols. missing_in_symboldetail={missing}")
+
+    if not symbols:
+        logging.warning("No symbols after filtering. Market may be closed or endpoint blocked.")
+        return
+
+    # --- overall stats
+    total_symbols = len(symbols)
     today = date.today()
     start_backfill = today - timedelta(days=months_back * 30)
 
     total_rows = 0
     total_requests = 0
+    total_nonempty_days = 0
 
-    for meta in symbols:
+    logging.info(
+        f"Start run: months_back={months_back}, only_today={only_today}, "
+        f"date_range_from={start_backfill} to {today}, symbols={total_symbols}"
+    )
+
+    for idx, meta in enumerate(symbols, start=1):
         inscode = int(meta["insCode"])
         sym = meta.get("symbol", "UNKNOWN")
-        logging.info(f"→ {sym} ({inscode})")
+
+        # progress header
+        logging.info(f"[{idx}/{total_symbols}] → {sym} ({inscode})")
 
         if only_today:
             days = [today]
+            max_deven = None
+            start_date = today
         else:
             max_deven = get_max_deven(engine, inscode)
             start_date = start_backfill
 
             if max_deven is not None:
-                s = str(max_deven)
-                if len(s) == 8:
-                    last_date = date(int(s[0:4]), int(s[4:6]), int(s[6:8]))
+                last_date = int_to_date_yyyymmdd(max_deven)
+                if last_date:
                     start_date = max(start_backfill, last_date + timedelta(days=1))
 
             if start_date > today:
+                logging.info(f"    skip: already up-to-date (max_dEven={max_deven})")
                 continue
 
             days = list(daterange_inclusive(start_date, today))
+
+        logging.info(
+            f"    plan: days_to_check={len(days)} | start_date={start_date} | "
+            f"max_dEven={max_deven}"
+        )
+
+        symbol_rows = 0
+        symbol_nonempty = 0
 
         for d in days:
             deven = yyyymmdd(d)
@@ -324,9 +449,25 @@ def run(months_back: int = MONTHS_BACK_DEFAULT, only_today: bool = False):
             for b in chunked(rows, BATCH_INSERT_SIZE):
                 total_rows += upsert_batch(engine, b)
 
-            logging.info(f"  {deven}: +{len(rows)} rows")
+            symbol_rows += len(rows)
+            symbol_nonempty += 1
+            total_nonempty_days += 1
 
-    logging.info(f"Done. requests={total_requests}, inserted/updated={total_rows}")
+            logging.info(f"    {deven}: +{len(rows)} rows (symbol_total={symbol_rows})")
+
+        elapsed = time.time() - t0
+        rps = (total_requests / elapsed) if elapsed > 0 else 0.0
+        logging.info(
+            f"[{idx}/{total_symbols}] done: symbol_rows={symbol_rows}, nonempty_days={symbol_nonempty} | "
+            f"overall_rows={total_rows}, requests={total_requests}, "
+            f"elapsed={elapsed/60:.2f} min, req/s={rps:.2f}"
+        )
+
+    elapsed = time.time() - t0
+    logging.info(
+        f"Done. symbols={total_symbols}, nonempty_days={total_nonempty_days}, "
+        f"requests={total_requests}, inserted/updated={total_rows}, elapsed={elapsed/60:.2f} min"
+    )
 
 
 if __name__ == "__main__":
