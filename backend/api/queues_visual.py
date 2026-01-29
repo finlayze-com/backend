@@ -31,8 +31,11 @@ router = APIRouter(prefix="/queues", tags=["📊 Queues Visuals"])
 
 def _normalize_quote_date(date_str: str) -> str:
     """
-    ورودی می‌تواند شمسی (1404-10-25) یا میلادی (2025-11-05) باشد.
-    خروجی همیشه مطابق فرمتی است که در quote.date ذخیره شده (شمسی YYYY-MM-DD).
+    ورودی می‌تواند:
+      - شمسی: 1404-8-18 یا 1404-08-18
+      - میلادی: 2025-11-09
+    خروجی همیشه:
+      - شمسی با فرمت دقیق DB: YYYY-MM-DD (صفرگذاری شده)
     """
     s = (date_str or "").strip()
     if not s:
@@ -44,11 +47,12 @@ def _normalize_quote_date(date_str: str) -> str:
 
     try:
         y = int(parts[0])
-        int(parts[1]); int(parts[2])
+        m = int(parts[1])
+        d = int(parts[2])
     except Exception:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
 
-    # اگر سال بزرگ بود => میلادی است، تبدیل به شمسی
+    # Gregorian -> Jalali
     if y >= 1700:
         try:
             import jdatetime
@@ -58,16 +62,18 @@ def _normalize_quote_date(date_str: str) -> str:
                 detail="jdatetime is required to convert Gregorian date to Jalali. Install: pip install jdatetime",
             )
 
+        # حتماً صفرگذاری کنیم تا strptime هم مطمئن باشد
+        s_g = f"{y:04d}-{m:02d}-{d:02d}"
         try:
-            g = datetime.strptime(s, "%Y-%m-%d").date()
+            g = datetime.strptime(s_g, "%Y-%m-%d").date()
         except Exception:
             raise HTTPException(status_code=400, detail="invalid Gregorian date (expected YYYY-MM-DD)")
 
         j = jdatetime.date.fromgregorian(date=g)
-        return j.strftime("%Y-%m-%d")
+        return j.strftime("%Y-%m-%d")  # خودش صفرگذاری شده است
 
-    # در غیر اینصورت => شمسی فرض می‌کنیم
-    return s
+    # Jalali: فقط صفرگذاری (DB text = دقیقا YYYY-MM-DD)
+    return f"{y:04d}-{m:02d}-{d:02d}"
 
 
 async def _latest_quote_date(db: AsyncSession) -> str:
@@ -125,9 +131,6 @@ async def queues_treemap(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    توضیح رنگ: color_value = (BQ_Value - SQ_Value)  ⇒ مثبت = غلبه خرید، منفی = غلبه فروش
-    """
     if date is None:
         date = await _latest_quote_date(db)
     else:
@@ -154,7 +157,6 @@ async def queues_treemap(
         sector_filter_sql = 'AND sd."sector" = :sector'
         params["sector"] = sector
 
-    # داده‌های برگ (symbol-level)
     leaf_sql = f"""
         SELECT
             sd."sector"        AS sector,
@@ -181,7 +183,6 @@ async def queues_treemap(
             "color_scale": {"min": 0, "max": 0},
         }
 
-    # فیلتر حداقل مقدار (اختیاری) و ساخت leaves
     leaves: List[Dict[str, Any]] = []
     color_min, color_max = 0, 0
     for r in rows:
@@ -204,7 +205,6 @@ async def queues_treemap(
             "color_scale": {"min": 0, "max": 0},
         }
 
-    # گروه‌بندی پایتونی برای ساختار Treemap
     sector_bucket: Dict[str, Dict[str, Any]] = {}
     for leaf in leaves:
         sec = leaf["sector"]
@@ -218,9 +218,7 @@ async def queues_treemap(
         sector_bucket[sec]["value"] += leaf["value"]
         sector_bucket[sec]["color_value"] += leaf["color_value"]
 
-    # فقط صنایعی که حداقل یک بچه با value>0 دارند
     children = [v for v in sector_bucket.values() if v["value"] > 0]
-    # مرتب‌سازی نزولی بر اساس ارزش کل صنعت
     children.sort(key=lambda x: x["value"], reverse=True)
 
     return {
@@ -245,20 +243,13 @@ async def queues_bullet(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    حالت‌ها:
-      - scope=sector  → لیست بولت‌چارت نمادهای صف‌دار یک صنعت (پارامتر sector اجباری)
-      - scope=top     → لیست بولت‌چارت Top-N نمادهای صف‌دار کل بازار (top_n)
-    """
     if date is None:
         date = await _latest_quote_date(db)
     else:
         date = _normalize_quote_date(date)
 
-    # عبارت ارزش صف طبق پارام side (برای measure و sort)
     qexpr = _queue_value_case(side)
 
-    # ---------- حالت SECTOR ----------
     if scope == "sector":
         if not sector:
             raise HTTPException(status_code=400, detail="sector is required when scope=sector")
@@ -293,18 +284,15 @@ async def queues_bullet(
             base_value_total = int(r["base_value_total"]  or 0)
             day_value_total  = int(r["day_value_total"]   or 0)
 
-            # محدوده برای مقیاس بولت‌چارت
             range_vs_base  = [0, max(queue_value_tot, base_value_total, 1)]
             range_vs_value = [0, max(queue_value_tot, day_value_total,  1)]
 
-            # مارکرها برای مقایسه
             markers = []
             if compare in ("base", "both"):
                 markers.append(base_value_total)
             if compare in ("value", "both"):
                 markers.append(day_value_total)
 
-            # نوع صف (buy یا sell)
             queue_type = (
                 "buy" if buy_value_total > 0
                 else "sell" if sell_value_total > 0
@@ -341,7 +329,6 @@ async def queues_bullet(
             "items": items
         }
 
-    # ---------- حالت TOP ----------
     sql = f"""
         SELECT
             q."stock_ticker"                AS stock,
