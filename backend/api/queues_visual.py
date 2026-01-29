@@ -1,98 +1,70 @@
 # backend/api/queues_visual.py
 # -*- coding: utf-8 -*-
-"""
-API نمایش صف‌ها برای فرانت:
-- GET /queues/treemap  : ترِی‌مپِ صف‌ها (گروه‌بندی بر اساس صنعت) با رنگ امضادار (خرید-فروش)
-- GET /queues/bullet   : بولت‌چارت مقایسه «ارزش صف» با base_value و/یا day_value
-
-پیش‌نیاز جداول:
-- quote(
-    inscode text, stock_ticker text,
-    date text(YYYY-MM-DD)   <-- ممکن است شمسی باشد (دیگر مبنای فیلتر نیست)
-    downloaded_at timestamp/timestamptz  <-- مبنای اصلی فیلتر
-    BQ_Value bigint, SQ_Value bigint, Value bigint, base_value bigint, ...
-  )
-- symboldetail("insCode" text, sector text, stock_ticker text, instrument_type text)
-
-نکته:
-- industry/sector از جدول symboldetail خوانده می‌شود (جوین روی insCode←→inscode).
-- response تغییر نکرده؛ فقط منطق فیلتر تاریخ از quote.date به quote.downloaded_at منتقل شده.
-"""
 
 from typing import Optional, Literal, Dict, Any, List
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from datetime import datetime, date as dt_date, timedelta
+from datetime import datetime, date as dt_date
 
 from backend.api.metadata import get_db
 from backend.users.dependencies import require_permissions
 
 router = APIRouter(prefix="/queues", tags=["📊 Queues Visuals"])
 
+
 # --------------------------- Helpers ---------------------------
 
-def _parse_gregorian_ymd(date_str: str) -> dt_date:
+def _parse_gregorian_ymd(date_str: str) -> str:
     """
     ورودی: تاریخ میلادی با فرمت YYYY-MM-DD
-    خروجی: datetime.date
+    خروجی: همان رشته، ولی validate شده
     """
     s = (date_str or "").strip()
     if not s:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
     try:
-        return datetime.strptime(s, "%Y-%m-%d").date()
+        datetime.strptime(s, "%Y-%m-%d")
+        return s
     except Exception:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
 
-def _day_range(d: dt_date) -> tuple[datetime, datetime]:
-    """
-    بازه روزانه [start, end) برای فیلتر روی downloaded_at
-    """
-    start = datetime(d.year, d.month, d.day)
-    end = start + timedelta(days=1)
-    return start, end
 
 async def _latest_downloaded_day(db: AsyncSession) -> str:
     """
     آخرین روز موجود در quote بر اساس downloaded_at برمی‌گرداند (YYYY-MM-DD میلادی).
+    نکته: از خود DB برای truncate روز استفاده می‌کنیم.
     """
-    q = text("""SELECT MAX(q."downloaded_at") AS ts FROM quote q""")
+    q = text("""SELECT (MAX(q."downloaded_at"))::date AS d FROM quote q""")
     r = await db.execute(q)
-    ts = r.scalar()
-    if not ts:
+    d = r.scalar()
+    if not d:
         raise HTTPException(status_code=404, detail="no downloaded_at in quote")
-    # ts می‌تواند datetime باشد
-    if isinstance(ts, datetime):
-        return ts.date().strftime("%Y-%m-%d")
-    # اگر DB به شکل string برگرداند:
+
+    # d معمولاً date است
     try:
-        return datetime.fromisoformat(str(ts)).date().strftime("%Y-%m-%d")
+        if isinstance(d, dt_date):
+            return d.strftime("%Y-%m-%d")
+        return str(d)[:10]  # fallback
     except Exception:
-        raise HTTPException(status_code=500, detail="invalid downloaded_at format in DB")
+        raise HTTPException(status_code=500, detail="invalid downloaded_at date in DB")
+
 
 def _queue_value_case(side: Literal["buy", "sell", "both"]) -> str:
-    """
-    عبارت SQL برای محاسبه ارزش صف بر اساس سمت صف
-    - buy  → BQ_Value
-    - sell → SQ_Value
-    - both → BQ_Value + SQ_Value
-    """
     if side == "buy":
         return 'COALESCE(q."BQ_Value", 0)'
     if side == "sell":
         return 'COALESCE(q."SQ_Value", 0)'
     return 'COALESCE(q."BQ_Value", 0) + COALESCE(q."SQ_Value", 0)'
 
+
 def _presence_filter(side: Literal["buy", "sell", "both"]) -> str:
-    """
-    فقط نمادهای «صف‌دار» را نگه‌دار (صفرها حذف شوند)
-    """
     if side == "buy":
         return 'AND COALESCE(q."BQ_Value", 0) > 0'
     if side == "sell":
         return 'AND COALESCE(q."SQ_Value", 0) > 0'
     return 'AND (COALESCE(q."BQ_Value",0) > 0 OR COALESCE(q."SQ_Value",0) > 0)'
+
 
 # --------------------------- Treemap ---------------------------
 
@@ -106,17 +78,14 @@ async def queues_treemap(
     ),
     sector: Optional[str] = Query(None, description="اگر مقدار بدهید فقط همان صنعت برگردانده می‌شود"),
     min_value: Optional[int] = Query(None, description="فیلتر: فقط رکوردهای با مقدار ≥ این عدد"),
-    _ = Depends(require_permissions("Report.Queues.View", "ALL")),
+    _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    response ثابت است. فقط فیلتر تاریخ از quote.date به quote.downloaded_at منتقل شده.
-    """
-    if date is None:
+    # date نهایی برای response (همون کلید date حفظ میشه)
+    if date is None or not str(date).strip():
         date = await _latest_downloaded_day(db)
-
-    d = _parse_gregorian_ymd(date)
-    start_dt, end_dt = _day_range(d)
+    else:
+        date = _parse_gregorian_ymd(date)
 
     qexpr = _queue_value_case(side)
     queue_presence_filter = _presence_filter(side)
@@ -131,11 +100,12 @@ async def queues_treemap(
     color_expr = '(COALESCE(q."BQ_Value",0) - COALESCE(q."SQ_Value",0))'
 
     sector_filter_sql = ""
-    params: Dict[str, Any] = {"start": start_dt, "end": end_dt, "date": date}
+    params: Dict[str, Any] = {"date": date}
     if sector:
         sector_filter_sql = 'AND sd."sector" = :sector'
         params["sector"] = sector
 
+    # نکته کلیدی: فیلتر روز را با downloaded_at::date انجام می‌دهیم
     leaf_sql = f"""
         SELECT
             sd."sector"        AS sector,
@@ -145,8 +115,7 @@ async def queues_treemap(
         FROM quote q
         JOIN symboldetail sd
           ON sd."insCode"::text = q."inscode"::text
-        WHERE q."downloaded_at" >= :start
-          AND q."downloaded_at" <  :end
+        WHERE (q."downloaded_at")::date = (:date)::date
           AND sd."sector" IS NOT NULL
           {sector_filter_sql}
           {queue_presence_filter}
@@ -197,6 +166,7 @@ async def queues_treemap(
         "children": children,
     }
 
+
 # --------------------------- Bullet ---------------------------
 
 @router.get("/bullet", summary="Bullet chart data: sector stocks or Top-N stocks (buy/sell only)")
@@ -207,14 +177,13 @@ async def queues_bullet(
     side: Literal["buy", "sell"] = Query("buy", description="سمت صف برای اندازه measure (فقط buy یا sell)"),
     compare: Literal["base", "value", "both"] = Query("both", description="مقایسه با base_value و/یا day_value"),
     top_n: int = Query(10, ge=1, le=100, description="وقتی scope=top فعال است، تعداد نمادها"),
-    _ = Depends(require_permissions("Report.Queues.View", "ALL")),
+    _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    if date is None:
+    if date is None or not str(date).strip():
         date = await _latest_downloaded_day(db)
-
-    d = _parse_gregorian_ymd(date)
-    start_dt, end_dt = _day_range(d)
+    else:
+        date = _parse_gregorian_ymd(date)
 
     qexpr = _queue_value_case(side)
 
@@ -234,14 +203,13 @@ async def queues_bullet(
             FROM quote q
             JOIN symboldetail sd
               ON sd."insCode"::text = q."inscode"::text
-            WHERE q."downloaded_at" >= :start
-              AND q."downloaded_at" <  :end
+            WHERE (q."downloaded_at")::date = (:date)::date
               AND sd."sector" = :sector
             GROUP BY q."stock_ticker"
             HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
             ORDER BY queue_value_total DESC
         """
-        params = {"start": start_dt, "end": end_dt, "sector": sector}
+        params = {"date": date, "sector": sector}
         res = await db.execute(text(sql), params)
         rows = res.mappings().all()
 
@@ -309,14 +277,13 @@ async def queues_bullet(
             SUM(COALESCE(q."BQ_Value",0))   AS buy_value_total,
             SUM(COALESCE(q."SQ_Value",0))   AS sell_value_total
         FROM quote q
-        WHERE q."downloaded_at" >= :start
-          AND q."downloaded_at" <  :end
+        WHERE (q."downloaded_at")::date = (:date)::date
         GROUP BY q."stock_ticker"
         HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
         ORDER BY queue_value_total DESC
         LIMIT :topn
     """
-    params = {"start": start_dt, "end": end_dt, "topn": top_n}
+    params = {"date": date, "topn": top_n}
     res = await db.execute(text(sql), params)
     rows = res.mappings().all()
 
