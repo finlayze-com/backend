@@ -13,3 +13,5 @@ logs/
 # ====== Project specific: exclude text lists ======
 # (Document folder with stock and fund lists)
 backend/Document/*.txt
+cron_jobs/livedata/log_live_market.txt
+queue_fetch.log
