@@ -20,6 +20,7 @@ from typing import Optional, Literal, Dict, Any, List, Tuple
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from datetime import datetime
 
 from backend.api.metadata import get_db
 from backend.users.dependencies import require_permissions
@@ -28,9 +29,50 @@ router = APIRouter(prefix="/queues", tags=["📊 Queues Visuals"])
 
 # --------------------------- Helpers ---------------------------
 
+def _normalize_quote_date(date_str: str) -> str:
+    """
+    ورودی می‌تواند شمسی (1404-10-25) یا میلادی (2025-11-05) باشد.
+    خروجی همیشه مطابق فرمتی است که در quote.date ذخیره شده (شمسی YYYY-MM-DD).
+    """
+    s = (date_str or "").strip()
+    if not s:
+        return s
+
+    parts = s.split("-")
+    if len(parts) != 3:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    try:
+        y = int(parts[0])
+        int(parts[1]); int(parts[2])
+    except Exception:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    # اگر سال بزرگ بود => میلادی است، تبدیل به شمسی
+    if y >= 1700:
+        try:
+            import jdatetime
+        except Exception:
+            raise HTTPException(
+                status_code=500,
+                detail="jdatetime is required to convert Gregorian date to Jalali. Install: pip install jdatetime",
+            )
+
+        try:
+            g = datetime.strptime(s, "%Y-%m-%d").date()
+        except Exception:
+            raise HTTPException(status_code=400, detail="invalid Gregorian date (expected YYYY-MM-DD)")
+
+        j = jdatetime.date.fromgregorian(date=g)
+        return j.strftime("%Y-%m-%d")
+
+    # در غیر اینصورت => شمسی فرض می‌کنیم
+    return s
+
+
 async def _latest_quote_date(db: AsyncSession) -> str:
     """
-    آخرین تاریخ موجود در quote (فرمت YYYY-MM-DD)
+    آخرین تاریخ موجود در quote (فرمت YYYY-MM-DD - همان چیزی که در DB ذخیره شده)
     """
     q = text("""SELECT MAX(q."date") AS d FROM quote q""")
     r = await db.execute(q)
@@ -38,6 +80,7 @@ async def _latest_quote_date(db: AsyncSession) -> str:
     if not d:
         raise HTTPException(status_code=404, detail="no date in quote")
     return d
+
 
 def _queue_value_case(side: Literal["buy", "sell", "both"]) -> str:
     """
@@ -52,6 +95,7 @@ def _queue_value_case(side: Literal["buy", "sell", "both"]) -> str:
         return 'COALESCE(q."SQ_Value", 0)'
     return 'COALESCE(q."BQ_Value", 0) + COALESCE(q."SQ_Value", 0)'
 
+
 def _presence_filter(side: Literal["buy", "sell", "both"]) -> str:
     """
     فقط نمادهای «صف‌دار» را نگه‌دار (صفرها حذف شوند)
@@ -62,6 +106,7 @@ def _presence_filter(side: Literal["buy", "sell", "both"]) -> str:
         return 'AND COALESCE(q."SQ_Value", 0) > 0'
     # both: حداقل یکی > 0 باشد
     return 'AND (COALESCE(q."BQ_Value",0) > 0 OR COALESCE(q."SQ_Value",0) > 0)'
+
 
 # --------------------------- Treemap ---------------------------
 
@@ -77,35 +122,16 @@ async def queues_treemap(
     ),
     sector: Optional[str] = Query(None, description="اگر مقدار بدهید فقط همان صنعت برگردانده می‌شود"),
     min_value: Optional[int] = Query(None, description="فیلتر: فقط رکوردهای با مقدار ≥ این عدد"),
-    _ = Depends(require_permissions("Report.Queues.View", "ALL")),
+    _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    خروجی برای Treemap به‌صورت ساختار ECharts:
-
-    {
-      "date": "...",
-      "side": "buy|sell|both",
-      "metric": "queue|base|value",
-      "color_scale": {"min": -X, "max": +Y},
-      "children": [
-        {
-          "name": "صنعت X",
-          "value": <جمع اندازه در آن صنعت>,
-          "color_value": <جمع خالص رنگ در سطح صنعت>,
-          "children": [
-              {"name": "نماد1", "value": ..., "color_value": net(BQ-SQ)},
-              {"name": "نماد2", "value": ..., "color_value": ...},
-              ...
-          ]
-        }, ...
-      ]
-    }
-
     توضیح رنگ: color_value = (BQ_Value - SQ_Value)  ⇒ مثبت = غلبه خرید، منفی = غلبه فروش
     """
     if date is None:
         date = await _latest_quote_date(db)
+    else:
+        date = _normalize_quote_date(date)
 
     qexpr = _queue_value_case(side)
     queue_presence_filter = _presence_filter(side)
@@ -147,7 +173,13 @@ async def queues_treemap(
     rows = res.mappings().all()
 
     if not rows:
-        return {"date": date, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
+        return {
+            "date": date,
+            "side": side,
+            "metric": metric,
+            "children": [],
+            "color_scale": {"min": 0, "max": 0},
+        }
 
     # فیلتر حداقل مقدار (اختیاری) و ساخت leaves
     leaves: List[Dict[str, Any]] = []
@@ -164,7 +196,13 @@ async def queues_treemap(
         leaves.append({"sector": r["sector"], "name": r["stock_ticker"], "value": v, "color_value": c})
 
     if not leaves:
-        return {"date": date, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
+        return {
+            "date": date,
+            "side": side,
+            "metric": metric,
+            "children": [],
+            "color_scale": {"min": 0, "max": 0},
+        }
 
     # گروه‌بندی پایتونی برای ساختار Treemap
     sector_bucket: Dict[str, Dict[str, Any]] = {}
@@ -190,13 +228,11 @@ async def queues_treemap(
         "side": side,
         "metric": metric,
         "color_scale": {"min": int(color_min), "max": int(color_max)},
-        "children": children
+        "children": children,
     }
 
-# --------------------------- Bullet ---------------------------
-# خروجی مینیمال: بدون ranges و داده‌های اضافی
-# marker: فقط یکی از base یا value (گزینه both حذف شد)
 
+# --------------------------- Bullet ---------------------------
 
 @router.get("/bullet", summary="Bullet chart data: sector stocks or Top-N stocks (buy/sell only)")
 async def queues_bullet(
@@ -206,7 +242,7 @@ async def queues_bullet(
     side: Literal["buy", "sell"] = Query("buy", description="سمت صف برای اندازه measure (فقط buy یا sell)"),
     compare: Literal["base", "value", "both"] = Query("both", description="مقایسه با base_value و/یا day_value"),
     top_n: int = Query(10, ge=1, le=100, description="وقتی scope=top فعال است، تعداد نمادها"),
-    _ = Depends(require_permissions("Report.Queues.View", "ALL")),
+    _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -216,6 +252,8 @@ async def queues_bullet(
     """
     if date is None:
         date = await _latest_quote_date(db)
+    else:
+        date = _normalize_quote_date(date)
 
     # عبارت ارزش صف طبق پارام side (برای measure و sort)
     qexpr = _queue_value_case(side)
