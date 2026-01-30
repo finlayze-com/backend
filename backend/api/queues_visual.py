@@ -15,6 +15,26 @@ router = APIRouter(prefix="/queues", tags=["📊 Queues Visuals"])
 
 # --------------------------- Helpers ---------------------------
 
+_EMPTY_DATE_TOKENS = {
+    "", "null", "none", "undefined", "invalid", "invalid date", "nan"
+}
+
+def _is_empty_like(v: Optional[str]) -> bool:
+    """
+    هر چیزی که از سمت فرانت ممکنه به عنوان "خالی" بیاد را پوشش می‌دهد:
+    None, "", "null", "undefined", "Invalid Date", ...
+    """
+    if v is None:
+        return True
+    s = str(v).strip().lower()
+    if s in _EMPTY_DATE_TOKENS:
+        return True
+    # بعضی DatePickerها ممکنه "Invalid Date" با حروف مختلف بدهند
+    if "invalid" in s and "date" in s:
+        return True
+    return False
+
+
 def _parse_gregorian_ymd(date_str: str) -> str:
     """
     ورودی: تاریخ میلادی با فرمت YYYY-MM-DD
@@ -41,13 +61,22 @@ async def _latest_downloaded_day(db: AsyncSession) -> str:
     if not d:
         raise HTTPException(status_code=404, detail="no downloaded_at in quote")
 
-    # d معمولاً date است
     try:
         if isinstance(d, dt_date):
             return d.strftime("%Y-%m-%d")
-        return str(d)[:10]  # fallback
+        return str(d)[:10]
     except Exception:
         raise HTTPException(status_code=500, detail="invalid downloaded_at date in DB")
+
+
+async def _resolve_request_date(date_param: Optional[str], db: AsyncSession) -> str:
+    """
+    اگر date خالی/نامعتبر بود => آخرین روز downloaded_at
+    اگر date معتبر بود => همان (YYYY-MM-DD)
+    """
+    if _is_empty_like(date_param):
+        return await _latest_downloaded_day(db)
+    return _parse_gregorian_ymd(str(date_param))
 
 
 def _queue_value_case(side: Literal["buy", "sell", "both"]) -> str:
@@ -81,11 +110,8 @@ async def queues_treemap(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    # date نهایی برای response (همون کلید date حفظ میشه)
-    if date is None or not str(date).strip():
-        date = await _latest_downloaded_day(db)
-    else:
-        date = _parse_gregorian_ymd(date)
+    # date نهایی برای response (کلید date حفظ میشه)
+    date = await _resolve_request_date(date, db)
 
     qexpr = _queue_value_case(side)
     queue_presence_filter = _presence_filter(side)
@@ -105,7 +131,6 @@ async def queues_treemap(
         sector_filter_sql = 'AND sd."sector" = :sector'
         params["sector"] = sector
 
-    # نکته کلیدی: فیلتر روز را با downloaded_at::date انجام می‌دهیم
     leaf_sql = f"""
         SELECT
             sd."sector"        AS sector,
@@ -180,14 +205,10 @@ async def queues_bullet(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    if date is None or not str(date).strip():
-        date = await _latest_downloaded_day(db)
-    else:
-        date = _parse_gregorian_ymd(date)
+    date = await _resolve_request_date(date, db)
 
     qexpr = _queue_value_case(side)
 
-    # ---------- حالت SECTOR ----------
     if scope == "sector":
         if not sector:
             raise HTTPException(status_code=400, detail="sector is required when scope=sector")
@@ -267,7 +288,6 @@ async def queues_bullet(
             "items": items
         }
 
-    # ---------- حالت TOP ----------
     sql = f"""
         SELECT
             q."stock_ticker"                AS stock,
