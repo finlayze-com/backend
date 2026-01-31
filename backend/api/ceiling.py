@@ -29,6 +29,32 @@ def _resolve_price_col(adjusted: bool, currency: Literal["rial", "usd"]) -> str:
     return col
 
 
+def _resolve_now_col(adjusted: bool, currency: Literal["rial", "usd"]) -> str:
+    """
+    ستون قیمت فعلی (برای محاسبه فاصله تا سقف):
+      - ریالی: close یا adjust_close
+      - دلاری: close_usd یا adjust_close_usd
+    """
+    col = "adjust_close" if adjusted else "close"
+    if currency == "usd":
+        col += "_usd"
+    return col
+
+
+def _resolve_sector_join(sector: Optional[str]) -> str:
+    """
+    اگر sector داده شود، join به symboldetail انجام می‌دهیم.
+    """
+    if not sector:
+        return ""
+    # توجه: نام جدول symboldetail و ستون‌ها باید مطابق DB شما باشد
+    return """
+    JOIN symboldetail sd
+      ON sd."insCode" = b.inscode
+    WHERE sd."industry" = :sector
+    """
+
+
 def _safe_num(col: str) -> str:
     """NaN را به NULL تبدیل می‌کند"""
     return f"CASE WHEN {col}::text = 'NaN' THEN NULL ELSE {col} END"
@@ -41,7 +67,6 @@ def _not_nan(col: str) -> str:
 
 # -------------------- Main Endpoint --------------------
 
-
 @router.get("/ceiling", summary="Gap-to-Ceiling (ATH یا بازه start/end)")
 async def ceiling_targets(
     start_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
@@ -49,14 +74,14 @@ async def ceiling_targets(
     sector: Optional[str] = Query(None, description="symboldetail.sector"),
     adjusted: bool = Query(True),
     currency: Literal["rial", "usd"] = Query("rial"),
-    _=Depends(require_permissions("Report.Ceiling.View", "ALL")),
+    _=Depends(require_permissions("Report.Ceiling.View", "ALL")),  # <-- دست نخورده
     db: AsyncSession = Depends(get_db),
 ):
     """
     خروجی: [{
       stock_ticker, price_now, price_j_date,
       ceiling_price, ceiling_j_date,
-      gap_abs, gap_pct, hit
+      gap_abs, gap_pct, hit, status
     }]
     """
     try:
@@ -139,7 +164,13 @@ async def ceiling_targets(
               CASE
                  WHEN w.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
                  ELSE (b.price_now >= w.ceiling_price - 1e-9)
-              END AS hit
+              END AS hit,
+              CASE
+                 WHEN w.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
+                 WHEN b.price_now >  1.05 * w.ceiling_price THEN 'Up ATH'
+                 WHEN b.price_now >= 0.95 * w.ceiling_price THEN 'On ATH'
+                 ELSE 'Below ATH'
+              END AS status
             FROM base b
             JOIN wnd  w USING (stock_ticker)
             {sector_join}
@@ -215,7 +246,13 @@ async def ceiling_targets(
           CASE
              WHEN a.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
              ELSE (b.price_now >= a.ceiling_price - 1e-9)
-          END AS hit
+          END AS hit,
+          CASE
+             WHEN a.ceiling_price IS NULL OR b.price_now IS NULL THEN NULL
+             WHEN b.price_now >  1.05 * a.ceiling_price THEN 'Up ATH'
+             WHEN b.price_now >= 0.95 * a.ceiling_price THEN 'On ATH'
+             ELSE 'Below ATH'
+          END AS status
         FROM base b
         JOIN ath a USING (stock_ticker)
         {sector_join}
@@ -238,7 +275,6 @@ async def ceiling_targets(
             status_code=500,
             detail="Internal error in /targets/ceiling: " + str(e),
         )
-
 
 # -------------------- Funnel Endpoint --------------------
 
