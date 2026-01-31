@@ -107,8 +107,8 @@ async def ceiling_targets(
             sql = f"""
             WITH params AS (
               SELECT
-                :start_date::date                       AS start_date,
-                COALESCE(:end_date::date, CURRENT_DATE) AS end_wish
+                CAST(:start_date AS date)                        AS start_date,
+                COALESCE(CAST(:end_date AS date), CURRENT_DATE)  AS end_wish
             ),
             end_anchor AS (
               -- اگر end_wish از آخرین تاریخ دیتابیس جلوتر بود، آن را به max(date_miladi) محدود می‌کنیم
@@ -143,7 +143,7 @@ async def ceiling_targets(
                 ) AS rn
               FROM {DAILY_SRC} dj
               JOIN end_anchor ea ON TRUE
-              WHERE dj.date_miladi BETWEEN :start_date::date AND ea.end_date
+              WHERE dj.date_miladi BETWEEN CAST(:start_date AS date) AND ea.end_date
                 AND {_not_nan(f'dj.{price_col}')}
             ),
             wnd AS (
@@ -184,8 +184,7 @@ async def ceiling_targets(
             if sector:
                 params["sector"] = sector
 
-            q = text(sql).bindparams(**params)
-            rows = (await db.execute(q)).mappings().all()
+            rows = (await db.execute(text(sql), params)).mappings().all()
             return create_response(data=[dict(r) for r in rows])
 
         # -------------------- حالت 2: ATH --------------------
@@ -263,8 +262,7 @@ async def ceiling_targets(
         if sector:
             params["sector"] = sector
 
-        q = text(sql).bindparams(**params)
-        rows = (await db.execute(q)).mappings().all()
+        rows = (await db.execute(text(sql), params)).mappings().all()
         return create_response(data=[dict(r) for r in rows])
 
     except HTTPException:
@@ -312,8 +310,8 @@ async def ceiling_funnel(
             sql = f"""
             WITH params AS (
               SELECT
-                :start_date::date                       AS start_date,
-                COALESCE(:end_date::date, CURRENT_DATE) AS end_wish
+                CAST(:start_date AS date)                        AS start_date,
+                COALESCE(CAST(:end_date AS date), CURRENT_DATE)  AS end_wish
             ),
             end_anchor AS (
               SELECT LEAST(p.end_wish,
@@ -344,7 +342,7 @@ async def ceiling_funnel(
                 ) AS rn
               FROM {DAILY_SRC} dj
               JOIN end_anchor ea ON TRUE
-              WHERE dj.date_miladi BETWEEN :start_date::date AND ea.end_date
+              WHERE dj.date_miladi BETWEEN CAST(:start_date AS date) AND ea.end_date
                 AND {_not_nan(f'dj.{price_col}')}
             ),
             wnd AS (
@@ -369,7 +367,8 @@ async def ceiling_funnel(
             if sector:
                 params["sector"] = sector
 
-            q = text(sql).bindparams(**params)
+            q = text(sql)
+            rows = (await db.execute(q, params)).mappings().all()
         else:
             sector_join = (
                 "JOIN (SELECT DISTINCT stock_ticker FROM symboldetail "
@@ -426,9 +425,9 @@ async def ceiling_funnel(
             if sector:
                 params["sector"] = sector
 
-            q = text(sql).bindparams(**params)
+            q = text(sql)
+            rows = (await db.execute(q, params)).mappings().all()
 
-        rows = (await db.execute(q)).mappings().all()
         gaps = [r["gap_pct"] for r in rows if r["gap_pct"] is not None]
 
         thresholds = sorted(bins)
