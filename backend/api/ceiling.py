@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Optional, Literal, List
 import logging
+from datetime import date as dt_date
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -65,6 +66,18 @@ def _not_nan(col: str) -> str:
     return f"NOT ({col}::text = 'NaN')"
 
 
+def _parse_iso_date(s: Optional[str], field: str) -> Optional[dt_date]:
+    """
+    ورودی YYYY-MM-DD (string) -> datetime.date برای asyncpg
+    """
+    if not s:
+        return None
+    try:
+        return dt_date.fromisoformat(s.strip())
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"{field} must be in YYYY-MM-DD format")
+
+
 # -------------------- Main Endpoint --------------------
 
 @router.get("/ceiling", summary="Gap-to-Ceiling (ATH یا بازه start/end)")
@@ -94,6 +107,10 @@ async def ceiling_targets(
                 message="وقتی end_date می‌دهید باید start_date هم بدهید.",
                 data=[],
             )
+
+        # ✅ تبدیل string به date برای asyncpg
+        start_dt = _parse_iso_date(start_date, "start_date")
+        end_dt = _parse_iso_date(end_date, "end_date")
 
         # -------------------- حالت 1: بازه --------------------
         if start_date:
@@ -178,8 +195,8 @@ async def ceiling_targets(
             """
 
             params = {
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_dt,   # ✅ date
+                "end_date": end_dt,       # ✅ date یا None
             }
             if sector:
                 params["sector"] = sector
@@ -299,6 +316,10 @@ async def ceiling_funnel(
                 data=[],
             )
 
+        # ✅ تبدیل string به date برای asyncpg
+        start_dt = _parse_iso_date(start_date, "start_date")
+        end_dt = _parse_iso_date(end_date, "end_date")
+
         if start_date:
             sector_join = (
                 "JOIN (SELECT DISTINCT stock_ticker FROM symboldetail "
@@ -361,14 +382,13 @@ async def ceiling_funnel(
             """
 
             params = {
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_dt,  # ✅ date
+                "end_date": end_dt,      # ✅ date یا None
             }
             if sector:
                 params["sector"] = sector
 
-            q = text(sql)
-            rows = (await db.execute(q, params)).mappings().all()
+            rows = (await db.execute(text(sql), params)).mappings().all()
         else:
             sector_join = (
                 "JOIN (SELECT DISTINCT stock_ticker FROM symboldetail "
@@ -425,8 +445,7 @@ async def ceiling_funnel(
             if sector:
                 params["sector"] = sector
 
-            q = text(sql)
-            rows = (await db.execute(q, params)).mappings().all()
+            rows = (await db.execute(text(sql), params)).mappings().all()
 
         gaps = [r["gap_pct"] for r in rows if r["gap_pct"] is not None]
 
