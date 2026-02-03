@@ -4,7 +4,8 @@
 from typing import Optional, Literal, Dict, Any, List
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
+from sqlalchemy.types import Date as SA_Date
 from datetime import datetime, date as dt_date
 
 from backend.api.metadata import get_db
@@ -20,10 +21,6 @@ _EMPTY_DATE_TOKENS = {
 }
 
 def _is_empty_like(v: Optional[str]) -> bool:
-    """
-    هر چیزی که از سمت فرانت ممکنه به عنوان "خالی" بیاد را پوشش می‌دهد:
-    None, "", "null", "undefined", "Invalid Date", ...
-    """
     if v is None:
         return True
     s = str(v).strip().lower()
@@ -35,10 +32,6 @@ def _is_empty_like(v: Optional[str]) -> bool:
 
 
 def _parse_gregorian_ymd(date_str: str) -> dt_date:
-    """
-    ورودی: تاریخ میلادی با فرمت YYYY-MM-DD
-    خروجی: datetime.date (برای asyncpg باید date واقعی باشد نه str)
-    """
     s = (date_str or "").strip()
     if not s:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
@@ -48,34 +41,35 @@ def _parse_gregorian_ymd(date_str: str) -> dt_date:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
 
 
+def _ensure_date_obj(v: Any) -> dt_date:
+    """
+    هر چیزی آمد (date/datetime/str) => خروجی حتماً datetime.date
+    """
+    if isinstance(v, dt_date) and not isinstance(v, datetime):
+        return v
+    if isinstance(v, datetime):
+        return v.date()
+    if v is None:
+        raise HTTPException(status_code=400, detail="date is required")
+    s = str(v).strip()
+    # فقط YYYY-MM-DD را قبول می‌کنیم
+    return _parse_gregorian_ymd(s)
+
+
 async def _latest_downloaded_day(db: AsyncSession) -> dt_date:
-    """
-    آخرین روز موجود در quote بر اساس downloaded_at برمی‌گرداند (date واقعی).
-    """
+    # اگر downloaded_at تایم‌استمپ است، خروجی معمولاً dt_date می‌شود
     q = text("""SELECT (MAX(q."downloaded_at"))::date AS d FROM quote q""")
     r = await db.execute(q)
     d = r.scalar()
     if not d:
         raise HTTPException(status_code=404, detail="no downloaded_at in quote")
-
-    if isinstance(d, dt_date):
-        return d
-
-    # اگر به هر دلیل string شد
-    try:
-        return datetime.strptime(str(d)[:10], "%Y-%m-%d").date()
-    except Exception:
-        raise HTTPException(status_code=500, detail="invalid downloaded_at date in DB")
+    return _ensure_date_obj(d)
 
 
 async def _resolve_request_date(date_param: Optional[str], db: AsyncSession) -> dt_date:
-    """
-    اگر date خالی/نامعتبر بود => آخرین روز downloaded_at
-    اگر date معتبر بود => همان (date واقعی)
-    """
     if _is_empty_like(date_param):
         return await _latest_downloaded_day(db)
-    return _parse_gregorian_ymd(str(date_param))
+    return _ensure_date_obj(date_param)
 
 
 def _queue_value_case(side: Literal["buy", "sell", "both"]) -> str:
@@ -94,6 +88,13 @@ def _presence_filter(side: Literal["buy", "sell", "both"]) -> str:
     return 'AND (COALESCE(q."BQ_Value",0) > 0 OR COALESCE(q."SQ_Value",0) > 0)'
 
 
+def _bind_date(sql: str):
+    """
+    متن SQL را طوری bind می‌کنیم که پارامتر :date حتماً از نوع Date باشد.
+    """
+    return text(sql).bindparams(bindparam("date", type_=SA_Date()))
+
+
 # --------------------------- Treemap ---------------------------
 
 @router.get("/treemap", summary="Treemap of queues grouped by sector (ECharts-friendly)")
@@ -109,9 +110,8 @@ async def queues_treemap(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    # برای DB باید date واقعی باشد (نه str) تا asyncpg خطا ندهد
-    date_db = await _resolve_request_date(date, db)          # dt_date
-    date_str = date_db.strftime("%Y-%m-%d")                  # برای response
+    date_db = await _resolve_request_date(date, db)  # ✅ حتماً dt_date
+    date_str = date_db.strftime("%Y-%m-%d")
 
     qexpr = _queue_value_case(side)
     queue_presence_filter = _presence_filter(side)
@@ -126,7 +126,7 @@ async def queues_treemap(
     color_expr = '(COALESCE(q."BQ_Value",0) - COALESCE(q."SQ_Value",0))'
 
     sector_filter_sql = ""
-    params: Dict[str, Any] = {"date": date_db}  # 🔥 date واقعی برای پارامتر
+    params: Dict[str, Any] = {"date": date_db}
     if sector:
         sector_filter_sql = 'AND sd."sector" = :sector'
         params["sector"] = sector
@@ -145,20 +145,14 @@ async def queues_treemap(
           {sector_filter_sql}
           {queue_presence_filter}
     """
-    res = await db.execute(text(leaf_sql), params)
+
+    res = await db.execute(_bind_date(leaf_sql), params)
     rows = res.mappings().all()
 
     if not rows:
-        return {
-            "date": date_str,
-            "side": side,
-            "metric": metric,
-            "children": [],
-            "color_scale": {"min": 0, "max": 0}
-        }
+        return {"date": date_str, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
 
     leaves: List[Dict[str, Any]] = []
-    # اگر می‌خوای دقیق‌تر باشه می‌تونی از None شروع کنی، ولی این هم قابل قبوله
     color_min, color_max = 0, 0
 
     for r in rows:
@@ -172,21 +166,10 @@ async def queues_treemap(
         color_min = min(color_min, c)
         color_max = max(color_max, c)
 
-        leaves.append({
-            "sector": r["sector"],
-            "name": r["stock_ticker"],
-            "value": v,
-            "color_value": c
-        })
+        leaves.append({"sector": r["sector"], "name": r["stock_ticker"], "value": v, "color_value": c})
 
     if not leaves:
-        return {
-            "date": date_str,
-            "side": side,
-            "metric": metric,
-            "children": [],
-            "color_scale": {"min": 0, "max": 0}
-        }
+        return {"date": date_str, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
 
     sector_bucket: Dict[str, Dict[str, Any]] = {}
     for leaf in leaves:
@@ -199,7 +182,6 @@ async def queues_treemap(
             "value": leaf["value"],
             "color_value": leaf["color_value"],
         })
-
         sector_bucket[sec]["value"] += leaf["value"]
         sector_bucket[sec]["color_value"] += leaf["color_value"]
 
@@ -255,7 +237,7 @@ async def queues_bullet(
             ORDER BY queue_value_total DESC
         """
         params = {"date": date_db, "sector": sector}
-        res = await db.execute(text(sql), params)
+        res = await db.execute(_bind_date(sql), params)
         rows = res.mappings().all()
 
         items = []
@@ -329,7 +311,7 @@ async def queues_bullet(
         LIMIT :topn
     """
     params = {"date": date_db, "topn": top_n}
-    res = await db.execute(text(sql), params)
+    res = await db.execute(_bind_date(sql), params)
     rows = res.mappings().all()
 
     items = []
