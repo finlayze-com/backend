@@ -29,31 +29,28 @@ def _is_empty_like(v: Optional[str]) -> bool:
     s = str(v).strip().lower()
     if s in _EMPTY_DATE_TOKENS:
         return True
-    # بعضی DatePickerها ممکنه "Invalid Date" با حروف مختلف بدهند
     if "invalid" in s and "date" in s:
         return True
     return False
 
 
-def _parse_gregorian_ymd(date_str: str) -> str:
+def _parse_gregorian_ymd(date_str: str) -> dt_date:
     """
     ورودی: تاریخ میلادی با فرمت YYYY-MM-DD
-    خروجی: همان رشته، ولی validate شده
+    خروجی: datetime.date (برای asyncpg باید date واقعی باشد نه str)
     """
     s = (date_str or "").strip()
     if not s:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
     try:
-        datetime.strptime(s, "%Y-%m-%d")
-        return s
+        return datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
 
 
-async def _latest_downloaded_day(db: AsyncSession) -> str:
+async def _latest_downloaded_day(db: AsyncSession) -> dt_date:
     """
-    آخرین روز موجود در quote بر اساس downloaded_at برمی‌گرداند (YYYY-MM-DD میلادی).
-    نکته: از خود DB برای truncate روز استفاده می‌کنیم.
+    آخرین روز موجود در quote بر اساس downloaded_at برمی‌گرداند (date واقعی).
     """
     q = text("""SELECT (MAX(q."downloaded_at"))::date AS d FROM quote q""")
     r = await db.execute(q)
@@ -61,18 +58,20 @@ async def _latest_downloaded_day(db: AsyncSession) -> str:
     if not d:
         raise HTTPException(status_code=404, detail="no downloaded_at in quote")
 
+    if isinstance(d, dt_date):
+        return d
+
+    # اگر به هر دلیل string شد
     try:
-        if isinstance(d, dt_date):
-            return d.strftime("%Y-%m-%d")
-        return str(d)[:10]
+        return datetime.strptime(str(d)[:10], "%Y-%m-%d").date()
     except Exception:
         raise HTTPException(status_code=500, detail="invalid downloaded_at date in DB")
 
 
-async def _resolve_request_date(date_param: Optional[str], db: AsyncSession) -> str:
+async def _resolve_request_date(date_param: Optional[str], db: AsyncSession) -> dt_date:
     """
     اگر date خالی/نامعتبر بود => آخرین روز downloaded_at
-    اگر date معتبر بود => همان (YYYY-MM-DD)
+    اگر date معتبر بود => همان (date واقعی)
     """
     if _is_empty_like(date_param):
         return await _latest_downloaded_day(db)
@@ -110,8 +109,9 @@ async def queues_treemap(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    # date نهایی برای response (کلید date حفظ میشه)
-    date = await _resolve_request_date(date, db)
+    # برای DB باید date واقعی باشد (نه str) تا asyncpg خطا ندهد
+    date_db = await _resolve_request_date(date, db)          # dt_date
+    date_str = date_db.strftime("%Y-%m-%d")                  # برای response
 
     qexpr = _queue_value_case(side)
     queue_presence_filter = _presence_filter(side)
@@ -126,7 +126,7 @@ async def queues_treemap(
     color_expr = '(COALESCE(q."BQ_Value",0) - COALESCE(q."SQ_Value",0))'
 
     sector_filter_sql = ""
-    params: Dict[str, Any] = {"date": date}
+    params: Dict[str, Any] = {"date": date_db}  # 🔥 date واقعی برای پارامتر
     if sector:
         sector_filter_sql = 'AND sd."sector" = :sector'
         params["sector"] = sector
@@ -140,7 +140,7 @@ async def queues_treemap(
         FROM quote q
         JOIN symboldetail sd
           ON sd."insCode"::text = q."inscode"::text
-        WHERE (q."downloaded_at")::date = (:date)::date
+        WHERE (q."downloaded_at")::date = :date
           AND sd."sector" IS NOT NULL
           {sector_filter_sql}
           {queue_presence_filter}
@@ -149,34 +149,57 @@ async def queues_treemap(
     rows = res.mappings().all()
 
     if not rows:
-        return {"date": date, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
+        return {
+            "date": date_str,
+            "side": side,
+            "metric": metric,
+            "children": [],
+            "color_scale": {"min": 0, "max": 0}
+        }
 
     leaves: List[Dict[str, Any]] = []
+    # اگر می‌خوای دقیق‌تر باشه می‌تونی از None شروع کنی، ولی این هم قابل قبوله
     color_min, color_max = 0, 0
+
     for r in rows:
         v = int(r["box_value"] or 0)
         if v <= 0:
             continue
         if min_value is not None and v < min_value:
             continue
+
         c = int(r["color_value"] or 0)
         color_min = min(color_min, c)
         color_max = max(color_max, c)
-        leaves.append({"sector": r["sector"], "name": r["stock_ticker"], "value": v, "color_value": c})
+
+        leaves.append({
+            "sector": r["sector"],
+            "name": r["stock_ticker"],
+            "value": v,
+            "color_value": c
+        })
 
     if not leaves:
-        return {"date": date, "side": side, "metric": metric, "children": [], "color_scale": {"min": 0, "max": 0}}
+        return {
+            "date": date_str,
+            "side": side,
+            "metric": metric,
+            "children": [],
+            "color_scale": {"min": 0, "max": 0}
+        }
 
     sector_bucket: Dict[str, Dict[str, Any]] = {}
     for leaf in leaves:
         sec = leaf["sector"]
         if sec not in sector_bucket:
             sector_bucket[sec] = {"name": sec, "value": 0, "color_value": 0, "children": []}
+
         sector_bucket[sec]["children"].append({
             "name": leaf["name"],
             "value": leaf["value"],
             "color_value": leaf["color_value"],
         })
+
         sector_bucket[sec]["value"] += leaf["value"]
         sector_bucket[sec]["color_value"] += leaf["color_value"]
 
@@ -184,7 +207,7 @@ async def queues_treemap(
     children.sort(key=lambda x: x["value"], reverse=True)
 
     return {
-        "date": date,
+        "date": date_str,
         "side": side,
         "metric": metric,
         "color_scale": {"min": int(color_min), "max": int(color_max)},
@@ -205,7 +228,8 @@ async def queues_bullet(
     _=Depends(require_permissions("Report.Queues.View", "ALL")),
     db: AsyncSession = Depends(get_db),
 ):
-    date = await _resolve_request_date(date, db)
+    date_db = await _resolve_request_date(date, db)
+    date_str = date_db.strftime("%Y-%m-%d")
 
     qexpr = _queue_value_case(side)
 
@@ -224,13 +248,13 @@ async def queues_bullet(
             FROM quote q
             JOIN symboldetail sd
               ON sd."insCode"::text = q."inscode"::text
-            WHERE (q."downloaded_at")::date = (:date)::date
+            WHERE (q."downloaded_at")::date = :date
               AND sd."sector" = :sector
             GROUP BY q."stock_ticker"
             HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
             ORDER BY queue_value_total DESC
         """
-        params = {"date": date, "sector": sector}
+        params = {"date": date_db, "sector": sector}
         res = await db.execute(text(sql), params)
         rows = res.mappings().all()
 
@@ -260,7 +284,7 @@ async def queues_bullet(
 
             items.append({
                 "title": stock,
-                "date": date,
+                "date": date_str,
                 "side": side,
                 "scope": "stock",
                 "compare": compare,
@@ -279,7 +303,7 @@ async def queues_bullet(
 
         return {
             "mode": "sector_stocks",
-            "date": date,
+            "date": date_str,
             "side": side,
             "scope": "sector",
             "sector": sector,
@@ -288,6 +312,7 @@ async def queues_bullet(
             "items": items
         }
 
+    # scope=top
     sql = f"""
         SELECT
             q."stock_ticker"                AS stock,
@@ -297,13 +322,13 @@ async def queues_bullet(
             SUM(COALESCE(q."BQ_Value",0))   AS buy_value_total,
             SUM(COALESCE(q."SQ_Value",0))   AS sell_value_total
         FROM quote q
-        WHERE (q."downloaded_at")::date = (:date)::date
+        WHERE (q."downloaded_at")::date = :date
         GROUP BY q."stock_ticker"
         HAVING SUM(COALESCE(q."BQ_Value", 0)) > 0 OR SUM(COALESCE(q."SQ_Value", 0)) > 0
         ORDER BY queue_value_total DESC
         LIMIT :topn
     """
-    params = {"date": date, "topn": top_n}
+    params = {"date": date_db, "topn": top_n}
     res = await db.execute(text(sql), params)
     rows = res.mappings().all()
 
@@ -333,7 +358,7 @@ async def queues_bullet(
 
         items.append({
             "title": stock,
-            "date": date,
+            "date": date_str,
             "side": side,
             "scope": "stock",
             "compare": compare,
@@ -352,7 +377,7 @@ async def queues_bullet(
 
     return {
         "mode": "top_stocks",
-        "date": date,
+        "date": date_str,
         "side": side,
         "scope": "top",
         "compare": compare,
