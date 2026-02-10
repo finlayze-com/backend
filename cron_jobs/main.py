@@ -71,6 +71,7 @@ except Exception:
 LIVE_TASKS: List[Tuple[str, Path]] = [
     ("live_saver",     PROJECT_ROOT / "cron_jobs" / "livedata" / "run_live_saver.py"),
     ("live_orderbool", PROJECT_ROOT / "cron_jobs" / "livedata" / "run_live_orderbool.py"),
+    ("intraday_snapshots",  PROJECT_ROOT / "cron_jobs" / "livedata" / "run_intraday_snapshots.py"),
 ]
 
 # ETL modules to run with -m (back-to-back after watcher OK)
