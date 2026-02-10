@@ -8,6 +8,10 @@ Source:
   - mv_live_sector_report
   - mv_orderbook_report  (optional for sector; required for __ALL__)
 
+Key Fix:
+  - DO NOT use m.ts from MV (it can be stale)
+  - Use DB now() as snapshot ts so each run creates a new timestamp
+
 Safe:
   - ON CONFLICT DO NOTHING
   - logs to stdout (captured by scheduler main)
@@ -52,13 +56,14 @@ def _get_sync_db_url() -> str:
         raise RuntimeError("DB_URL or DB_URL_SYNC is not set in env/.env")
 
     # If async URL, convert to sync for psycopg2
-    # postgresql+asyncpg://...  -> postgresql+psycopg2://...
-    # asyncpg://...             -> psycopg2://... (rare)
     db_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
     db_url = db_url.replace("postgresql+asyncpg:", "postgresql+psycopg2:")
     return db_url
 
 
+# IMPORTANT:
+#  - Use now() AS ts (DB time) instead of m.ts from MV
+#  - snapshot_day derived from now() as well
 SQL_INSERT_MARKET = """
 INSERT INTO market_intraday_snapshot (
   ts, snapshot_day,
@@ -68,8 +73,8 @@ INSERT INTO market_intraday_snapshot (
   source
 )
 SELECT
-  m.ts,
-  (m.ts AT TIME ZONE 'Asia/Tehran')::date AS snapshot_day,
+  now() AS ts,
+  (now() AT TIME ZONE 'Asia/Tehran')::date AS snapshot_day,
   m.symbols_count, m.green_ratio, m.eqw_avg_ret_pct,
   m.total_value, m.total_volume, m.net_real_value, m.net_legal_value,
   ob.imbalance5, ob.imbalance_state,
@@ -77,8 +82,7 @@ SELECT
 FROM mv_live_sector_report m
 LEFT JOIN mv_orderbook_report ob
   ON ob.sector = '__ALL__'
-WHERE m.level = 'market' AND m.key = '__ALL__'
-ON CONFLICT (ts) DO NOTHING;
+WHERE m.level = 'market' AND m.key = '__ALL__';
 """
 
 SQL_INSERT_SECTOR = """
@@ -90,8 +94,8 @@ INSERT INTO sector_intraday_snapshot (
   imbalance5, imbalance_state
 )
 SELECT
-  m.ts,
-  (m.ts AT TIME ZONE 'Asia/Tehran')::date AS snapshot_day,
+  now() AS ts,
+  (now() AT TIME ZONE 'Asia/Tehran')::date AS snapshot_day,
   m.key AS sector_key,
   m.key AS sector_name,
   m.symbols_count, m.green_ratio,
@@ -109,19 +113,29 @@ def main():
     db_url = _get_sync_db_url()
     engine = create_engine(db_url, pool_pre_ping=True)
 
-    started = datetime.utcnow()
+    started = datetime.now()  # local wall clock for elapsed (ok)
     logger.info("▶️ intraday snapshot job started")
 
     with engine.begin() as conn:
-        # 1) market snapshot
+        # market: with now() ts, conflict is extremely unlikely.
+        # (we still don't add ON CONFLICT for ts because ts is unique by nature;
+        #  if you want absolute safety, we can add ON CONFLICT(ts) DO NOTHING)
         r1 = conn.execute(text(SQL_INSERT_MARKET))
-        # 2) sector snapshots
+
+        # sector: uses PK(ts, sector_key) so conflict-safe
         r2 = conn.execute(text(SQL_INSERT_SECTOR))
 
-    logger.info("✅ intraday snapshot job done. market_inserted=%s sector_inserted=%s elapsed=%.2fs",
-                getattr(r1, "rowcount", None),
-                getattr(r2, "rowcount", None),
-                (datetime.utcnow() - started).total_seconds())
+        # Optional: report the "current" snapshot ts as seen by DB (for debug)
+        snap_ts = conn.execute(text("SELECT now()")).scalar()
+
+    elapsed = (datetime.now() - started).total_seconds()
+    logger.info(
+        "✅ intraday snapshot job done. market_inserted=%s sector_inserted=%s db_now=%s elapsed=%.2fs",
+        getattr(r1, "rowcount", None),
+        getattr(r2, "rowcount", None),
+        snap_ts,
+        elapsed,
+    )
 
 
 if __name__ == "__main__":
