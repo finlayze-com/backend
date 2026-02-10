@@ -69,6 +69,7 @@ except Exception:
 
 # Live tasks (you asked to run by file: python cron_jobs/livedata/run_live_*.py)
 LIVE_TASKS: List[Tuple[str, Path]] = [
+    ("refresh_live_mvs",    PROJECT_ROOT / "cron_jobs" / "livedata" / "run_refresh_live_mvs.py"),
     ("live_saver",     PROJECT_ROOT / "cron_jobs" / "livedata" / "run_live_saver.py"),
     ("live_orderbool", PROJECT_ROOT / "cron_jobs" / "livedata" / "run_live_orderbool.py"),
     ("intraday_snapshots",  PROJECT_ROOT / "cron_jobs" / "livedata" / "run_intraday_snapshots.py"),
@@ -296,6 +297,26 @@ def schedule_queue_flow_after_15(sched: BlockingScheduler):
     )
     logger.info("⏰ [queue_flow_after_15] scheduled @ 15:00 ({})".format(DOW_STR))
 
+def schedule_daily_mv_refresh_after_close(sched: BlockingScheduler):
+    """
+    Refresh non-live MVs once a day after market close.
+    (Sat..Wed) @ 13:15 Asia/Tehran
+    """
+    refresh_path = PROJECT_ROOT / "cron_jobs" / "daily" / "run_refresh_daily_mvs.py"
+    job_fn = _make_file_task("refresh_daily_mvs", refresh_path)
+
+    sched.add_job(
+        job_fn,
+        CronTrigger(hour=13, minute=15, day_of_week=DOW_STR, timezone=APP_TZ),
+        id="refresh_daily_mvs_1315",
+        replace_existing=True,
+        misfire_grace_time=30 * 60,
+        max_instances=1,
+        coalesce=True,
+    )
+    logger.info("⏰ [refresh_daily_mvs] scheduled @ 13:15 ({})".format(DOW_STR))
+
+
 # ======================================================================================
 # Main
 # ======================================================================================
@@ -325,7 +346,7 @@ def main():
     schedule_live_minutely_window(sched)
     # Queue flow from 15:00 (replaces old nightly 21:00)
     schedule_queue_flow_after_15(sched)
-
+    schedule_daily_mv_refresh_after_close(sched)
     # 5) handle signals for graceful shutdown
     def _graceful(signum, frame):
         logger.info(f"🛑 Caught signal {signum}; shutting down scheduler...")
