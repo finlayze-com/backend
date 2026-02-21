@@ -3,15 +3,11 @@
 Revision ID: 33f4266ac023
 Revises: 4296e7cb75c4
 Create Date: 2026-02-08 08:19:54.218818
-
 """
 from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 
-
-# revision identifiers, used by Alembic.
 revision: str = '33f4266ac023'
 down_revision: Union[str, Sequence[str], None] = '4296e7cb75c4'
 branch_labels: Union[str, Sequence[str], None] = None
@@ -20,69 +16,84 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     # 1) ساخت MV
-    op.execute("""
+    op.execute(r"""
     CREATE MATERIALIZED VIEW IF NOT EXISTS public.mv_orderbook_report AS
     WITH
     /* ----------------------------
-      0) ETF mapping از symboldetail (مثل قبل)
+      0) ETF mapping از symboldetail (با منطق جدید)
     -----------------------------*/
     sym_etf_raw AS (
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower("stock_ticker")), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
-        COALESCE(NULLIF(trim("subsector"), ''), 'other') AS subsector_raw
+        NULLIF(trim("subsector"), '') AS subsector_raw,
+        NULLIF(trim("instrument_type"), '') AS instrument_type
       FROM public.symboldetail
       WHERE "sector" = 'صندوق سرمايه گذاري قابل معامله'
         AND "market" <> 'بازار مشتقه'
     ),
+
     sym_etf_norm AS (
       SELECT
         ticker_key,
+        instrument_type,
         regexp_replace(
           regexp_replace(
-            replace(replace(replace(trim(lower(subsector_raw)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-            '\\s*:\\s*', ' : ', 'g'
+            replace(replace(replace(trim(lower(COALESCE(subsector_raw, ''))), 'ي','ی'),'ك','ک'), chr(8204), ''),
+            '\s*:\s*', ' : ', 'g'
           ),
-          '\\s+', ' ', 'g'
+          '\s+', ' ', 'g'
         ) AS subsector_clean
       FROM sym_etf_raw
     ),
+
     sym_etf AS (
       SELECT
         ticker_key,
         CASE
+          -- ✅ اگر subsector خالی بود ولی instrument_type مشخص بود
+          WHEN (subsector_clean IS NULL OR trim(subsector_clean) = '')
+               AND instrument_type = 'fund_gold'
+            THEN 'طلا'
+          WHEN (subsector_clean IS NULL OR trim(subsector_clean) = '')
+               AND instrument_type = 'fund_zafran'
+            THEN 'زعفران'
+
+          -- ✅ املاک و مستغلات
+          WHEN subsector_clean ILIKE '%املاک%' AND subsector_clean ILIKE '%مستغلات%'
+            THEN 'املاک و مستغلات'
+
+          -- ✅ سهامی شاخصی (قبل از سهامی)
+          WHEN subsector_clean ILIKE '%سهام%' AND subsector_clean ILIKE '%شاخص%'
+            THEN 'سهامی شاخصی'
+          WHEN subsector_clean ILIKE '%سهامي%' AND subsector_clean ILIKE '%شاخصي%'
+            THEN 'سهامی شاخصی'
+
           WHEN subsector_clean ILIKE '%اهرم%' THEN 'اهرمـی'
           WHEN subsector_clean ILIKE '%طلا%' OR subsector_clean ILIKE '%سکه%' THEN 'طلا'
+
+          -- ✅ بخشی
+          WHEN subsector_clean ILIKE '%بخشی%' THEN 'بخشی'
+
           WHEN subsector_clean ILIKE '%درآمد ثابت%'
             OR subsector_clean ILIKE '%در امد ثابت%'
             OR subsector_clean ILIKE '%در اوراق بهادار با درآمد ثابت%'
             OR subsector_clean ILIKE '%در اوارق بهادار با درآمد ثابت%'
             OR subsector_clean ILIKE '%در اوراق بهادار با%درآمد ثابت%'
           THEN 'درآمد ثابت'
-          WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' THEN 'سهامی'
+
           WHEN subsector_clean ILIKE '%مختلط%' THEN 'مختلط'
           WHEN subsector_clean ILIKE '%کالا%' OR subsector_clean ILIKE '%commodity%' THEN 'کالایی'
+
+          WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' OR subsector_clean ILIKE '%سهامي%'
+            THEN 'سهامی'
+
           ELSE 'other'
         END AS subsector_norm
       FROM sym_etf_norm
-      GROUP BY
-        ticker_key,
-        CASE
-          WHEN subsector_clean ILIKE '%اهرم%' THEN 'اهرمـی'
-          WHEN subsector_clean ILIKE '%طلا%' OR subsector_clean ILIKE '%سکه%' THEN 'طلا'
-          WHEN subsector_clean ILIKE '%درآمد ثابت%'
-            OR subsector_clean ILIKE '%در امد ثابت%'
-            OR subsector_clean ILIKE '%در اوراق بهادار با درآمد ثابت%'
-            OR subsector_clean ILIKE '%در اوارق بهادار با درآمد ثابت%'
-            OR subsector_clean ILIKE '%در اوراق بهادار با%درآمد ثابت%'
-          THEN 'درآمد ثابت'
-          WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' THEN 'سهامی'
-          WHEN subsector_clean ILIKE '%مختلط%' THEN 'مختلط'
-          WHEN subsector_clean ILIKE '%کالا%' OR subsector_clean ILIKE '%commodity%' THEN 'کالایی'
-          ELSE 'other'
-        END
+      GROUP BY 1,2
     ),
 
     /* ----------------------------
@@ -113,7 +124,7 @@ def upgrade():
 
         regexp_replace(
           replace(replace(replace(trim(lower(o."Symbol")), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key
       FROM public.orderbook_snapshot o
       JOIN target_day td
@@ -301,7 +312,7 @@ def upgrade():
     ) x;
     """)
 
-    # 2) ایندکس‌های MV (برای REFRESH CONCURRENTLY بعداً لازم میشه)
+    # 2) ایندکس‌های MV
     op.execute("""
     CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_orderbook_report_sector
     ON public.mv_orderbook_report (sector);
@@ -317,7 +328,7 @@ def upgrade():
     ON public.mv_orderbook_report (buy_value5 DESC);
     """)
 
-    # 3) ایندکس‌های پیشنهادی روی جدول خام برای سرعت refresh
+    # 3) ایندکس‌های پیشنهادی روی جدول خام
     op.execute("""
     CREATE INDEX IF NOT EXISTS brin_orderbook_snapshot_ts
     ON public.orderbook_snapshot
@@ -336,15 +347,12 @@ def upgrade():
 
 
 def downgrade():
-    # اول ایندکس‌های MV
     op.execute("DROP INDEX IF EXISTS public.ux_mv_orderbook_report_sector;")
     op.execute("DROP INDEX IF EXISTS public.ix_mv_orderbook_report_ts;")
     op.execute("DROP INDEX IF EXISTS public.ix_mv_orderbook_report_buy_value5;")
 
-    # ایندکس‌های جدول خام (اختیاری: اگر از قبل نداشتی، dropشون منطقیه)
     op.execute("DROP INDEX IF EXISTS public.brin_orderbook_snapshot_ts;")
     op.execute("DROP INDEX IF EXISTS public.ix_orderbook_snapshot_ts_date;")
     op.execute("DROP INDEX IF EXISTS public.ix_orderbook_snapshot_day_symbol;")
 
-    # بعد خود MV
     op.execute("DROP MATERIALIZED VIEW IF EXISTS public.mv_orderbook_report;")

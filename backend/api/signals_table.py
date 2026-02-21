@@ -35,7 +35,7 @@ class IndiEnum(str, Enum):
     macd = "macd"
     rsi = "rsi"
     ema = "ema"
-
+    ichimoku = "ichimoku"
 
 # ---------- Utils ----------
 async def get_existing_cols(db: AsyncSession, table: str) -> set:
@@ -317,6 +317,10 @@ async def signals_table(
             where_second = (
                 "WHERE (COALESCE(sig_ema_buy,0) <> 0) OR (COALESCE(sig_ema_sell,0) <> 0) "
                 "   OR (COALESCE(sig_ema50100_buy,0) <> 0) OR (COALESCE(sig_ema50100_sell,0) <> 0)"
+            )
+        elif indicator == IndiEnum.ichimoku:
+            where_second = (
+                "WHERE (COALESCE(sig_ich_buy,0) <> 0) OR (COALESCE(sig_ich_sell,0) <> 0)"
             )
 
     # 14) SELECT نهایی

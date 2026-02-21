@@ -20,8 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 # -*- coding: utf-8 -*-
 
 def upgrade():
-    # 1) MV
-    op.execute("""
+    op.execute(r"""
     DROP MATERIALIZED VIEW IF EXISTS mv_live_sector_report;
     CREATE MATERIALIZED VIEW mv_live_sector_report AS
     WITH latest_live AS (
@@ -38,7 +37,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -50,7 +49,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -62,7 +61,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -74,7 +73,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -86,7 +85,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -98,7 +97,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -110,7 +109,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -122,7 +121,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -134,7 +133,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -146,7 +145,7 @@ def upgrade():
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower(stock_ticker)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
         close::numeric AS close,
         date_miladi::date AS d
@@ -163,13 +162,15 @@ def upgrade():
       ORDER BY ticker_key, d DESC
     ),
 
+    -- ✅ اینجا subsector خالی را به other تبدیل نمی‌کنیم
     sym_etf_raw AS (
       SELECT
         regexp_replace(
           replace(replace(replace(trim(lower("stock_ticker")), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key,
-        COALESCE(NULLIF(trim("subsector"), ''), 'other') AS subsector_raw
+        NULLIF(trim("subsector"), '') AS subsector_raw,
+        NULLIF(trim("instrument_type"), '') AS instrument_type
       FROM public.symboldetail
       WHERE "sector" = 'صندوق سرمايه گذاري قابل معامله'
         AND "market" <> 'بازار مشتقه'
@@ -178,12 +179,14 @@ def upgrade():
     sym_etf_norm AS (
       SELECT
         ticker_key,
+        instrument_type,
+        -- اگر subsector خالی بود، یک رشته خالی می‌گذاریم تا نرمال‌سازی خراب نشود
         regexp_replace(
           regexp_replace(
-            replace(replace(replace(trim(lower(subsector_raw)), 'ي','ی'),'ك','ک'), chr(8204), ''),
-            '\\s*:\\s*', ' : ', 'g'
+            replace(replace(replace(trim(lower(COALESCE(subsector_raw, ''))), 'ي','ی'),'ك','ک'), chr(8204), ''),
+            '\s*:\s*', ' : ', 'g'
           ),
-          '\\s+', ' ', 'g'
+          '\s+', ' ', 'g'
         ) AS subsector_clean
       FROM sym_etf_raw
     ),
@@ -192,42 +195,51 @@ def upgrade():
       SELECT
         ticker_key,
         CASE
+          -- ✅ شرط‌های instrument_type وقتی subsector خالی است
+          WHEN (subsector_clean IS NULL OR trim(subsector_clean) = '')
+               AND instrument_type = 'fund_gold'
+            THEN 'طلا'
+          WHEN (subsector_clean IS NULL OR trim(subsector_clean) = '')
+               AND instrument_type = 'fund_zafran'
+            THEN 'زعفران'
+
+          -- ✅ املاک و مستغلات (متن دقیق شما)
+          WHEN subsector_clean ILIKE '%املاک%' AND subsector_clean ILIKE '%مستغلات%'
+            THEN 'املاک و مستغلات'
+
+          -- ✅ سهامی شاخصی باید قبل از سهامی بیاید تا داخل سهامی نیفتد
+          WHEN subsector_clean ILIKE '%سهام%' AND subsector_clean ILIKE '%شاخص%'
+            THEN 'سهامی شاخصی'
+          WHEN subsector_clean ILIKE '%سهامي%' AND subsector_clean ILIKE '%شاخصي%'
+            THEN 'سهامی شاخصی'
+
           WHEN subsector_clean ILIKE '%اهرم%' THEN 'اهرمـی'
           WHEN subsector_clean ILIKE '%طلا%' OR subsector_clean ILIKE '%سکه%' THEN 'طلا'
+
+          WHEN subsector_clean ILIKE '%بخشی%' THEN 'بخشی'
+
           WHEN subsector_clean ILIKE '%درآمد ثابت%'
             OR subsector_clean ILIKE '%در امد ثابت%'
             OR subsector_clean ILIKE '%در اوراق بهادار با درآمد ثابت%'
             OR subsector_clean ILIKE '%در اوارق بهادار با درآمد ثابت%'
             OR subsector_clean ILIKE '%در اوراق بهادار با%درآمد ثابت%'
           THEN 'درآمد ثابت'
-          WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' THEN 'سهامی'
+
+          WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' OR subsector_clean ILIKE '%سهامي%'
+            THEN 'سهامی'
           WHEN subsector_clean ILIKE '%مختلط%' THEN 'مختلط'
           WHEN subsector_clean ILIKE '%کالا%' OR subsector_clean ILIKE '%commodity%' THEN 'کالایی'
           ELSE 'other'
         END AS subsector_norm
       FROM sym_etf_norm
-      GROUP BY ticker_key,
-               CASE
-                 WHEN subsector_clean ILIKE '%اهرم%' THEN 'اهرمـی'
-                 WHEN subsector_clean ILIKE '%طلا%' OR subsector_clean ILIKE '%سکه%' THEN 'طلا'
-                 WHEN subsector_clean ILIKE '%درآمد ثابت%'
-                   OR subsector_clean ILIKE '%در امد ثابت%'
-                   OR subsector_clean ILIKE '%در اوراق بهادار با درآمد ثابت%'
-                   OR subsector_clean ILIKE '%در اوارق بهادار با درآمد ثابت%'
-                   OR subsector_clean ILIKE '%در اوراق بهادار با%درآمد ثابت%'
-                 THEN 'درآمد ثابت'
-                 WHEN subsector_clean ILIKE '%سهام%' OR subsector_clean ILIKE '%سهامی%' THEN 'سهامی'
-                 WHEN subsector_clean ILIKE '%مختلط%' THEN 'مختلط'
-                 WHEN subsector_clean ILIKE '%کالا%' OR subsector_clean ILIKE '%commodity%' THEN 'کالایی'
-                 ELSE 'other'
-               END
+      GROUP BY 1, 2
     ),
 
     base AS (
       SELECT
         l."Download" AS ts,
         l."Ticker"   AS stock_ticker,
-        l."Sector"   AS sector,
+        COALESCE(NULLIF(trim(l."Sector"), ''), 'unknown') AS sector,
 
         COALESCE(l."Value",  0)::numeric  AS value,
         COALESCE(l."Volume", 0)::numeric  AS volume,
@@ -240,7 +252,7 @@ def upgrade():
 
         regexp_replace(
           replace(replace(replace(trim(lower(l."Ticker")), 'ي','ی'),'ك','ک'), chr(8204), ''),
-          '\\s+','', 'g'
+          '\s+','', 'g'
         ) AS ticker_key
 
       FROM live_market_data l
@@ -252,7 +264,11 @@ def upgrade():
       SELECT
         b.*,
         d.prev_close,
-        se.subsector_norm AS etf_subsector
+        CASE
+          WHEN b.sector = 'صندوق سرمایه گذاری قابل معامله'
+            THEN COALESCE(se.subsector_norm, 'other')
+          ELSE NULL
+        END AS etf_subsector
       FROM base b
       LEFT JOIN daily_last_close d
         ON d.ticker_key = b.ticker_key
@@ -266,8 +282,8 @@ def upgrade():
         'sector'::text AS level,
 
         CASE
-          WHEN etf_subsector IS NOT NULL
-            THEN 'صندوق سرمایه گذاری قابل معامله | ' || etf_subsector
+          WHEN sector = 'صندوق سرمایه گذاری قابل معامله'
+            THEN 'صندوق سرمایه گذاری قابل معامله | ' || COALESCE(etf_subsector, 'other')
           ELSE sector
         END AS key,
 
@@ -298,8 +314,8 @@ def upgrade():
       GROUP BY
         ts,
         CASE
-          WHEN etf_subsector IS NOT NULL
-            THEN 'صندوق سرمایه گذاری قابل معامله | ' || etf_subsector
+          WHEN sector = 'صندوق سرمایه گذاری قابل معامله'
+            THEN 'صندوق سرمایه گذاری قابل معامله | ' || COALESCE(etf_subsector, 'other')
           ELSE sector
         END
     ),
@@ -357,7 +373,6 @@ def upgrade():
     FROM unioned;
     """)
 
-    # 2) Indexes (برای سرعت query و برای refresh concurrently)
     op.execute("""
     CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_live_sector_report_ts_level_key
       ON mv_live_sector_report (ts, level, key);
@@ -386,4 +401,3 @@ def upgrade():
 
 def downgrade():
     op.execute("""DROP MATERIALIZED VIEW IF EXISTS mv_live_sector_report;""")
-
