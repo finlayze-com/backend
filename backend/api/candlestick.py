@@ -8,6 +8,8 @@ from backend.users.dependencies import require_permissions
 from backend.utils.response import create_response
 from backend.utils.logger import logger
 
+import math  # ✅ اضافه شد
+
 router = APIRouter(tags=["📈 Candlestick"])
 
 class Timeframe(str, Enum):
@@ -17,6 +19,20 @@ class Timeframe(str, Enum):
 class Currency(str, Enum):
     rial = "rial"
     dollar = "dollar"
+
+
+# ✅ اضافه شد: تبدیل امن به float (جلوگیری از NaN/Inf برای JSON)
+def safe_float(x, default=0.0) -> float:
+    if x is None:
+        return default
+    try:
+        v = float(x)
+    except Exception:
+        return default
+    if math.isnan(v) or math.isinf(v):
+        return default
+    return v
+
 
 @router.get("/candlestick/rawdata", summary="خامِ دیتای کندل برای ECharts")
 async def get_rawdata_for_echarts(
@@ -67,11 +83,11 @@ async def get_rawdata_for_echarts(
             # تاریخ را به "YYYY/MM/DD" تبدیل کنیم
             ds = d.strftime("%Y/%m/%d") if hasattr(d, "strftime") else str(d)
             raw.append([ds,
-                        float(r["open"] or 0),
-                        float(r["close"] or 0),
-                        float(r["low"] or 0),
-                        float(r["high"] or 0),
-                        float(r["volume"] or 0)])
+                        safe_float(r["open"]),    # ✅ تغییر شد
+                        safe_float(r["close"]),   # ✅ تغییر شد
+                        safe_float(r["low"]),     # ✅ تغییر شد
+                        safe_float(r["high"]),    # ✅ تغییر شد
+                        safe_float(r["volume"])]) # ✅ تغییر شد
 
         logger.info(f"[Candlestick] {stock=} {timeframe=} {currency=} rows={len(raw)}")
         return create_response(200, "دادهٔ کندل با موفقیت برگردانده شد", raw)
