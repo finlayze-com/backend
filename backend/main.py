@@ -23,6 +23,7 @@ from backend.api import ceiling
 from backend.api import indicator_report
 from backend.api import signals_table
 from backend.api import queues_visual
+from backend.api.commentary import router as commentary_router
 from cron_jobs.daily import capital_increase
 
 
@@ -114,7 +115,7 @@ app.include_router(ceiling.router, prefix="/api")  # ✅
 
 app.include_router(indicator_report.router, prefix="/api")
 
-
+app.include_router(commentary_router)
 app.include_router(inscodeid.router, prefix="/inscodeid")
 
 app.include_router(queues_visual.router, prefix="/Safkharid")
