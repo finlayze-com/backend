@@ -19,24 +19,39 @@ from backend.commentary.schemas import (
     Mode,
     NarrativeBundle,
     NarrativeItem,
+    NarrativeSection,
     SignalsBundle,
 )
 
-from backend.commentary.signals import build_signals  # your file :contentReference[oaicite:2]{index=2}
-from backend.commentary.narrative import build_narrative  # your file :contentReference[oaicite:3]{index=3}
+from backend.commentary.signals import build_signals
+from backend.commentary.narrative import build_narrative
 
 
 def _to_narrative_bundle(n: Dict[str, Any]) -> NarrativeBundle:
-    def conv(items):
+    def conv_items(items):
         out = []
         for it in items or []:
             out.append(NarrativeItem(**it))
         return out
 
+    def conv_sections(sections):
+        out = []
+        for s in sections or []:
+            out.append(NarrativeSection(
+                id=s.get("id", ""),
+                title=s.get("title", ""),
+                text=s.get("text", "") or "",
+                bullets=conv_items(s.get("bullets") or []),
+                locks=list(s.get("locks") or []),
+                cta=s.get("cta"),
+            ))
+        return out
+
     return NarrativeBundle(
-        headline=conv(n.get("headline")),
-        bullets=conv(n.get("bullets")),
-        paragraphs=conv(n.get("paragraphs")),
+        sections=conv_sections(n.get("sections") or []),
+        headline=conv_items(n.get("headline")),
+        bullets=conv_items(n.get("bullets")),
+        paragraphs=conv_items(n.get("paragraphs")),
     )
 
 
@@ -64,18 +79,13 @@ async def compose_commentary(
     signals_raw = build_signals(facts_raw)
 
     # 3) (optional) LLM override layer (future)
-    # - simplest strategy:
-    #   if llm_override contains "signals", deep-merge onto signals_raw
-    #   if llm_override contains "narrative", use that instead of build_narrative output
-    # فعلاً بدون merge پیچیده، فقط passthrough
     effective_signals = signals_raw
     if llm_override and isinstance(llm_override.get("signals"), dict):
-        # shallow merge (safe minimal). later you can implement deep merge.
         merged = dict(signals_raw)
         merged.update(llm_override["signals"])
         effective_signals = merged
 
-    # 4) narrative (layered: public/pro × headline/bullets/paragraphs)
+    # 4) narrative (layered: public/pro × audience)
     meta = {
         "asof": {
             "daily_date": (facts_raw.get("daily", {}).get("asof", {}) or {}).get("date_miladi"),
