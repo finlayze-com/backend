@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Literal, Tuple
-from datetime import datetime
+import re
+from typing import Any, Dict, List, Optional, Literal
 
 
 Mode = Literal["public", "pro"]
@@ -13,7 +12,7 @@ Audience = Literal["headline", "bullets", "paragraphs", "all"]
 
 
 # ----------------------------
-# Helpers: formatting
+# Helpers: safe casts / formatting
 # ----------------------------
 
 def _safe_float(x: Any) -> Optional[float]:
@@ -24,6 +23,7 @@ def _safe_float(x: Any) -> Optional[float]:
     except Exception:
         return None
 
+
 def _safe_int(x: Any) -> Optional[int]:
     try:
         if x is None:
@@ -32,6 +32,7 @@ def _safe_int(x: Any) -> Optional[int]:
     except Exception:
         return None
 
+
 def _pct(x: Optional[float], digits: int = 2) -> Optional[str]:
     if x is None:
         return None
@@ -39,6 +40,7 @@ def _pct(x: Optional[float], digits: int = 2) -> Optional[str]:
         return f"{x:.{digits}f}%"
     except Exception:
         return None
+
 
 def _fmt_num(x: Optional[float], digits: int = 0) -> Optional[str]:
     if x is None:
@@ -50,23 +52,12 @@ def _fmt_num(x: Optional[float], digits: int = 0) -> Optional[str]:
     except Exception:
         return None
 
+
 def _fmt_money_rial(x: Optional[int]) -> Optional[str]:
-    """
-    نمایش ریالی خوانا. (مثلا 12,345,678,900,000)
-    اگر دوست داشتی می‌تونی بعداً تبدیل به میلیارد/همت هم بدی.
-    """
     if x is None:
         return None
     return f"{x:,} ریال"
 
-def _sign_label(x: Optional[float]) -> Optional[str]:
-    if x is None:
-        return None
-    if x > 0:
-        return "مثبت"
-    if x < 0:
-        return "منفی"
-    return "خنثی"
 
 def _join_top(items: List[Dict[str, Any]], key_name: str = "sector", n: int = 3) -> str:
     xs = []
@@ -75,6 +66,7 @@ def _join_top(items: List[Dict[str, Any]], key_name: str = "sector", n: int = 3)
         if v:
             xs.append(str(v))
     return "، ".join(xs)
+
 
 def _evidence(*paths: str) -> List[str]:
     return [p for p in paths if p]
@@ -101,7 +93,294 @@ def _item(
 
 
 # ----------------------------
-# Core: public/pro generation
+# Landing guest sections order
+# ----------------------------
+
+SECTION_ORDER_GUEST = [
+    ("header", "خلاصه لحظه‌ای"),
+    ("market_overview", "وضعیت کلی بازار"),
+    ("active_sectors", "صنایع فعال"),
+    ("orderbook", "جریان سفارشات"),
+    ("anomalies", "هشدارهای مهم"),
+    ("real_legal", "رفتار حقیقی/حقوقی"),
+    ("history_compare", "مقایسه با گذشته"),
+    ("morning_story", "روایت صبح تا الان"),
+]
+
+
+# ----------------------------
+# Enforcement helpers (standards)
+# ----------------------------
+
+_SENT_SPLIT_RE = re.compile(r'(?<=[\.\!\؟\?])\s+')
+
+
+def _cap_lines(text: str, max_lines: int = 2) -> str:
+    if not text:
+        return ""
+    lines = [ln.strip() for ln in str(text).splitlines() if ln.strip()]
+    return "\n".join(lines[:max_lines]).strip()
+
+
+def _cap_sentences(text: str, max_sentences: int = 2) -> str:
+    if not text:
+        return ""
+    s = " ".join(str(text).strip().split())
+    parts = [p.strip() for p in _SENT_SPLIT_RE.split(s) if p.strip()]
+    if not parts:
+        return s
+    return " ".join(parts[:max_sentences]).strip()
+
+
+def _ensure_bullet_bounds(bullets: List[Dict[str, Any]], max_n: int = 4) -> List[Dict[str, Any]]:
+    b = bullets or []
+    if len(b) > max_n:
+        b = b[:max_n]
+    return b
+
+
+def _fallback(section_id: str) -> str:
+    mapping = {
+        "header": "خلاصه لحظه‌ای آماده نیست.",
+        "market_overview": "اطلاعات کافی برای جمع‌بندی وضعیت کلی بازار موجود نیست.",
+        "active_sectors": "اطلاعات کافی برای تعیین صنایع فعال موجود نیست.",
+        "orderbook": "اطلاعات کافی برای تحلیل جریان سفارشات موجود نیست.",
+        "anomalies": "هشدار خاصی در این لحظه ثبت نشده است.",
+        "real_legal": "اطلاعات کافی برای جمع‌بندی رفتار حقیقی/حقوقی موجود نیست.",
+        "history_compare": "اطلاعات کافی برای مقایسه با گذشته موجود نیست.",
+        "morning_story": "اطلاعات کافی برای روایت زمانی صبح تا الان موجود نیست.",
+    }
+    return mapping.get(section_id, "اطلاعات کافی نیست.")
+
+
+def _enforce_section(
+    section: Dict[str, Any],
+    *,
+    section_id: str,
+    is_header: bool,
+    max_bullets: int,
+) -> Dict[str, Any]:
+    section["id"] = section.get("id") or section_id
+    section["title"] = section.get("title") or ""
+    section["text"] = section.get("text") or ""
+    section["bullets"] = section.get("bullets") or []
+    section["locks"] = section.get("locks") or []
+    # section["cta"] can be None or dict
+
+    if is_header:
+        section["text"] = _cap_lines(section["text"], max_lines=2)
+    else:
+        section["text"] = _cap_sentences(section["text"], max_sentences=2)
+
+    if not section["text"].strip():
+        section["text"] = _fallback(section_id)
+
+    section["bullets"] = _ensure_bullet_bounds(section["bullets"], max_n=max_bullets)
+
+    return section
+
+
+# ----------------------------
+# Pick helpers for bullets/anomalies from old lists
+# ----------------------------
+
+def _first_text(items: List[Dict[str, Any]]) -> str:
+    for it in items or []:
+        t = (it or {}).get("text")
+        if t:
+            return str(t)
+    return ""
+
+
+def _pick_by_tag(items: List[Dict[str, Any]], any_tags: List[str], max_n: int) -> List[Dict[str, Any]]:
+    out = []
+    tags_set = set(any_tags or [])
+    for it in items or []:
+        itags = set((it or {}).get("tags") or [])
+        if itags & tags_set:
+            out.append(it)
+        if len(out) >= max_n:
+            break
+    return out
+
+
+def _anomaly_items(anoms: List[Dict[str, Any]], max_n: int = 3) -> List[Dict[str, Any]]:
+    out = []
+    for a in (anoms or [])[:max_n]:
+        txt = a.get("text") or a.get("message") or a.get("code")
+        if not txt:
+            continue
+        out.append(_item(
+            str(txt),
+            evidence_refs=a.get("evidence_refs") or _evidence("signals.anomalies"),
+            confidence=0.65 if a.get("severity") == "warn" else 0.70,
+            tags=["anomaly"],
+            severity=a.get("severity") or "warn",
+        ))
+    return out
+
+
+# ----------------------------
+# CTA consolidation
+# ----------------------------
+
+def _cta_upgrade(message: str, target: str = "pro") -> Dict[str, Any]:
+    return {
+        "placement": "after_section",
+        "message": message,
+        "action": "upgrade",
+        "target": target,
+    }
+
+
+def _public_cta_after_anomalies() -> Dict[str, Any]:
+    return _cta_upgrade(
+        "می‌خواهید دقیقاً بدانید پول امروز «به کدام نمادها» رفته و چرخش بین صنایع در چه بازه‌ای اتفاق افتاده؟ نسخه حرفه‌ای این جزئیات را نشان می‌دهد.",
+        target="pro",
+    )
+
+
+def _public_cta_end_of_page() -> Dict[str, Any]:
+    return _cta_upgrade(
+        "نسخه حرفه‌ای: گزارش صنعت‌به‌صنعت + سهم‌به‌سهم، Z-score غیرعادی‌ها، و روایت دقیق فازهای صبح تا الان.",
+        target="pro",
+    )
+
+
+# ----------------------------
+# Build sections (new narrative output)
+# ----------------------------
+
+def _build_sections(
+    *,
+    mode: Mode,
+    headline_items: List[Dict[str, Any]],
+    bullet_items: List[Dict[str, Any]],
+    paragraph_items: List[Dict[str, Any]],
+    signals: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    ms = (signals or {}).get("market_state", {}) or {}
+    leaders = (signals or {}).get("leaders", {}) or {}
+    anomalies = (signals or {}).get("anomalies", []) or []
+
+    # --- SECTION payloads (raw)
+    sec_map: Dict[str, Dict[str, Any]] = {}
+
+    # 1) Header (2 lines)
+    header_lines = [it.get("text") for it in (headline_items or [])[:2] if it.get("text")]
+    header_text = "\n".join(header_lines).strip()
+    sec_map["header"] = {"text": header_text, "bullets": [], "locks": [], "cta": None}
+
+    # 2) Market overview
+    mo_text = _first_text(paragraph_items[:1]) or _first_text(headline_items[:1])
+    mo_bullets = _pick_by_tag(bullet_items, ["breadth", "flow", "intraday"], max_n=4)
+    sec_map["market_overview"] = {"text": mo_text, "bullets": mo_bullets, "locks": [], "cta": None}
+
+    # 3) Active sectors
+    money_in_top = leaders.get("money_in_top") or []
+    rs_top = leaders.get("rs20_top") or []
+    if money_in_top:
+        active_text = f"تا این لحظه، تمرکز جریان پول حقیقی بیشتر روی: {_join_top(money_in_top, 'sector', 3)}."
+    elif rs_top:
+        active_text = f"در نمای کوتاه‌مدت، گروه‌های قوی‌تر: {_join_top(rs_top, 'sector', 3)}."
+    else:
+        active_text = ""
+
+    active_bullets = _pick_by_tag(bullet_items, ["rs", "daily", "flow"], max_n=4) or (bullet_items or [])[:2]
+    sec_map["active_sectors"] = {
+        "text": active_text,
+        "bullets": active_bullets,
+        "locks": ["symbol_level_flow", "intraday_rotation"] if mode == "public" else [],
+        "cta": None,
+    }
+
+    # 4) Orderbook
+    ob_text = "از نگاه دفتر سفارشات، نشانه‌های فشار خرید/فروش بررسی شد."
+    ob_bullets = _pick_by_tag(bullet_items, ["orderbook"], max_n=4)
+    if not ob_bullets:
+        ob = (ms.get("orderbook") or {})
+        st = ob.get("state")
+        if st:
+            ob_bullets = [_item(
+                f"وضعیت کلی دفتر سفارش‌ها: «{st}».",
+                evidence_refs=_evidence("signals.market_state.orderbook.state"),
+                confidence=0.70,
+                tags=["orderbook", "intraday"],
+            )]
+    sec_map["orderbook"] = {
+        "text": ob_text,
+        "bullets": ob_bullets,
+        "locks": ["orderbook_microstructure", "spread_details"] if mode == "public" else [],
+        "cta": None,
+    }
+
+    # 5) Anomalies
+    an_bullets = _anomaly_items(anomalies, max_n=3)
+    sec_map["anomalies"] = {
+        "text": "هشدارهای کوتاه (در صورت وجود واگرایی بین سیگنال‌ها):" if an_bullets else "",
+        "bullets": an_bullets,
+        "locks": ["anomaly_pro"] if mode == "public" else [],
+        "cta": _public_cta_after_anomalies() if mode == "public" else None,  # ✅ CTA 1 (consolidated)
+    }
+
+    # 6) Real/Legal
+    nrv = _safe_int(((ms.get("flow") or {}).get("net_real_value")))
+    if nrv is None:
+        real_txt = ""
+    else:
+        real_txt = f"در جمع‌بندی، حقیقی‌ها در این لحظه {'خریدار' if nrv>0 else 'فروشنده' if nrv<0 else 'خنثی'} هستند."
+    rl_bullets = _pick_by_tag(bullet_items, ["flow"], max_n=3)
+    sec_map["real_legal"] = {
+        "text": real_txt,
+        "bullets": rl_bullets,
+        "locks": ["real_legal_by_sector", "real_legal_by_symbol"] if mode == "public" else [],
+        "cta": None,
+    }
+
+    # 7) History compare (RS + baseline)
+    hc_text = _first_text(paragraph_items[1:2]) or "برای مقایسه با گذشته، به رهبران/عقب‌مانده‌ها و غیرعادی بودن نسبت به میانگین‌های تاریخی نگاه می‌کنیم."
+    hc_bullets = _pick_by_tag(bullet_items, ["rs", "daily"], max_n=4)
+    sec_map["history_compare"] = {
+        "text": hc_text,
+        "bullets": hc_bullets,
+        "locks": ["baseline_zscores", "rs_5_20_60_full"] if mode == "public" else [],
+        "cta": None,
+    }
+
+    # 8) Morning story
+    ms_text = _first_text(paragraph_items[2:3]) or ""
+    sec_map["morning_story"] = {
+        "text": ms_text,
+        "bullets": [],
+        "locks": ["intraday_timeline", "rotation_story"] if mode == "public" else [],
+        "cta": _public_cta_end_of_page() if mode == "public" else None,  # ✅ CTA 2 (consolidated)
+    }
+
+    # --- Emit ordered + enforce standards
+    sections: List[Dict[str, Any]] = []
+    for sid, title in SECTION_ORDER_GUEST:
+        raw = sec_map.get(sid) or {"text": "", "bullets": [], "locks": [], "cta": None}
+        sec = {
+            "id": sid,
+            "title": title,
+            "text": raw.get("text") or "",
+            "bullets": raw.get("bullets") or [],
+            "locks": raw.get("locks") or [],
+            "cta": raw.get("cta"),
+        }
+        sec = _enforce_section(
+            sec,
+            section_id=sid,
+            is_header=(sid == "header"),
+            max_bullets=(0 if sid == "header" else 4),
+        )
+        sections.append(sec)
+
+    return sections
+
+
+# ----------------------------
+# Core: narrative builder
 # ----------------------------
 
 def build_narrative(
@@ -115,15 +394,11 @@ def build_narrative(
     """
     خروجی:
       {
-        "headline": [ {text,evidence_refs,confidence,tags,...}, ... ],
+        "sections": [ ... 8 sections ... ],
+        "headline": [ ... ],
         "bullets":  [ ... ],
         "paragraphs": [ ... ]
       }
-
-    ورودی‌ها:
-      meta: { asof: {daily_date, intraday_ts, ...}, ... }
-      facts: { daily: {...}, intraday: {...} }
-      signals: { market_state: {...}, leaders: {...}, etf: {...}, anomalies:[...] }
     """
 
     ms = (signals or {}).get("market_state", {}) or {}
@@ -134,22 +409,17 @@ def build_narrative(
     daily_date = ((meta or {}).get("asof", {}) or {}).get("daily_date")
     intraday_ts = ((meta or {}).get("asof", {}) or {}).get("intraday_ts")
 
-    # Extract common metrics (intraday-first, then daily if needed)
     breadth = (ms.get("breadth") or {})
     flow = (ms.get("flow") or {})
     orderbook = (ms.get("orderbook") or {})
 
     green_ratio = _safe_float(breadth.get("green_ratio"))
-    eqw_ret = _safe_float(ms.get("eqw_avg_ret_pct") or breadth.get("eqw_avg_ret_pct"))
-    # NOTE: خیلی از جاها eqw_avg_ret_pct داخل facts.intraday.market میاد،
-    # ولی ما ترجیح می‌دیم signals.market_state از قبل پرش کنه. اگر نکرد، در signals.py اضافه کن.
-
     net_real_value = _safe_int(flow.get("net_real_value"))
     imbalance5 = _safe_float(orderbook.get("imbalance5"))
     imbalance_state = orderbook.get("state")
 
-    regime = ms.get("regime")  # risk_on / risk_off / neutral
-    trend = ms.get("trend")    # bullish / bearish / mixed
+    regime = ms.get("regime")
+    trend = ms.get("trend")
     conf = float(ms.get("confidence", 0.65))
 
     rs_top = leaders.get("rs20_top") or []
@@ -157,19 +427,13 @@ def build_narrative(
     money_in_top = leaders.get("money_in_top") or []
     money_out_top = leaders.get("money_out_top") or []
 
-    # ETF buckets summary (expected from your mv_sector_daily_latest after you fixed it)
     etf_available = bool(etf.get("available", False))
-    etf_buckets = etf.get("buckets") or []  # list of {bucket, total_value, net_real_value, rs_20d? ...}
-
-    # ----------------------------
-    # Build layered content
-    # ----------------------------
+    etf_buckets = etf.get("buckets") or []
 
     headline_items: List[Dict[str, Any]] = []
     bullet_items: List[Dict[str, Any]] = []
     paragraph_items: List[Dict[str, Any]] = []
 
-    # 1) HEADLINES
     if mode == "public":
         headline_items.extend(_public_headlines(
             daily_date=daily_date,
@@ -181,21 +445,6 @@ def build_narrative(
             conf=conf,
             anomalies=anomalies,
         ))
-    else:
-        headline_items.extend(_pro_headlines(
-            daily_date=daily_date,
-            intraday_ts=intraday_ts,
-            regime=regime,
-            trend=trend,
-            green_ratio=green_ratio,
-            net_real_value=net_real_value,
-            imbalance_state=imbalance_state,
-            conf=conf,
-            anomalies=anomalies,
-        ))
-
-    # 2) BULLETS
-    if mode == "public":
         bullet_items.extend(_public_bullets(
             daily_date=daily_date,
             intraday_ts=intraday_ts,
@@ -210,26 +459,6 @@ def build_narrative(
             conf=conf,
             anomalies=anomalies,
         ))
-    else:
-        bullet_items.extend(_pro_bullets(
-            daily_date=daily_date,
-            intraday_ts=intraday_ts,
-            green_ratio=green_ratio,
-            net_real_value=net_real_value,
-            imbalance5=imbalance5,
-            imbalance_state=imbalance_state,
-            rs_top=rs_top,
-            rs_bottom=rs_bottom,
-            money_in_top=money_in_top,
-            money_out_top=money_out_top,
-            etf_available=etf_available,
-            etf_buckets=etf_buckets,
-            conf=conf,
-            anomalies=anomalies,
-        ))
-
-    # 3) PARAGRAPHS (Daily + Intraday narrative composition)
-    if mode == "public":
         paragraph_items.extend(_public_paragraphs(
             daily_date=daily_date,
             intraday_ts=intraday_ts,
@@ -247,6 +476,33 @@ def build_narrative(
             anomalies=anomalies,
         ))
     else:
+        headline_items.extend(_pro_headlines(
+            daily_date=daily_date,
+            intraday_ts=intraday_ts,
+            regime=regime,
+            trend=trend,
+            green_ratio=green_ratio,
+            net_real_value=net_real_value,
+            imbalance_state=imbalance_state,
+            conf=conf,
+            anomalies=anomalies,
+        ))
+        bullet_items.extend(_pro_bullets(
+            daily_date=daily_date,
+            intraday_ts=intraday_ts,
+            green_ratio=green_ratio,
+            net_real_value=net_real_value,
+            imbalance5=imbalance5,
+            imbalance_state=imbalance_state,
+            rs_top=rs_top,
+            rs_bottom=rs_bottom,
+            money_in_top=money_in_top,
+            money_out_top=money_out_top,
+            etf_available=etf_available,
+            etf_buckets=etf_buckets,
+            conf=conf,
+            anomalies=anomalies,
+        ))
         paragraph_items.extend(_pro_paragraphs(
             daily_date=daily_date,
             intraday_ts=intraday_ts,
@@ -266,20 +522,31 @@ def build_narrative(
             anomalies=anomalies,
         ))
 
-    # Audience filter
-    out = {
-        "headline": headline_items,
-        "bullets": bullet_items,
-        "paragraphs": paragraph_items,
-    }
+    # audience filter for legacy lists
+    base = {"headline": headline_items, "bullets": bullet_items, "paragraphs": paragraph_items}
 
     if audience == "headline":
-        return {"headline": out["headline"], "bullets": [], "paragraphs": []}
-    if audience == "bullets":
-        return {"headline": out["headline"], "bullets": out["bullets"], "paragraphs": []}
-    if audience == "paragraphs":
-        return {"headline": out["headline"], "bullets": out["bullets"], "paragraphs": out["paragraphs"]}
-    return out
+        base = {"headline": base["headline"], "bullets": [], "paragraphs": []}
+    elif audience == "bullets":
+        base = {"headline": base["headline"], "bullets": base["bullets"], "paragraphs": []}
+    elif audience == "paragraphs":
+        base = {"headline": base["headline"], "bullets": base["bullets"], "paragraphs": base["paragraphs"]}
+
+    # ✅ sections are always generated for landing use
+    sections = _build_sections(
+        mode=mode,
+        headline_items=base["headline"],
+        bullet_items=base["bullets"],
+        paragraph_items=base["paragraphs"],
+        signals=signals or {},
+    )
+
+    return {
+        "sections": sections,
+        "headline": base["headline"],
+        "bullets": base["bullets"],
+        "paragraphs": base["paragraphs"],
+    }
 
 
 # ----------------------------
@@ -299,13 +566,13 @@ def _public_headlines(
 ) -> List[Dict[str, Any]]:
     parts = []
 
-    # primary label
     if trend == "bearish" or (green_ratio is not None and green_ratio < 0.35) or (net_real_value is not None and net_real_value < 0):
         t = "بازار امروز بیشتر متمایل به فروش بود."
     elif trend == "bullish" or (green_ratio is not None and green_ratio > 0.60) or (net_real_value is not None and net_real_value > 0):
         t = "بازار امروز بهتر از حالت عادی بود و تقاضا قوی‌تر دیده شد."
     else:
         t = "بازار امروز متعادل و نوسانی بود."
+
     parts.append(_item(
         t,
         evidence_refs=_evidence("signals.market_state"),
@@ -313,7 +580,6 @@ def _public_headlines(
         tags=["market_state", "headline"],
     ))
 
-    # add a second headline if conflict exists
     if anomalies:
         parts.append(_item(
             "برخی سیگنال‌ها هم‌جهت نیستند و ممکن است نیاز به احتیاط در برداشت داشته باشد.",
@@ -344,8 +610,9 @@ def _public_bullets(
     out: List[Dict[str, Any]] = []
 
     if green_ratio is not None:
+        pct = _pct(green_ratio * 100 if green_ratio <= 1 else green_ratio, 1) or ""
         out.append(_item(
-            f"سهم نمادهای مثبت حدود { _pct(green_ratio*100 if green_ratio<=1 else green_ratio, 1) or '' } بود.",
+            f"سهم نمادهای مثبت حدود {pct} بود.",
             evidence_refs=_evidence("signals.market_state.breadth.green_ratio"),
             confidence=0.78,
             tags=["breadth", "intraday"],
@@ -368,7 +635,6 @@ def _public_bullets(
             tags=["orderbook", "intraday"],
         ))
 
-    # RS leaders
     top_s = _join_top(rs_top, "sector", 3)
     bot_s = _join_top(rs_bottom, "sector", 3)
     if top_s:
@@ -386,9 +652,7 @@ def _public_bullets(
             tags=["rs", "daily"],
         ))
 
-    # ETF summary (public - minimal)
     if etf_available and etf_buckets:
-        # pick 2 buckets by total_value
         sorted_b = sorted(etf_buckets, key=lambda x: float(x.get("total_value") or 0), reverse=True)
         top_buckets = [b.get("bucket") for b in sorted_b[:2] if b.get("bucket")]
         if top_buckets:
@@ -408,7 +672,6 @@ def _public_bullets(
             severity="warn",
         ))
 
-    # keep bullets short
     return out[:7]
 
 
@@ -431,65 +694,46 @@ def _public_paragraphs(
 ) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
 
-    # Paragraph 1: Intraday state
     p1 = []
-    if intraday_ts:
-        p1.append("در آخرین وضعیت لحظه‌ای ثبت‌شده")
-    else:
-        p1.append("در وضعیت فعلی بازار")
+    p1.append("در آخرین وضعیت لحظه‌ای ثبت‌شده" if intraday_ts else "در وضعیت فعلی بازار")
 
     if green_ratio is not None:
-        p1.append(f"پهنای بازار ضعیف/قوی نبود و سهم مثبت‌ها حدود {_pct(green_ratio*100 if green_ratio<=1 else green_ratio, 1)} بود")
+        p1.append(f"سهم مثبت‌ها حدود {_pct(green_ratio*100 if green_ratio<=1 else green_ratio, 1)} بود")
     if net_real_value is not None:
         if net_real_value < 0:
-            p1.append("هم‌زمان خروج پول حقیقی دیده شد")
+            p1.append("و هم‌زمان خروج پول حقیقی دیده شد")
         elif net_real_value > 0:
-            p1.append("هم‌زمان ورود پول حقیقی دیده شد")
+            p1.append("و هم‌زمان ورود پول حقیقی دیده شد")
         else:
             p1.append("و جریان پول حقیقی خنثی بود")
 
     if imbalance_state:
         p1.append(f"و در دفتر سفارش‌ها نشانه‌ی «{imbalance_state}» گزارش شده است")
 
-    text1 = "، ".join([x for x in p1 if x]) + "."
     out.append(_item(
-        text1,
+        "، ".join([x for x in p1 if x]) + ".",
         evidence_refs=_evidence("signals.market_state"),
         confidence=min(0.88, max(0.55, conf)),
         tags=["paragraph", "intraday"],
     ))
 
-    # Paragraph 2: Daily context + RS
     top_s = _join_top(rs_top, "sector", 3)
     bot_s = _join_top(rs_bottom, "sector", 3)
 
     p2 = []
-    if daily_date:
-        p2.append("در جمع‌بندی روزانه")
-    else:
-        p2.append("در جمع‌بندی")
-
+    p2.append("در جمع‌بندی روزانه" if daily_date else "در جمع‌بندی")
     if top_s:
         p2.append(f"گروه‌های قوی‌تر (نسبت به بازار) شامل {top_s} بودند")
     if bot_s:
         p2.append(f"و گروه‌های ضعیف‌تر شامل {bot_s}")
 
-    if etf_available and etf_buckets:
-        # mention 1-2 interesting ETF buckets by net_real_value magnitude
-        sorted_flow = sorted(etf_buckets, key=lambda x: abs(float(x.get("net_real_value") or 0)), reverse=True)
-        b = sorted_flow[0] if sorted_flow else None
-        if b and b.get("bucket"):
-            p2.append(f"در صندوق‌های قابل معامله نیز، گروه «{b['bucket']}» از نظر جریان پول قابل توجه بوده است")
-
-    text2 = "، ".join([x for x in p2 if x]) + "."
     out.append(_item(
-        text2,
-        evidence_refs=_evidence("signals.leaders", "signals.etf"),
+        "، ".join([x for x in p2 if x]) + ".",
+        evidence_refs=_evidence("signals.leaders"),
         confidence=0.70,
         tags=["paragraph", "daily"],
     ))
 
-    # Paragraph 3: conflict note
     if anomalies:
         out.append(_item(
             "نکته: اگر سیگنال‌ها هم‌جهت نبودند، بهتر است با احتیاط تصمیم‌گیری شود و چند نوبت داده‌ی بعدی هم بررسی شود.",
@@ -503,7 +747,7 @@ def _public_paragraphs(
 
 
 # ----------------------------
-# Templates: PRO
+# Templates: PRO (same style, concise)
 # ----------------------------
 
 def _pro_headlines(
@@ -520,14 +764,9 @@ def _pro_headlines(
 ) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
 
-    # main pro headline
     regime_txt = "Risk-off" if regime == "risk_off" else "Risk-on" if regime == "risk_on" else "Neutral"
-    breadth_txt = ""
-    if green_ratio is not None:
-        breadth_txt = f"breadth={_fmt_num(green_ratio, 3)}"
-    flow_txt = ""
-    if net_real_value is not None:
-        flow_txt = f"real_flow={_fmt_money_rial(net_real_value)}"
+    breadth_txt = f"breadth={_fmt_num(green_ratio, 3)}" if green_ratio is not None else ""
+    flow_txt = f"real_flow={_fmt_money_rial(net_real_value)}" if net_real_value is not None else ""
     ob_txt = f"orderbook={imbalance_state}" if imbalance_state else ""
 
     pieces = [p for p in [regime_txt, trend, breadth_txt, flow_txt, ob_txt] if p]
@@ -593,7 +832,6 @@ def _pro_bullets(
             tags=["intraday", "orderbook", "pro"],
         ))
 
-    # RS leaders/laggards
     top_s = _join_top(rs_top, "sector", 5)
     bot_s = _join_top(rs_bottom, "sector", 5)
     if top_s:
@@ -611,7 +849,6 @@ def _pro_bullets(
             tags=["daily", "rs", "pro"],
         ))
 
-    # Money leaders
     mi = _join_top(money_in_top, "sector", 3)
     mo = _join_top(money_out_top, "sector", 3)
     if mi:
@@ -628,19 +865,6 @@ def _pro_bullets(
             confidence=0.70,
             tags=["daily", "flow", "pro"],
         ))
-
-    # ETF buckets highlight
-    if etf_available and etf_buckets:
-        # show top 3 ETF buckets by total_value
-        sorted_b = sorted(etf_buckets, key=lambda x: float(x.get("total_value") or 0), reverse=True)
-        bnames = [b.get("bucket") for b in sorted_b[:3] if b.get("bucket")]
-        if bnames:
-            out.append(_item(
-                f"ETF buckets (top by value): {', '.join(bnames)}",
-                evidence_refs=_evidence("signals.etf.buckets"),
-                confidence=0.70,
-                tags=["daily", "etf", "pro"],
-            ))
 
     if anomalies:
         out.append(_item(
@@ -675,20 +899,14 @@ def _pro_paragraphs(
 ) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
 
-    # P1: intraday regime
     p1 = []
-    if intraday_ts:
-        p1.append(f"Intraday snapshot ({intraday_ts}) نشان می‌دهد")
-    else:
-        p1.append("Intraday snapshot نشان می‌دهد")
-
+    p1.append(f"Intraday snapshot ({intraday_ts}) نشان می‌دهد" if intraday_ts else "Intraday snapshot نشان می‌دهد")
     if green_ratio is not None:
-        p1.append(f"breadth با green_ratio={_fmt_num(green_ratio, 4)} در سطح {('ضعیف' if green_ratio < 0.35 else 'متوسط' if green_ratio < 0.60 else 'قوی')} است")
+        p1.append(f"breadth با green_ratio={_fmt_num(green_ratio, 4)} است")
     if net_real_value is not None:
         p1.append(f"و real money flow برابر {_fmt_money_rial(net_real_value)} است")
     if imbalance_state:
         p1.append(f"(orderbook={imbalance_state}" + (f", imbalance5={_fmt_num(imbalance5,4)})" if imbalance5 is not None else ")"))
-
     out.append(_item(
         "؛ ".join([x for x in p1 if x]) + ".",
         evidence_refs=_evidence("signals.market_state"),
@@ -696,27 +914,21 @@ def _pro_paragraphs(
         tags=["paragraph", "intraday", "pro"],
     ))
 
-    # P2: daily structure + RS + flow leaders
     top_s = _join_top(rs_top, "sector", 4)
     bot_s = _join_top(rs_bottom, "sector", 4)
     mi = _join_top(money_in_top, "sector", 3)
     mo = _join_top(money_out_top, "sector", 3)
 
     p2 = []
-    if daily_date:
-        p2.append(f"در نمای روزانه ({daily_date})")
-    else:
-        p2.append("در نمای روزانه")
-
+    p2.append(f"در نمای روزانه ({daily_date})" if daily_date else "در نمای روزانه")
     if top_s:
         p2.append(f"RS20 leaders شامل {top_s} هستند")
     if bot_s:
         p2.append(f"و laggards شامل {bot_s}")
     if mi:
-        p2.append(f"از منظر جریان پول حقیقی، بیشترین inflow در {mi} دیده می‌شود")
+        p2.append(f"بیشترین inflow در {mi}")
     if mo:
         p2.append(f"و بیشترین outflow در {mo}")
-
     out.append(_item(
         "؛ ".join([x for x in p2 if x]) + ".",
         evidence_refs=_evidence("signals.leaders"),
@@ -724,23 +936,13 @@ def _pro_paragraphs(
         tags=["paragraph", "daily", "pro"],
     ))
 
-    # P3: ETF note + divergence note
-    p3 = []
-    if etf_available and etf_buckets:
-        sorted_b = sorted(etf_buckets, key=lambda x: float(x.get("total_value") or 0), reverse=True)
-        bnames = [b.get("bucket") for b in sorted_b[:4] if b.get("bucket")]
-        if bnames:
-            p3.append("ETF segmentation فعال است و bucketهای پرتراکنش شامل " + "، ".join(bnames) + " هستند")
     if anomalies:
-        p3.append("هم‌چنین divergence بین برخی سیگنال‌ها دیده می‌شود (احتمال اختلاف زمان برداشت داده/تفاوت بین سفارش و معامله).")
-
-    if p3:
         out.append(_item(
-            " ".join(p3),
-            evidence_refs=_evidence("signals.etf", "signals.anomalies"),
+            "هم‌چنین divergence بین برخی سیگنال‌ها دیده می‌شود (احتمال اختلاف زمان برداشت داده/تفاوت بین سفارش و معامله).",
+            evidence_refs=_evidence("signals.anomalies"),
             confidence=0.68,
-            tags=["paragraph", "etf", "anomaly", "pro"],
-            severity="warn" if anomalies else None,
+            tags=["paragraph", "anomaly", "pro"],
+            severity="warn",
         ))
 
     return out[:3]

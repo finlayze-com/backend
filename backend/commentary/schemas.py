@@ -52,7 +52,10 @@ class SignalsBundle(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict)
 
 
-# narrative.py خروجی‌اش dict شامل headline/bullets/paragraphs است
+# ----------------------------
+# Narrative models
+# ----------------------------
+
 class NarrativeItem(BaseModel):
     text: str
     evidence_refs: List[str] = Field(default_factory=list)
@@ -61,7 +64,22 @@ class NarrativeItem(BaseModel):
     severity: Optional[str] = None
 
 
+class NarrativeSection(BaseModel):
+    id: str                           # مثل: "market_overview"
+    title: str                        # مثل: "وضعیت کلی بازار"
+    text: str = ""
+    bullets: List[NarrativeItem] = Field(default_factory=list)
+
+    # برای gating/upsell
+    locks: List[str] = Field(default_factory=list)
+    cta: Optional[Dict[str, Any]] = None
+
+
 class NarrativeBundle(BaseModel):
+    # ✅ خروجی جدید (Landing / UI)
+    sections: List[NarrativeSection] = Field(default_factory=list)
+
+    # ✅ سازگاری عقب‌رو (اگر هنوز جایی استفاده می‌کنی)
     headline: List[NarrativeItem] = Field(default_factory=list)
     bullets: List[NarrativeItem] = Field(default_factory=list)
     paragraphs: List[NarrativeItem] = Field(default_factory=list)
