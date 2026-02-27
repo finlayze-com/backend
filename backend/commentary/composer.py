@@ -73,7 +73,7 @@ async def compose_commentary(
     """
 
     # 1) fetch
-    facts_raw = await fetch_facts_bundle(db, sector_snapshot_limit=sector_snapshot_limit)
+    facts_raw = await fetch_facts_bundle(db, sector_universe_limit =sector_snapshot_limit)
 
     # 2) deterministic signals
     signals_raw = build_signals(facts_raw)
