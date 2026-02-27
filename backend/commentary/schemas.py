@@ -1,20 +1,15 @@
 # backend/commentary/schemas.py
-# -*- coding: utf-8 -*-
 
 from __future__ import annotations
-
 from datetime import date, datetime
 from typing import Any, Dict, List, Literal, Optional
-
 from pydantic import BaseModel, Field
-
 
 Mode = Literal["public", "pro"]
 Audience = Literal["headline", "bullets", "paragraphs", "all"]
 
-
 # ----------------------------
-# Core blocks
+# Meta
 # ----------------------------
 
 class AsOfBlock(BaseModel):
@@ -29,17 +24,32 @@ class MetaBlock(BaseModel):
     notes: List[str] = Field(default_factory=list)
 
 
+# ----------------------------
+# Facts
+# ----------------------------
+
 class DailyFacts(BaseModel):
     asof: Dict[str, Any] = Field(default_factory=dict)
     sector_daily_latest: List[Dict[str, Any]] = Field(default_factory=list)
     sector_rs_latest: List[Dict[str, Any]] = Field(default_factory=list)
+    sector_baseline_latest: List[Dict[str, Any]] = Field(default_factory=list)
     market_daily_latest: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class IntradayFacts(BaseModel):
     asof: Dict[str, Any] = Field(default_factory=dict)
+
+    # snapshot
     market_snapshot: Dict[str, Any] = Field(default_factory=dict)
-    sector_snapshots: List[Dict[str, Any]] = Field(default_factory=list)
+    sector_rows_at_ts: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # full series (timeline ready)
+    market_series: List[Dict[str, Any]] = Field(default_factory=list)
+    sector_series: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # materialized views
+    mv_live_sector_report: Dict[str, Any] = Field(default_factory=dict)
+    mv_orderbook_report: Dict[str, Any] = Field(default_factory=dict)
 
 
 class FactsBundle(BaseModel):
@@ -47,13 +57,12 @@ class FactsBundle(BaseModel):
     intraday: IntradayFacts = Field(default_factory=IntradayFacts)
 
 
-# signals.py خروجی‌اش Dict است و بعداً ممکن است LLM آن را override کند.
 class SignalsBundle(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ----------------------------
-# Narrative models
+# Narrative
 # ----------------------------
 
 class NarrativeItem(BaseModel):
@@ -65,21 +74,16 @@ class NarrativeItem(BaseModel):
 
 
 class NarrativeSection(BaseModel):
-    id: str                           # مثل: "market_overview"
-    title: str                        # مثل: "وضعیت کلی بازار"
+    id: str
+    title: str
     text: str = ""
     bullets: List[NarrativeItem] = Field(default_factory=list)
-
-    # برای gating/upsell
     locks: List[str] = Field(default_factory=list)
     cta: Optional[Dict[str, Any]] = None
 
 
 class NarrativeBundle(BaseModel):
-    # ✅ خروجی جدید (Landing / UI)
     sections: List[NarrativeSection] = Field(default_factory=list)
-
-    # ✅ سازگاری عقب‌رو (اگر هنوز جایی استفاده می‌کنی)
     headline: List[NarrativeItem] = Field(default_factory=list)
     bullets: List[NarrativeItem] = Field(default_factory=list)
     paragraphs: List[NarrativeItem] = Field(default_factory=list)
@@ -92,6 +96,4 @@ class CommentaryResponse(BaseModel):
     facts: FactsBundle
     signals: SignalsBundle
     narrative: NarrativeBundle
-
-    # جا برای آینده (LLM / human edits / feedback loop)
     llm: Optional[Dict[str, Any]] = None
