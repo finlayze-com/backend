@@ -349,6 +349,7 @@ def upgrade():
         SUM((vol_buy_i - vol_sell_i) * last_price) AS net_legal_value
 
       FROM base2
+      WHERE sector_key_final NOT LIKE 'صندوق سرمایه گذاری قابل معامله%'
       GROUP BY ts
     ),
 
