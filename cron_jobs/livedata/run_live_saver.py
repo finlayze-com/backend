@@ -4,6 +4,8 @@ import pandas as pd
 import finpy_tse as fps
 from sqlalchemy import create_engine
 import os
+from custom_marketwatch import Get_MarketWatch
+
 os.environ["HTTP_PROXY"] = ""
 os.environ["HTTPS_PROXY"] = ""
 
@@ -27,7 +29,8 @@ def is_market_open():
 
 def save_live_market_data():
     try:
-        df, _ = fps.Get_MarketWatch()
+        #df, _ = fps.Get_MarketWatch()
+        df, _ = Get_MarketWatch()
         if isinstance(df, pd.DataFrame) and not df.empty:
             df = df.reset_index()
             df['updated_at'] = datetime.now()
